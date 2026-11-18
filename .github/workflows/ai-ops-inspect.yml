@@ -5,6 +5,12 @@ on:
     # Every 15 minutes (UTC cron; GitHub may delay a few minutes under load).
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      force_triage:
+        description: '强制跑一次 AI 诊断（用于验证预算记账，会消耗约 0.007 元）'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # only to persist state/budget + triage result in THIS repo
@@ -55,7 +61,7 @@ jobs:
   triage:
     name: DeepSeek 诊断（仅异常）
     needs: inspect
-    if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN'
+    if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN' || inputs.force_triage
     runs-on: ubuntu-latest
     timeout-minutes: 8
     # 预算锁：跨工作流串行化所有 AI 调用，避免并发写账本互相覆盖
@@ -77,8 +83,11 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python ops/triage.py --config config/ops.json --status state/latest.json \
-            | tee triage.out
+          if [ "${{ inputs.force_triage }}" = "true" ]; then
+            python ops/triage.py --config config/ops.json --status state/latest.json --force | tee triage.out
+          else
+            python ops/triage.py --config config/ops.json --status state/latest.json | tee triage.out
+          fi
           {
             echo "## AI 诊断结果"
             echo ''
