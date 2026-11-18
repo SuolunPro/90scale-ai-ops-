@@ -1,7 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-18T22:55:48Z",
+  "generated_at": "2026-11-18T23:00:00Z",
+  "beijing_time": "2026-11-19 07:00:00",
+  "in_sale_window": false,
   "verdict": "WARN",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review",
   "failed": [],
   "warned": [
@@ -13,7 +16,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，90120 字节，耗时 351ms"
+      "detail": "HTTP 200，90120 字节，耗时 159ms"
     },
     {
       "id": "site_data_sync",
@@ -30,17 +33,26 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-19，快照 244 分钟前生成",
+      "detail": "sale_day=2026-11-19，快照 249 分钟前生成",
       "sale_day": "2026-11-19",
-      "generated_age_min": 244.5,
+      "generated_age_min": 248.6,
       "in_window": false
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录"
+      "detail": "已核对 0 个计划点，无漏跑；今天 2 次运行",
+      "missed_points": [],
+      "checked_points": 0,
+      "runs_today": 2,
+      "last_run_age_min": 250.1,
+      "retired_workflows_ignored": [
+        "engine4-settlement.yml",
+        "engine4-verify-results.yml",
+        "engine4-result-backfill.yml"
+      ]
     },
     {
       "id": "pool_coverage",
@@ -75,7 +87,7 @@
           "day": "2026-11-18",
           "matches": 4,
           "pending": 4,
-          "overdue_h": 0.4
+          "overdue_h": 0.5
         }
       ]
     },
@@ -100,8 +112,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7352,
-          "elapsed_ms": 1286,
+          "bytes": 7351,
+          "elapsed_ms": 1568,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -111,8 +123,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 44354,
-          "elapsed_ms": 1646,
+          "bytes": 44277,
+          "elapsed_ms": 1846,
           "error": null,
           "cn_only": true,
           "required": false
@@ -123,7 +135,7 @@
           "status": "up",
           "http": 200,
           "bytes": 26878,
-          "elapsed_ms": 396,
+          "elapsed_ms": 124,
           "error": null,
           "cn_only": false,
           "required": false
@@ -134,7 +146,7 @@
           "status": "down",
           "http": 405,
           "bytes": 2657,
-          "elapsed_ms": 813,
+          "elapsed_ms": 959,
           "error": "HTTP 405",
           "cn_only": true,
           "required": false
@@ -167,6 +179,19 @@
     }
   ],
   "budget": {
-    "spent_cny": null
+    "month": "2026-11",
+    "cap_cny": 10.0,
+    "spent_cny": 0.029754,
+    "remaining_cny": 9.970246,
+    "calls": 5,
+    "exhausted": false,
+    "used_pct": 0.3
+  },
+  "runner": {
+    "host": "runnervmccnms",
+    "python": "3.12.16",
+    "ci": true,
+    "run_id": "44416766610",
+    "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
