@@ -1,0 +1,42 @@
+name: AI 运维 · 离线自测
+
+on:
+  push:
+    paths:
+      - 'ops/**'
+      - 'config/**'
+      - '.github/workflows/ai-ops-selftest.yml'
+  pull_request:
+    paths:
+      - 'ops/**'
+      - 'config/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 单元测试（离线，无密钥，无网络）
+        run: python ops/selftest.py
+      - name: 配置与工作流语法检查
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          cfg = json.loads(pathlib.Path('config/ops.json').read_text(encoding='utf-8'))
+          assert cfg['budget']['cap_cny'] == 10.0, 'budget cap changed'
+          for p in cfg['probes']:
+              assert p['id'] and ('url' in p), p
+          print('config ok:', cfg['site'], len(cfg['probes']), 'probes')
+          for wf in pathlib.Path('.github/workflows').glob('ai-ops-*.yml'):
+              text = wf.read_text(encoding='utf-8')
+              assert 'name:' in text and 'on:' in text and 'jobs:' in text, wf
+              print('workflow ok:', wf.name)
+          PY
