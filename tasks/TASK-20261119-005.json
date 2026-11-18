@@ -1,0 +1,19 @@
+{
+  "id": "TASK-20261119-005",
+  "title": "GPT 自动创建：读取当日快照并回报",
+  "created_by": "gpt",
+  "created_at": "2026-11-18T17:40:00+00:00",
+  "priority": "P2",
+  "scope": "read-only",
+  "status": "queued",
+  "assignee": "",
+  "sla_minutes": 240,
+  "evidence": [],
+  "acceptance": "返回 HTTP 状态、sale_day、generated_at，并生成报告",
+  "notes": "由 GPT 通过 API 创建，用于验证执行器自动领取",
+  "links": [],
+  "action": "site_probe",
+  "params": {
+    "url": "https://suolunpro.github.io/data/engine4/latest.json"
+  }
+}
