@@ -5,6 +5,11 @@ on:
     # 与巡检错开 10 分钟，避免同时抢 runner
     - cron: '10,40 * * * *'
   workflow_dispatch:
+    inputs:
+      requeue:
+        description: '可选：把失败工单重新排队，填工单号（受 max_attempts 限制）'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -28,7 +33,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          REQUEUE: ${{ inputs.requeue }}
         run: |
+          if [ -n "$REQUEUE" ]; then
+            python ops/task_runner.py --config config/ops.json --requeue "$REQUEUE"
+          fi
           python ops/task_runner.py --config config/ops.json | tee executor.out
           {
             echo "## 只读工单执行结果"
