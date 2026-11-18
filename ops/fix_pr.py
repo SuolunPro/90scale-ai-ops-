@@ -88,9 +88,9 @@ def main(argv=None) -> int:
         print(f"[dry] branch={args.branch} files={files}")
         return 0
 
-    # 同仓库 PR 用 GITHUB_TOKEN 即可（需要 workflow 里声明 pull-requests: write）
+    # 优先用 PAT：GitHub Actions 的 GITHUB_TOKEN 默认不允许创建 PR（仓库设置可关）
     same_repo = args.repo == os.getenv("GITHUB_REPOSITORY", "")
-    token = (os.getenv("GITHUB_TOKEN") if same_repo else "") or os.getenv("OPS_TOKEN") \
+    token = os.getenv("OPS_TOKEN") or (os.getenv("GITHUB_TOKEN") if same_repo else "") \
         or os.getenv("GITHUB_TOKEN", "")
     if not token:
         print("FATAL: 缺少 OPS_TOKEN")
