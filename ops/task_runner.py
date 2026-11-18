@@ -243,6 +243,9 @@ def main(argv=None) -> int:
         done.append(res)
         print(f"  DONE {res['task']} {res['verdict']} ({res['elapsed_s']}s) -> {res['report']}")
 
+    summary = {"executed": done, "skipped": skipped, "at": C.iso(now)}
+    C.dump_json(os.path.join(args.root, "state", "executor", "last_run.json"), summary)
+
     if done and not args.dry_run:
         files = [f"tasks/{d['task']}.json" for d in done]
         files += [f"reports/{d['report']}.json" for d in done]
@@ -251,10 +254,8 @@ def main(argv=None) -> int:
         for note in ghcommit.commit_files_batch(args.root, cfg, files, "ops: execute read-only tasks"):
             print(note)
 
-    summary = {"executed": done, "skipped": skipped, "at": C.iso(now)}
-    C.dump_json(os.path.join(args.root, "state", "executor", "last_run.json"), summary)
     print(json.dumps(summary, ensure_ascii=False)[:1200])
-    return 0 if not skipped else 0
+    return 0
 
 
 if __name__ == "__main__":
