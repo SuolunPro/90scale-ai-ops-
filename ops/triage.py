@@ -128,14 +128,13 @@ def main(argv=None) -> int:
         if hit:
             print("SKIP: " + hit)
             return 0
-    if True:
-        if _today_entries(ledger, now) >= int(b.get("max_calls_per_day", 12)):
-            print(f"SKIP: 今日 AI 调用已达上限 {b.get('max_calls_per_day')} 次")
-            return 0
-        ok, why = budget.can_call(ledger, b["cap_cny"], b.get("reserve_cny", 0.0))
-        if not ok:
-            print("SKIP: " + why)
-            return 0
+    if _today_entries(ledger, now) >= int(b.get("max_calls_per_day", 12)):
+        print(f"SKIP: 今日 AI 调用已达上限 {b.get('max_calls_per_day')} 次")
+        return 0
+    ok, why = budget.can_call(ledger, b["cap_cny"], b.get("reserve_cny", 0.0))
+    if not ok:
+        print("SKIP: " + why)
+        return 0
 
     payload = {
         "verdict": verdict,
