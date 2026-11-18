@@ -1,0 +1,22 @@
+{
+  "report_id": "RPT-20261119-010",
+  "task_id": "TASK-20261119-001",
+  "author": "deepseek-executor",
+  "created_at": "2026-11-18T17:21:56+00:00",
+  "verdict": "OK",
+  "summary": "全量巡检判定 WARN，异常 2 项",
+  "findings": [
+    "全量巡检判定 WARN，异常 2 项",
+    "verdict=WARN"
+  ],
+  "evidence": [
+    "task=TASK-20261119-001",
+    "action=inspect_all",
+    "elapsed_s=3.51",
+    "raw={\"verdict\": \"WARN\", \"abnormal\": [{\"id\": \"independent_review\", \"status\": \"warn\", \"detail\": \"最新复核文件 2026-11-13，已滞后 6 天\"}, {\"id\": \"site_workflows\", \"status\": \"warn\", \"detail\": \"120 分钟内没有任何工作流运行记录，疑似调度停滞\"}], \"checks\": {\"site_home\": \"ok\", \"site_data_sync\": \"ok\", \"engine_fresh\": \"ok\", \"engine_runs\": \"skip\", \"pool_coverage\": \"ok\", \"settlement\": \"ok\", \"independent_review\": \"warn\", \"sources\": \"skip\", \"site_workflows\": \"warn\", \"legacy_sale_status\": \"ok\"}}"
+  ],
+  "next_actions": [
+    "人工复核报告",
+    "如为 FAIL，按 RUNBOOK 处理并保留证据"
+  ]
+}
