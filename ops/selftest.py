@@ -187,5 +187,53 @@ class TestHandoff(unittest.TestCase):
         self.assertIn("任务A", md)
 
 
+class TestSourcesGeoDowngrade(unittest.TestCase):
+    """境外 runner 访问中国站点被拒时，不应误报 FAIL（否则会白烧 AI 预算）。"""
+
+    def setUp(self):
+        self.cfg = {
+            "probes": [
+                {"id": "sporttery", "name": "体彩官方接口", "url": "https://a/{today}",
+                 "required": True, "cn_only": True, "min_bytes": 1},
+                {"id": "qiulaile", "name": "球来了镜像", "url": "https://b/{today}",
+                 "required": False, "cn_only": True, "min_bytes": 1},
+            ],
+            "thresholds": {"probe_timeout_s": 5},
+        }
+        self.ctx = {"cfg": self.cfg, "now": dt.datetime(2026, 11, 18, 6, 0, tzinfo=dt.timezone.utc)}
+        self._orig = checks.http_get
+
+    def tearDown(self):
+        checks.http_get = self._orig
+        os.environ.pop("GITHUB_ACTIONS", None)
+
+    def _stub(self, codes):
+        def fake(url, timeout=20, retries=2, headers=None):
+            code = codes.get("a" if "//a/" in url else "b", 200)
+            body = b"x" * 10 if code == 200 else b""
+            return {"url": url, "status": code, "bytes": len(body), "body": body,
+                    "sha256": "", "elapsed_ms": 1, "error": None if code == 200 else f"HTTP {code}"}
+        checks.http_get = fake
+
+    def test_offshore_runner_downgrades_cn_only_failure_to_skip(self):
+        os.environ["GITHUB_ACTIONS"] = "true"
+        self._stub({"a": 403, "b": 200})
+        res = checks.check_sources(self.ctx)
+        self.assertEqual(res["status"], "skip")
+        self.assertIn("境外 runner", res["detail"])
+
+    def test_all_cn_sources_down_still_fails(self):
+        os.environ["GITHUB_ACTIONS"] = "true"
+        self._stub({"a": 403, "b": 0})
+        res = checks.check_sources(self.ctx)
+        self.assertEqual(res["status"], "fail")
+
+    def test_local_china_runner_fails_on_required(self):
+        os.environ.pop("GITHUB_ACTIONS", None)
+        self._stub({"a": 500, "b": 200})
+        res = checks.check_sources(self.ctx)
+        self.assertEqual(res["status"], "fail")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

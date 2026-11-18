@@ -42,6 +42,7 @@
       "name": "体彩官方接口",
       "url": "https://webapi.sporttery.cn/gateway/jc/football/getMatchCalculatorV1.qry?channel=c&poolCode=had,hhad,crs,ttg,hafu",
       "required": true,
+      "cn_only": true,
       "min_bytes": 500,
       "headers": {
         "Referer": "https://m.sporttery.cn/",
@@ -53,6 +54,7 @@
       "name": "球来了镜像",
       "url": "https://qiulaile.vip/api/matches?matchType=0&mode=full",
       "required": false,
+      "cn_only": true,
       "min_bytes": 500,
       "headers": {
         "Referer": "https://qiulaile.vip/",
@@ -74,6 +76,7 @@
       "name": "澳客竞彩",
       "url": "https://www.okooo.com/jingcai/{today}/",
       "required": false,
+      "cn_only": true,
       "min_bytes": 2000,
       "headers": {
         "Accept-Language": "zh-CN,zh;q=0.9",

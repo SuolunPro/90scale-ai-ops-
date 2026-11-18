@@ -291,7 +291,14 @@ def check_independent_review(ctx) -> dict:
 
 
 def check_sources(ctx) -> dict:
-    """Probe every upstream collector chain; record reachability and latency."""
+    """Probe every upstream collector chain; record reachability and latency.
+
+    中国站点在 GitHub 境外 runner 上常被拒绝（403/超时），这不代表站点故障。
+    规则：境外 runner + 仅 CN 专属源失败 + 至少还有一个 CN 源可达 → 判 skip（不触发 AI），
+    只有所有 CN 源都不可达时才判 fail（那说明网络路径或上游真的断了）。
+    """
+    import os
+
     th = ctx["cfg"]["thresholds"]
     rows, down_required, down_optional = [], [], []
     for p in ctx["cfg"].get("probes", []):
@@ -304,12 +311,23 @@ def check_sources(ctx) -> dict:
         ok = res["status"] == 200 and res["bytes"] >= int(p.get("min_bytes", 1))
         row = {"id": p["id"], "name": p["name"], "status": "up" if ok else "down",
                "http": res["status"], "bytes": res["bytes"], "elapsed_ms": res["elapsed_ms"],
-               "error": res.get("error")}
+               "error": res.get("error"), "cn_only": bool(p.get("cn_only")),
+               "required": bool(p.get("required"))}
         rows.append(row)
         if not ok:
             (down_required if p.get("required") else down_optional).append(p["name"])
+
     info = {"probes": rows}
+    failed_rows = [r for r in rows if r["status"] == "down"]
+    cn_up = [r for r in rows if r["status"] == "up" and r["cn_only"]]
     if down_required:
+        failed_req = [r for r in failed_rows if r["required"]]
+        offshore = os.getenv("OPS_RUNNER_REGION", "cn" if os.getenv("GITHUB_ACTIONS") != "true" else "global") == "global"
+        if offshore and failed_req and all(r["cn_only"] for r in failed_req) and cn_up:
+            return result("sources", "采集链路可用性", "skip", "info",
+                          "境外 runner 访问中国站点被拒（预期，不计入异常）："
+                          + "、".join(r["name"] for r in failed_req)
+                          + f"；同网络下 {'、'.join(r['name'] for r in cn_up)} 正常", **info)
         return result("sources", "采集链路可用性", "fail", "critical",
                       "关键数据源不可用：" + "、".join(down_required), **info)
     if down_optional:
