@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20261119-001",
+  "title": "执行器自检：全量只读巡检",
+  "created_by": "gpt",
+  "created_at": "2026-11-18T17:05:04+00:00",
+  "priority": "P2",
+  "scope": "read-only",
+  "status": "queued",
+  "assignee": "",
+  "sla_minutes": 240,
+  "evidence": [],
+  "acceptance": "返回 verdict 与异常清单，证明执行器 inspect_all 动作可用",
+  "notes": "",
+  "links": [],
+  "action": "inspect_all",
+  "params": {}
+}
