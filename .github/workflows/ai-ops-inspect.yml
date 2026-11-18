@@ -4,6 +4,10 @@ on:
   schedule:
     # Every 15 minutes (UTC cron; GitHub may delay a few minutes under load).
     - cron: '*/15 * * * *'
+  # 外部免费调度器（cron-job.org / Google Apps Script / Cloudflare Cron）
+  # 通过 repository_dispatch 触发，绕过 GitHub 自身的 cron 限流。
+  repository_dispatch:
+    types: [external_tick]
   workflow_dispatch:
     inputs:
       force_triage:
@@ -39,6 +43,7 @@ jobs:
         env:
           # 可选：只读私人引擎 Actions 记录，用于 engine_runs 检查；没有则该项 SKIP
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
         run: |
           python ops/inspector.py \
             --config config/ops.json \

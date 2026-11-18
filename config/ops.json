@@ -125,6 +125,42 @@
     "require_confirm_phrase": "YES-I-APPROVE",
     "note": "写生产的恢复动作必须人工 workflow_dispatch + 授权串；代码修复只能走 PR"
   },
+  "recovery_plans": {
+    "engine_missed_run": {
+      "class": "operational",
+      "action": "dispatch_engine4",
+      "allow_in_sale": true,
+      "max_per_hour": 1,
+      "writes_frozen_data": false,
+      "preconditions": { "engine_runs": ["warn", "fail"], "engine_fresh": ["warn", "fail"] },
+      "description": "引擎计划点漏跑且当日快照过期时，重新触发既有预测工作流；只产生新快照，不改写历史冻结数据"
+    },
+    "site_sync_failure": {
+      "class": "operational",
+      "action": "dispatch_site_sync",
+      "allow_in_sale": true,
+      "max_per_hour": 2,
+      "writes_frozen_data": false,
+      "preconditions": { "site_data_sync": ["warn", "fail"] },
+      "description": "网站数据与仓库不一致时，重新触发既有同步工作流（合并逻辑自带冻结保护）"
+    },
+    "collector_failure": {
+      "class": "operational",
+      "action": "none",
+      "allow_in_sale": false,
+      "max_per_hour": 0,
+      "writes_frozen_data": false,
+      "preconditions": { "sources": ["warn", "fail"] },
+      "description": "采集链路失败只出报告，不自动换源；换源属于代码变更，必须走 PR"
+    },
+    "code_fix": {
+      "class": "code",
+      "action": "none",
+      "allow_in_sale": false,
+      "writes_frozen_data": false,
+      "description": "生产代码修复必须走 ops/fix_pr.py：测试 → 独立分支 → PR → 人工审核，恢复通道拒绝执行"
+    }
+  },
   "deepseek": {
     "base_url": "https://api.deepseek.com"
   }

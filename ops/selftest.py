@@ -280,40 +280,73 @@ class TestExecutorGuards(unittest.TestCase):
             common.http_get = old
 
 
-class TestRecoveryGuards(unittest.TestCase):
-    CFG = {"recovery": {"enabled": True, "max_per_hour": 2},
-           "engine_repo": "SuolunPro/90scale-engine",
-           "site_repo": "SuolunPro/suolunpro.github.io"}
+class TestRecoveryPlansV13(unittest.TestCase):
+    """V1.3：运维动作与代码修改分离，停售保护按计划类别判定。"""
+
+    def setUp(self):
+        self.cfg = common.load_json(os.path.join(ROOT, "config", "ops.json"))
+        self.ok_status = {"checks": [{"id": "engine_runs", "status": "warn"},
+                                     {"id": "engine_fresh", "status": "warn"},
+                                     {"id": "site_data_sync", "status": "ok"},
+                                     {"id": "sources", "status": "warn"}]}
 
     def _now(self, hh, mm=0):
         return dt.datetime(2026, 11, 19, hh, mm, tzinfo=common.BJ).astimezone(dt.timezone.utc)
 
-    def test_wrong_confirm_is_refused(self):
-        p = recovery.preflight(self.CFG, "dispatch_engine4", "yes", self._now(2), [])
-        self.assertTrue(any("授权串" in x for x in p))
+    def test_plans_present(self):
+        plans = recovery.plans(self.cfg)
+        for name in ("engine_missed_run", "site_sync_failure", "collector_failure", "code_fix"):
+            self.assertIn(name, plans)
 
-    def test_stop_sale_window_refuses_engine_dispatch(self):
-        p = recovery.preflight(self.CFG, "dispatch_engine4", recovery.CONFIRM_PHRASE, self._now(12), [])
-        self.assertTrue(any("停售保护" in x for x in p))
-
-    def test_outside_window_allowed(self):
-        p = recovery.preflight(self.CFG, "dispatch_engine4", recovery.CONFIRM_PHRASE, self._now(2), [])
+    def test_engine_recovery_allowed_outside_window(self):
+        p = recovery.preflight(self.cfg, "engine_missed_run", recovery.CONFIRM_PHRASE,
+                               self._now(3), [], self.ok_status)
         self.assertEqual(p, [])
 
-    def test_rerun_blocked_inside_window(self):
-        p = recovery.preflight(self.CFG, "rerun_failed_run", recovery.CONFIRM_PHRASE, self._now(12), [])
+    def test_engine_recovery_allowed_inside_window(self):
+        # allow_in_sale=true：窗口内也能救，这是对旧设计反向限制的修正
+        p = recovery.preflight(self.cfg, "engine_missed_run", recovery.CONFIRM_PHRASE,
+                               self._now(12), [], self.ok_status)
+        self.assertEqual(p, [])
+
+    def test_collector_report_blocked_in_window(self):
+        p = recovery.preflight(self.cfg, "collector_failure", recovery.CONFIRM_PHRASE,
+                               self._now(12), [], self.ok_status)
         self.assertTrue(any("停售保护" in x for x in p))
 
-    def test_rate_limit(self):
-        now = self._now(2)
-        history = [{"at": (now - dt.timedelta(minutes=10)).isoformat()},
-                   {"at": (now - dt.timedelta(minutes=20)).isoformat()}]
-        p = recovery.preflight(self.CFG, "dispatch_site_sync", recovery.CONFIRM_PHRASE, now, history)
+    def test_precondition_not_met_refused(self):
+        ok_status = {"checks": [{"id": "engine_runs", "status": "ok"},
+                                {"id": "engine_fresh", "status": "ok"}]}
+        p = recovery.preflight(self.cfg, "engine_missed_run", recovery.CONFIRM_PHRASE,
+                               self._now(3), [], ok_status)
+        self.assertTrue(any("前置条件" in x for x in p))
+
+    def test_code_fix_refused_by_recovery_channel(self):
+        p = recovery.preflight(self.cfg, "code_fix", recovery.CONFIRM_PHRASE,
+                               self._now(3), [], self.ok_status)
+        self.assertTrue(any("fix_pr" in x for x in p))
+
+    def test_wrong_confirm_refused(self):
+        p = recovery.preflight(self.cfg, "engine_missed_run", "yes", self._now(3), [], self.ok_status)
+        self.assertTrue(any("授权串" in x for x in p))
+
+    def test_rate_limit_per_plan(self):
+        now = self._now(3)
+        hist = [{"plan": "engine_missed_run", "allowed": True,
+                 "at": (now - dt.timedelta(minutes=5)).isoformat()}]
+        p = recovery.preflight(self.cfg, "engine_missed_run", recovery.CONFIRM_PHRASE, now, hist, self.ok_status)
         self.assertTrue(any("上限" in x for x in p))
 
-    def test_unknown_action_refused(self):
-        p = recovery.preflight(self.CFG, "drop_database", recovery.CONFIRM_PHRASE, self._now(2), [])
-        self.assertTrue(any("白名单" in x for x in p))
+    def test_writes_frozen_data_never_allowed(self):
+        cfg = {"recovery": {"enabled": True}, "recovery_plans": {
+            "bad": {"class": "operational", "action": "dispatch_engine4",
+                    "writes_frozen_data": True, "allow_in_sale": True}}}
+        p = recovery.preflight(cfg, "bad", recovery.CONFIRM_PHRASE, self._now(3), [], self.ok_status)
+        self.assertTrue(any("冻结" in x for x in p))
+
+    def test_unknown_plan_refused(self):
+        p = recovery.preflight(self.cfg, "rm_rf", recovery.CONFIRM_PHRASE, self._now(3), [], self.ok_status)
+        self.assertTrue(any("未定义" in x for x in p))
 
 
 class TestPersist(unittest.TestCase):
@@ -381,12 +414,6 @@ class TestStopSaleWindowConfig(unittest.TestCase):
         self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 45, tzinfo=common.BJ), {}))
         self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 22, 45, tzinfo=common.BJ), {}))
         self.assertFalse(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 44, tzinfo=common.BJ), {}))
-
-    def test_rerun_blocked_in_window(self):
-        cfg = {"recovery": {"enabled": True, "max_per_hour": 2}}
-        now = dt.datetime(2026, 11, 19, 12, 0, tzinfo=common.BJ).astimezone(dt.timezone.utc)
-        p = recovery.preflight(cfg, "rerun_failed_run", recovery.CONFIRM_PHRASE, now, [])
-        self.assertTrue(any("停售保护" in x for x in p))
 
 
 if __name__ == "__main__":

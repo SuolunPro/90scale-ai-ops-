@@ -1,0 +1,9 @@
+name = "90scale-external-scheduler"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# 每 15 分钟敲门一次；GitHub 侧两个入口（cron / 外部触发）重复触发无副作用
+[triggers]
+crons = ["*/15 * * * *"]
+
+# SCHEDULER_PAT 通过 `npx wrangler secret put SCHEDULER_PAT` 注入，不要写进本文件

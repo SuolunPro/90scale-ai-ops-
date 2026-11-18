@@ -1,37 +1,39 @@
-name: 九十刻度 AI 运维 · 受控恢复（需人工授权）
+name: 九十刻度 AI 运维 · 受限恢复（需人工授权）
 
-# 只能手动触发。固定的重试/重跑动作必须写授权串，且避开停售窗口、受频率限制。
-# 代码修复不在这里做，必须走 PR 审核。
+# V1.3：只做「运维动作」，不碰代码。
+# 生产代码修复请用 ops/fix_pr.py 走 PR，本工作流不接受代码修改。
+# 计划（plan）在前置条件满足、授权串正确、未超频时才执行。
 
 on:
   workflow_dispatch:
     inputs:
-      action:
-        description: '恢复动作'
+      plan:
+        description: '恢复计划'
         required: true
         type: choice
         options:
-          - dispatch_engine4
-          - dispatch_site_sync
-          - rerun_failed_run
+          - engine_missed_run
+          - site_sync_failure
+          - collector_failure
+          - code_fix
       ticket:
-        description: '工单号或事故编号（必填，写入审计日志）'
+        description: '工单号/事故编号（必填，写入审计）'
         required: true
         type: string
       reason:
-        description: '为什么要恢复（必填）'
+        description: '原因（必填）'
         required: true
         type: string
       confirm:
-        description: '授权串：输入 YES-I-APPROVE 才会真正执行'
+        description: '授权串：YES-I-APPROVE'
         required: true
         type: string
       run_id:
-        description: '仅 rerun_failed_run 需要：失败运行 ID'
+        description: '仅 rerun 类计划需要：失败运行 ID'
         required: false
         type: string
       dry_run:
-        description: '只做预检，不实际触发'
+        description: '只预检不执行'
         required: false
         type: boolean
         default: true
@@ -54,31 +56,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: 列出可用计划
+        run: python ops/recovery.py --plan engine_missed_run --list-plans
       - name: 预检（不执行）
         env:
-          ACTION: ${{ inputs.action }}
+          PLAN: ${{ inputs.plan }}
           TICKET: ${{ inputs.ticket }}
           REASON: ${{ inputs.reason }}
           CONFIRM: ${{ inputs.confirm }}
           RUN_ID: ${{ inputs.run_id }}
         run: |
-          python ops/recovery.py --action "$ACTION" --ticket "$TICKET" --reason "$REASON" \
+          python ops/recovery.py --plan "$PLAN" --ticket "$TICKET" --reason "$REASON" \
             --confirm "$CONFIRM" --run-id "${RUN_ID:-0}" --dry-run | tee recover-dry.out
-      - name: 执行（需授权串）
+      - name: 执行（选择非 dry_run 才执行）
         if: ${{ inputs.dry_run == false }}
         env:
           OPS_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTION: ${{ inputs.action }}
+          PLAN: ${{ inputs.plan }}
           TICKET: ${{ inputs.ticket }}
           REASON: ${{ inputs.reason }}
           CONFIRM: ${{ inputs.confirm }}
           RUN_ID: ${{ inputs.run_id }}
         run: |
-          python ops/recovery.py --action "$ACTION" --ticket "$TICKET" --reason "$REASON" \
+          python ops/recovery.py --plan "$PLAN" --ticket "$TICKET" --reason "$REASON" \
             --confirm "$CONFIRM" --run-id "${RUN_ID:-0}" | tee recover.out
           {
-            echo "## 受控恢复"
+            echo "## 受限恢复"
             echo '```json'
             tail -c 2000 recover.out
             echo '```'

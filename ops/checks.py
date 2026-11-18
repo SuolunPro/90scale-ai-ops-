@@ -141,7 +141,8 @@ def check_engine_runs(ctx) -> dict:
     eng = ctx["cfg"].get("engine") or {}
     if not eng.get("enabled", True):
         return result("engine_runs", "预测引擎计划点漏跑", "skip", "info", "未启用")
-    token = os.getenv("ENGINE4_READ_TOKEN") or os.getenv("ENGINE_READ_TOKEN") or ""
+    token = (os.getenv("ENGINE4_READ_TOKEN") or os.getenv("ENGINE4_REPAIR_TOKEN")
+             or os.getenv("ENGINE_READ_TOKEN") or "")
     if not token:
         return result("engine_runs", "预测引擎计划点漏跑", "skip", "info",
                       "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录")

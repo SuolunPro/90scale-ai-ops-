@@ -1,0 +1,71 @@
+name: 九十刻度 AI 运维 · 代码修复 PR（需人工审核）
+
+# V1.3：生产代码修复只能走这里。
+# 流程：跑测试 → 通过才建独立分支 → 提交 → 开 PR → 等人工审核。
+# 本工作流不会合并 PR，也不会直接改 main。
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '修复分支名（如 fix/collector-timeout）'
+        required: true
+        type: string
+      title:
+        description: 'PR 标题'
+        required: true
+        type: string
+      files:
+        description: '逗号分隔的文件（仅允许 ops/ config/ docs/ 下的文件）'
+        required: true
+        type: string
+      body:
+        description: 'PR 说明'
+        required: false
+        type: string
+        default: '由 AI 运维生成，需人工审核。'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 校验文件范围（禁止改生产代码/数据目录）
+        env:
+          FILES: ${{ inputs.files }}
+        run: |
+          python - "$FILES" <<'PY'
+          import sys
+          allowed = ("ops/", "config/", "docs/", "scheduler/")
+          files = [f.strip() for f in sys.argv[1].split(",") if f.strip()]
+          bad = [f for f in files if not f.startswith(allowed)]
+          if bad:
+              raise SystemExit(f"REFUSED: 只允许修改 {allowed} 下的文件，拒绝：{bad}")
+          print("files ok:", files)
+          PY
+      - name: 测试 → 建 PR
+        env:
+          OPS_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch }}
+          TITLE: ${{ inputs.title }}
+          FILES: ${{ inputs.files }}
+          BODY: ${{ inputs.body }}
+        run: |
+          python ops/fix_pr.py --branch "$BRANCH" --title "$TITLE" --files "$FILES" --body "$BODY" | tee fix.out
+          {
+            echo "## 代码修复 PR"
+            echo '```json'
+            tail -c 2000 fix.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
