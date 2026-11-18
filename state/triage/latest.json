@@ -1,76 +1,72 @@
 {
-  "at": "2026-11-18T07:06:30Z",
-  "verdict": "FAIL",
-  "signature": "sources",
+  "at": "2026-11-18T07:12:13Z",
+  "verdict": "WARN",
+  "signature": "engine_fresh,independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "关键数据源（体彩官方接口）不可用，导致预测主引擎快照滞后 226 分钟、独立复核滞后 5 天、网站工作流 120 分钟无运行；但缺少数据源错误码、引擎日志与调度器状态证据，根因待确认。",
+    "summary": "三个 warn 均指向调度/数据新鲜度问题：主引擎快照 231 分钟未更新、独立复核滞后 5 天、网站工作流 120 分钟无运行记录；当前处于销售窗口内，但证据仅能说明“未更新”，尚缺调度器日志与上游数据源状态，无法确认根因。",
     "root_causes": [
       {
-        "cause": "体彩官方接口不可用（上游故障或网络/鉴权问题），采集链路中断，下游快照与工作流随之停滞",
-        "confidence": 0.72,
-        "evidence": "checks[sources].status=fail, detail=关键数据源不可用：体彩官方接口；engine_fresh.generated_age_min=225.7 超阈值 180；site_workflows.recent_runs=0"
+        "cause": "调度器/定时任务停滞，导致引擎快照、复核任务与网站工作流同时未触发",
+        "confidence": 0.55,
+        "evidence": "site_workflows: recent_runs=0（120 分钟内无任何工作流运行记录）；engine_fresh: generated_age_min=231.3 超过 180 分钟阈值；independent_review: lag_days=5"
       },
       {
-        "cause": "调度器/工作流触发停滞，导致采集与引擎任务未按时启动（与数据源故障可能叠加）",
-        "confidence": 0.45,
-        "evidence": "site_workflows.detail=120 分钟内没有任何工作流运行记录，疑似调度停滞；failures=[] 且 recent_runs=0"
+        "cause": "上游数据源或依赖服务未就绪，任务被触发但无法产出新快照/复核文件",
+        "confidence": 0.3,
+        "evidence": "engine_fresh 仅显示快照年龄 231.3 分钟，independent_review 最新文件停在 2026-11-13；巡检未提供任务执行失败记录（site_workflows failures 为空）"
       },
       {
-        "cause": "独立复核流程长期未执行（流程或人员层面滞后），与当日故障非同一原因",
-        "confidence": 0.35,
-        "evidence": "independent_review.latest=2026-11-13, lag_days=5"
+        "cause": "独立复核流程本身按低频周期运行，5 天滞后属常态而非故障",
+        "confidence": 0.15,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=5，无失败计数；但该假设无法解释 engine_fresh 与 site_workflows 同时告警"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -sS -o /dev/null -w '%{http_code} %{time_total}\\n' --max-time 10 <体彩官方接口URL>",
-        "purpose": "确认体彩官方接口当前 HTTP 状态与响应耗时，判断是上游不可用还是网络/鉴权问题"
+        "command": "curl -s http://127.0.0.1:<调度器只读状态端口>/api/v1/jobs?status=all&limit=50",
+        "purpose": "确认定时任务最近一次触发时间与状态，判断是否整体调度停滞"
       },
       {
-        "command": "curl -sS --max-time 10 <体彩官方接口URL> | head -c 500",
-        "purpose": "查看接口返回体，确认是否为错误页、限流提示或结构变更"
+        "command": "curl -s http://127.0.0.1:<引擎只读端口>/api/v1/snapshot/latest",
+        "purpose": "读取主引擎最新快照的生成时间与版本，确认 231 分钟未更新是否与任务未触发一致"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<引擎快照目录>/latest.json'));print(d.get('generated_at'),d.get('sale_day'))\"",
-        "purpose": "只读核对最新引擎快照的生成时间与销售日，验证 226 分钟滞后"
+        "command": "python -c \"import os,time; p='<快照目录>'; [print(f, time.ctime(os.path.getmtime(os.path.join(p,f)))) for f in sorted(os.listdir(p))[-5:]]\"",
+        "purpose": "只读列出快照目录最近文件及 mtime，交叉验证快照年龄"
       },
       {
-        "command": "git -C <网站仓库路径> log --since='6 hours ago' --oneline -- .github/workflows",
-        "purpose": "只读查看工作流配置近期是否有变更，排除配置改动导致调度停滞"
-      },
-      {
-        "command": "ls -l <复核文件目录> | tail -n 10",
-        "purpose": "只读确认独立复核文件的最新时间戳，验证 5 天滞后"
+        "command": "git -C <网站仓库路径> log --since='6 hours ago' --oneline --all",
+        "purpose": "查看网站仓库近期提交/工作流相关变更，辅助判断工作流停滞是否与代码或配置变更相关"
       }
     ],
     "suggested_fix": {
-      "action": "先人工确认体彩官方接口可用性（状态码/返回体），若为上游故障则等待恢复并在恢复后手动触发一次采集与引擎快照重算；同时检查调度器（cron/工作流）是否存活并补跑当日任务；独立复核滞后需安排人工补做复核。",
+      "action": "人工登录调度器与引擎主机，只读确认定时任务状态与上游数据源连通性；若确认为调度停滞，由值班人员按预案手动触发一次快照与复核任务（需审批后执行），并核对网站工作流是否恢复运行",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内预测快照已滞后约 3.7 小时，会员可能看到过期预测或无法获取当日推荐；若采集持续中断，网站相关展示与工作流产出将停更。",
+    "customer_impact": "销售窗口内主引擎快照已滞后 231 分钟，会员可能看到过期预测结果；独立复核缺失 5 天降低结果可信度；网站工作流停滞可能导致页面/数据发布延迟，影响会员访问体验。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.006714,
-    "remaining_cny": 9.993286,
-    "calls": 1,
+    "spent_cny": 0.013416,
+    "remaining_cny": 9.986584,
+    "calls": 2,
     "exhausted": false,
-    "used_pct": 0.07
+    "used_pct": 0.13
   },
   "usage": {
-    "prompt_tokens": 589,
-    "completion_tokens": 692,
-    "total_tokens": 1281,
+    "prompt_tokens": 543,
+    "completion_tokens": 702,
+    "total_tokens": 1245,
     "prompt_tokens_details": {
-      "cached_tokens": 0
+      "cached_tokens": 128
     },
-    "prompt_cache_hit_tokens": 0,
-    "prompt_cache_miss_tokens": 589
+    "prompt_cache_hit_tokens": 128,
+    "prompt_cache_miss_tokens": 415
   },
-  "cost_cny": 0.006714
+  "cost_cny": 0.006702
 }
