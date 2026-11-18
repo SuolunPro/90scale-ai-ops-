@@ -1,0 +1,18 @@
+{
+  "id": "TASK-20261118-001",
+  "title": "确认 12:12/13:12 引擎计划点缺失是否为账号级调度问题",
+  "created_by": "gpt",
+  "created_at": "2026-11-18T06:51:06+00:00",
+  "priority": "P1",
+  "scope": "read-only",
+  "status": "queued",
+  "assignee": "",
+  "sla_minutes": 60,
+  "evidence": [
+    "state/latest.json#engine_fresh",
+    "reports/README.md"
+  ],
+  "acceptance": "给出结论：是 GitHub 调度延迟、额度、还是工作流被停用；附证据",
+  "notes": "",
+  "links": []
+}
