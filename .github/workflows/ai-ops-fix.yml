@@ -1,24 +1,28 @@
 name: 九十刻度 AI 运维 · 代码修复 PR（需人工审核）
 
 # V1.3：生产代码修复只能走这里。
-# 流程：跑测试 → 通过才建独立分支 → 提交 → 开 PR → 等人工审核。
-# 本工作流不会合并 PR，也不会直接改 main。
+# 两种模式：
+#   1) head_branch 模式（推荐）：分支里已有提交 → 跑测试 → 开 PR
+#   2) files 模式：在默认分支上改文件 → 跑测试 → 建分支 → 开 PR
+# 本工作流永远不会合并 PR，也不会直接改 main。
 
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: '修复分支名（如 fix/collector-timeout）'
-        required: true
+      head_branch:
+        description: '已含改动的分支名（留空则用 files 模式）'
+        required: false
         type: string
+        default: ''
       title:
         description: 'PR 标题'
         required: true
         type: string
       files:
-        description: '逗号分隔的文件（仅允许 ops/ config/ docs/ 下的文件）'
-        required: true
+        description: 'files 模式：逗号分隔文件（仅 ops/ config/ docs/ scheduler/）'
+        required: false
         type: string
+        default: ''
       body:
         description: 'PR 说明'
         required: false
@@ -36,11 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.head_branch || 'main' }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: 校验文件范围（禁止改生产代码/数据目录）
+      - name: 校验文件范围（files 模式）
+        if: ${{ inputs.head_branch == '' }}
         env:
           FILES: ${{ inputs.files }}
         run: |
@@ -48,21 +54,29 @@ jobs:
           import sys
           allowed = ("ops/", "config/", "docs/", "scheduler/")
           files = [f.strip() for f in sys.argv[1].split(",") if f.strip()]
+          if not files:
+              raise SystemExit("REFUSED: files 模式需要给出文件列表")
           bad = [f for f in files if not f.startswith(allowed)]
           if bad:
               raise SystemExit(f"REFUSED: 只允许修改 {allowed} 下的文件，拒绝：{bad}")
           print("files ok:", files)
           PY
-      - name: 测试 → 建 PR
+      - name: 测试 → 开 PR
         env:
           OPS_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ inputs.branch }}
+          HEAD_BRANCH: ${{ inputs.head_branch }}
           TITLE: ${{ inputs.title }}
           FILES: ${{ inputs.files }}
           BODY: ${{ inputs.body }}
         run: |
-          python ops/fix_pr.py --branch "$BRANCH" --title "$TITLE" --files "$FILES" --body "$BODY" | tee fix.out
+          if [ -n "$HEAD_BRANCH" ]; then
+            python ops/fix_pr.py --branch "$HEAD_BRANCH" --head-branch "$HEAD_BRANCH" \
+              --title "$TITLE" --body "$BODY" | tee fix.out
+          else
+            python ops/fix_pr.py --branch "fix/$(date +%s)" --title "$TITLE" \
+              --files "$FILES" --body "$BODY" | tee fix.out
+          fi
           {
             echo "## 代码修复 PR"
             echo '```json'

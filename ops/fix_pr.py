@@ -31,6 +31,28 @@ def run_tests(root: str) -> tuple[bool, str]:
     return proc.returncode == 0, tail
 
 
+def open_pr_from_branch(repo: str, token: str, head: str, title: str, body: str,
+                        base: str = "main") -> dict:
+    """分支已有提交时，只开 PR（不重复提交内容）。"""
+    import urllib.error
+    import urllib.request
+
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/pulls",
+        data=json.dumps({"title": title, "head": head, "base": base, "body": body}).encode(),
+        headers={"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28", "User-Agent": C.UA},
+        method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            d = json.load(r)
+            return {"ok": True, "pr": d.get("html_url"), "number": d.get("number")}
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "http": e.code,
+                "detail": e.read().decode("utf-8", "replace")[:200],
+                "compare": f"https://github.com/{repo}/compare/{base}...{head}?expand=1"}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".")
@@ -38,7 +60,8 @@ def main(argv=None) -> int:
     ap.add_argument("--branch", required=True)
     ap.add_argument("--title", required=True)
     ap.add_argument("--body", default="由 AI 运维生成的修复 PR，需人工审核。")
-    ap.add_argument("--files", required=True, help="逗号分隔，相对仓库根目录")
+    ap.add_argument("--files", default="", help="逗号分隔，相对仓库根目录")
+    ap.add_argument("--head-branch", default="", help="分支已有提交时：直接用它开 PR")
     ap.add_argument("--skip-tests", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
@@ -48,6 +71,9 @@ def main(argv=None) -> int:
         if not os.path.exists(os.path.join(args.root, rel)):
             print(f"FATAL: 文件不存在 {rel}")
             return 2
+    if not files and not args.head_branch:
+        print("FATAL: 需要 --files 或 --head-branch")
+        return 2
 
     ok, tail = (True, "跳过测试") if args.skip_tests else run_tests(args.root)
     print("测试结果：", "PASS" if ok else "FAIL")
@@ -69,6 +95,10 @@ def main(argv=None) -> int:
     if not token:
         print("FATAL: 缺少 OPS_TOKEN")
         return 2
+    if args.head_branch:
+        out = open_pr_from_branch(args.repo, token, args.head_branch, args.title, body)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0 if out.get("ok") else 1
     payload = [(rel, open(os.path.join(args.root, rel), "rb").read()) for rel in files]
     out = create_pr(args.repo, token, args.branch, args.title, body, payload)
     print(json.dumps(out, ensure_ascii=False, indent=2))
