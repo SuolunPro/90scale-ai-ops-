@@ -5,8 +5,8 @@
   "created_at": "2026-11-18T17:20:19+00:00",
   "priority": "P2",
   "scope": "read-only",
-  "status": "queued",
-  "assignee": "",
+  "status": "done",
+  "assignee": "deepseek-executor",
   "sla_minutes": 240,
   "evidence": [],
   "acceptance": "报告与 state/executor 均出现在仓库，且结论可追溯",
@@ -15,5 +15,8 @@
   "action": "site_probe",
   "params": {
     "url": "https://suolunpro.github.io/data/engine4/latest.json"
-  }
+  },
+  "claimed_at": "2026-11-18T17:24:45+00:00",
+  "completed_at": "2026-11-18T17:24:45+00:00",
+  "report_id": "RPT-20261119-011"
 }
