@@ -103,7 +103,7 @@ def main(argv=None) -> int:
     ap.add_argument("--config", default="config/ops.json")
     ap.add_argument("--status", default="state/latest.json")
     ap.add_argument("--root", default=".")
-    ap.add_argument("--force", action="store_true", help="ignore dedupe only (manual test only; budget still enforced)")
+    ap.add_argument("--force", action="store_true", help="ignore dedupe/caps (manual test only)")
     args = ap.parse_args(argv)
 
     cfg = C.load_json(os.path.join(args.root, args.config))
@@ -128,13 +128,13 @@ def main(argv=None) -> int:
         if hit:
             print("SKIP: " + hit)
             return 0
-    if _today_entries(ledger, now) >= int(b.get("max_calls_per_day", 12)):
-        print(f"SKIP: 今日 AI 调用已达上限 {b.get('max_calls_per_day')} 次")
-        return 0
-    ok, why = budget.can_call(ledger, b["cap_cny"], b.get("reserve_cny", 0.0))
-    if not ok:
-        print("SKIP: " + why)
-        return 0
+        if _today_entries(ledger, now) >= int(b.get("max_calls_per_day", 12)):
+            print(f"SKIP: 今日 AI 调用已达上限 {b.get('max_calls_per_day')} 次")
+            return 0
+        ok, why = budget.can_call(ledger, b["cap_cny"], b.get("reserve_cny", 0.0))
+        if not ok:
+            print("SKIP: " + why)
+            return 0
 
     payload = {
         "verdict": verdict,

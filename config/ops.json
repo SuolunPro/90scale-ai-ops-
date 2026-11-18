@@ -1,5 +1,5 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "site": "https://suolunpro.github.io",
   "site_repo": "SuolunPro/suolunpro.github.io",
   "engine_repo": "SuolunPro/90scale-engine",
@@ -111,6 +111,18 @@
     "reports_dir": "reports",
     "state_dir": "state",
     "sla_minutes": { "P0": 15, "P1": 60, "P2": 240 }
+  },
+  "executor": {
+    "enabled": true,
+    "max_tasks_per_run": 3,
+    "allowed_actions": ["site_probe", "inspect_all", "engine_runs_audit", "workflow_runs"]
+  },
+  "recovery": {
+    "enabled": true,
+    "max_per_hour": 2,
+    "stop_sale_window_bj": ["08:45", "22:45"],
+    "require_confirm_phrase": "YES-I-APPROVE",
+    "note": "写生产的恢复动作必须人工 workflow_dispatch + 授权串；代码修复只能走 PR"
   },
   "deepseek": {
     "base_url": "https://api.deepseek.com"

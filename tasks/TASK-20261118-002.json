@@ -13,5 +13,10 @@
   ],
   "acceptance": "返回真实HTTP状态、检查时间及证据；不修改生产系统，不调用Supabase。",
   "notes": "通信验收测试",
-  "links": []
+  "links": [],
+  "action": "site_probe",
+  "params": {
+    "url": "https://suolunpro.github.io/"
+  },
+  "updated_at": "2026-11-19T00:00:00+08:00"
 }

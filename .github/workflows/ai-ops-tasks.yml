@@ -1,0 +1,46 @@
+name: 九十刻度 AI 运维 · 只读工单执行器
+
+on:
+  schedule:
+    # 与巡检错开 10 分钟，避免同时抢 runner
+    - cron: '10,40 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 90scale-ai-ops-tasks
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 执行 queued 的只读工单
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python ops/task_runner.py --config config/ops.json | tee executor.out
+          {
+            echo "## 只读工单执行结果"
+            echo '```json'
+            tail -c 3000 executor.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 保存执行状态
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: executor-${{ github.run_id }}
+          path: state/executor/last_run.json
+          retention-days: 30
+          if-no-files-found: ignore

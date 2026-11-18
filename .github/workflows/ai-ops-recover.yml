@@ -1,0 +1,85 @@
+name: 九十刻度 AI 运维 · 受控恢复（需人工授权）
+
+# 只能手动触发。固定的重试/重跑动作必须写授权串，且避开停售窗口、受频率限制。
+# 代码修复不在这里做，必须走 PR 审核。
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '恢复动作'
+        required: true
+        type: choice
+        options:
+          - dispatch_engine4
+          - dispatch_site_sync
+          - rerun_failed_run
+      ticket:
+        description: '工单号或事故编号（必填，写入审计日志）'
+        required: true
+        type: string
+      reason:
+        description: '为什么要恢复（必填）'
+        required: true
+        type: string
+      confirm:
+        description: '授权串：输入 YES-I-APPROVE 才会真正执行'
+        required: true
+        type: string
+      run_id:
+        description: '仅 rerun_failed_run 需要：失败运行 ID'
+        required: false
+        type: string
+      dry_run:
+        description: '只做预检，不实际触发'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 90scale-ai-ops-recover
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 预检（不执行）
+        env:
+          ACTION: ${{ inputs.action }}
+          TICKET: ${{ inputs.ticket }}
+          REASON: ${{ inputs.reason }}
+          CONFIRM: ${{ inputs.confirm }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          python ops/recovery.py --action "$ACTION" --ticket "$TICKET" --reason "$REASON" \
+            --confirm "$CONFIRM" --run-id "${RUN_ID:-0}" --dry-run | tee recover-dry.out
+      - name: 执行（需授权串）
+        if: ${{ inputs.dry_run == false }}
+        env:
+          OPS_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTION: ${{ inputs.action }}
+          TICKET: ${{ inputs.ticket }}
+          REASON: ${{ inputs.reason }}
+          CONFIRM: ${{ inputs.confirm }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          python ops/recovery.py --action "$ACTION" --ticket "$TICKET" --reason "$REASON" \
+            --confirm "$CONFIRM" --run-id "${RUN_ID:-0}" | tee recover.out
+          {
+            echo "## 受控恢复"
+            echo '```json'
+            tail -c 2000 recover.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

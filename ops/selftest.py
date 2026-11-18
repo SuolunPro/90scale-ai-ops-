@@ -14,7 +14,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from ops import budget, checks, common, handoff, inspector, triage  # noqa: E402
+from ops import budget, checks, common, handoff, inspector, persist, recovery, task_runner, triage  # noqa: E402
 
 
 class TestBudget(unittest.TestCase):
@@ -233,6 +233,118 @@ class TestSourcesGeoDowngrade(unittest.TestCase):
         self._stub({"a": 500, "b": 200})
         res = checks.check_sources(self.ctx)
         self.assertEqual(res["status"], "fail")
+
+
+class TestExecutorGuards(unittest.TestCase):
+    def test_rejects_write_scope(self):
+        ok, why = task_runner.validate_spec({"scope": "write", "action": "site_probe"})
+        self.assertFalse(ok)
+        self.assertIn("read-only", why)
+
+    def test_rejects_unknown_action(self):
+        ok, why = task_runner.validate_spec({"scope": "read-only", "action": "rm -rf /"})
+        self.assertFalse(ok)
+        self.assertIn("未知 action", why)
+
+    def test_rejects_missing_action(self):
+        ok, why = task_runner.validate_spec({"scope": "read-only"})
+        self.assertFalse(ok)
+
+    def test_accepts_known_action(self):
+        ok, _ = task_runner.validate_spec({"scope": "read-only", "action": "site_probe"})
+        self.assertTrue(ok)
+
+    def test_site_probe_uses_only_safe_params(self):
+        orig = checks.http_get if hasattr(checks, "http_get") else None
+        from ops import common
+        old = common.http_get
+        try:
+            common.http_get = lambda url, **kw: {"status": 200, "bytes": 123, "body": b"vip-code",
+                                                 "elapsed_ms": 5, "error": None, "sha256": ""}
+            ctx = {"site": "https://example.test"}
+            out = task_runner.site_probe(ctx, {"url": "https://example.test/"}, dt.datetime.now(dt.timezone.utc))
+            self.assertTrue(out["ok"])
+            self.assertEqual(out["data"]["bytes"], 123)
+        finally:
+            common.http_get = old
+
+    def test_param_newline_rejected(self):
+        from ops import common
+        old = common.http_get
+        try:
+            common.http_get = lambda url, **kw: {"status": 200, "bytes": 1, "body": b"", "elapsed_ms": 1,
+                                                 "error": None, "sha256": ""}
+            with self.assertRaises(ValueError):
+                task_runner.site_probe({"site": "x"}, {"url": "https://a/\nhttps://b"}, dt.datetime.now(dt.timezone.utc))
+        finally:
+            common.http_get = old
+
+
+class TestRecoveryGuards(unittest.TestCase):
+    CFG = {"recovery": {"enabled": True, "max_per_hour": 2},
+           "engine_repo": "SuolunPro/90scale-engine",
+           "site_repo": "SuolunPro/suolunpro.github.io"}
+
+    def _now(self, hh, mm=0):
+        return dt.datetime(2026, 11, 19, hh, mm, tzinfo=common.BJ).astimezone(dt.timezone.utc)
+
+    def test_wrong_confirm_is_refused(self):
+        p = recovery.preflight(self.CFG, "dispatch_engine4", "yes", self._now(2), [])
+        self.assertTrue(any("授权串" in x for x in p))
+
+    def test_stop_sale_window_refuses_engine_dispatch(self):
+        p = recovery.preflight(self.CFG, "dispatch_engine4", recovery.CONFIRM_PHRASE, self._now(12), [])
+        self.assertTrue(any("停售保护" in x for x in p))
+
+    def test_outside_window_allowed(self):
+        p = recovery.preflight(self.CFG, "dispatch_engine4", recovery.CONFIRM_PHRASE, self._now(2), [])
+        self.assertEqual(p, [])
+
+    def test_rerun_allowed_inside_window(self):
+        p = recovery.preflight(self.CFG, "rerun_failed_run", recovery.CONFIRM_PHRASE, self._now(12), [])
+        self.assertEqual(p, [])
+
+    def test_rate_limit(self):
+        now = self._now(2)
+        history = [{"at": (now - dt.timedelta(minutes=10)).isoformat()},
+                   {"at": (now - dt.timedelta(minutes=20)).isoformat()}]
+        p = recovery.preflight(self.CFG, "dispatch_site_sync", recovery.CONFIRM_PHRASE, now, history)
+        self.assertTrue(any("上限" in x for x in p))
+
+    def test_unknown_action_refused(self):
+        p = recovery.preflight(self.CFG, "drop_database", recovery.CONFIRM_PHRASE, self._now(2), [])
+        self.assertTrue(any("白名单" in x for x in p))
+
+
+class TestPersist(unittest.TestCase):
+    def test_first_time_commits(self):
+        ok, _ = persist.should_commit({"verdict": "OK"}, None, dt.datetime.now(dt.timezone.utc))
+        self.assertTrue(ok)
+
+    def test_unchanged_and_fresh_skips(self):
+        now = dt.datetime(2026, 11, 19, 0, 0, tzinfo=dt.timezone.utc)
+        local = {"verdict": "OK", "signature": "OK", "generated_at": now.isoformat()}
+        remote = {"verdict": "OK", "signature": "OK",
+                  "generated_at": (now - dt.timedelta(minutes=5)).isoformat()}
+        ok, why = persist.should_commit(local, remote, now)
+        self.assertFalse(ok)
+        self.assertIn("跳过", why)
+
+    def test_signature_change_commits(self):
+        now = dt.datetime(2026, 11, 19, 0, 0, tzinfo=dt.timezone.utc)
+        local = {"verdict": "WARN", "signature": "sources", "generated_at": now.isoformat()}
+        remote = {"verdict": "OK", "signature": "OK", "generated_at": now.isoformat()}
+        ok, why = persist.should_commit(local, remote, now)
+        self.assertTrue(ok)
+        self.assertIn("判定变化", why)
+
+    def test_stale_forces_commit(self):
+        now = dt.datetime(2026, 11, 19, 0, 0, tzinfo=dt.timezone.utc)
+        local = {"verdict": "OK", "signature": "OK", "generated_at": now.isoformat()}
+        remote = {"verdict": "OK", "signature": "OK",
+                  "generated_at": (now - dt.timedelta(minutes=90)).isoformat()}
+        ok, _ = persist.should_commit(local, remote, now)
+        self.assertTrue(ok)
 
 
 if __name__ == "__main__":

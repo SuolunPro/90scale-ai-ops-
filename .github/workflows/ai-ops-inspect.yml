@@ -38,6 +38,11 @@ jobs:
             --config config/ops.json \
             --out state/latest.json \
             --summary "$GITHUB_STEP_SUMMARY"
+      - name: 持久化巡检状态
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python ops/persist.py --file state/latest.json
       - name: 上传巡检快照
         if: always()
         uses: actions/upload-artifact@v4

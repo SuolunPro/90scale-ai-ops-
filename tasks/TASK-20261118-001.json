@@ -14,5 +14,10 @@
   ],
   "acceptance": "给出结论：是 GitHub 调度延迟、额度、还是工作流被停用；附证据",
   "notes": "",
-  "links": []
+  "links": [],
+  "action": "engine_runs_audit",
+  "params": {
+    "lookback_min": 720
+  },
+  "updated_at": "2026-11-19T00:00:00+08:00"
 }
