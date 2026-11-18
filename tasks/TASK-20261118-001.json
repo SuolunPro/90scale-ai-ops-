@@ -19,5 +19,8 @@
   "params": {
     "lookback_min": 720
   },
-  "updated_at": "2026-11-19T00:00:00+08:00"
+  "updated_at": "2026-11-19T00:00:00+08:00",
+  "attempts": 1,
+  "requeued_at": "2026-11-18T16:59:42Z",
+  "report_id": null
 }
