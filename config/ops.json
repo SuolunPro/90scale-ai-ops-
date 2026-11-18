@@ -115,6 +115,7 @@
   "executor": {
     "enabled": true,
     "max_tasks_per_run": 3,
+    "max_attempts": 2,
     "allowed_actions": ["site_probe", "inspect_all", "engine_runs_audit", "workflow_runs"]
   },
   "recovery": {

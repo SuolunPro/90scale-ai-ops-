@@ -124,10 +124,12 @@ def engine_runs_audit(cfg, params, now):
         "missed_schedule_points": missed,
         "lookback_min": int(lookback.total_seconds() // 60),
     }
-    ok = not missed and bool(today)
+    ok = not missed
+    if not runs:
+        ok = False
     return {"ok": ok,
-            "summary": (f"今日引擎运行 {len(today)} 次；近 {data['lookback_min']} 分钟漏跑点 "
-                        f"{len(missed)} 个 {missed[:6]}"),
+            "summary": (f"近 {data['lookback_min']} 分钟漏跑点 {len(missed)} 个；"
+                        f"最近一次运行 {data['last_run_age_min']} 分钟前"),
             "data": data}
 
 
@@ -195,6 +197,7 @@ def main(argv=None) -> int:
     ap.add_argument("--root", default=".")
     ap.add_argument("--config", default="config/ops.json")
     ap.add_argument("--task-id", default="")
+    ap.add_argument("--requeue", default="", help="把失败工单重新排队（受 max_attempts 限制）")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
@@ -203,6 +206,22 @@ def main(argv=None) -> int:
         print("FATAL: 配置不可读")
         return 2
     now = C.now_utc()
+
+    if args.requeue:
+        doc = handoff.load_task(args.root, args.requeue)
+        max_attempts = int((cfg.get("executor") or {}).get("max_attempts", 2))
+        attempts = int(doc.get("attempts", 0))
+        if attempts >= max_attempts:
+            print(f"REFUSED: {args.requeue} 已执行 {attempts} 次，达到上限 {max_attempts}，需人工介入")
+            return 1
+        doc.update({"status": "queued", "attempts": attempts + 1, "requeued_at": C.iso(now),
+                    "assignee": "", "report_id": doc.get("report_id")})
+        handoff.save_task(args.root, doc)
+        ghcommit.commit_files_batch(args.root, cfg, [f"tasks/{doc['id']}.json"],
+                                    f"ops: requeue {doc['id']} (attempt {attempts + 1})")
+        print(f"requeued {doc['id']} attempt {attempts + 1}/{max_attempts}")
+        return 0
+
     limit = int((cfg.get("executor") or {}).get("max_tasks_per_run", 3))
 
     queued = [t for t in handoff.list_tasks(args.root, "queued")]
@@ -228,7 +247,8 @@ def main(argv=None) -> int:
         files = [f"tasks/{d['task']}.json" for d in done]
         files += [f"reports/{d['report']}.json" for d in done]
         files += [f"reports/{d['report']}.md" for d in done]
-        for note in ghcommit.commit_files(args.root, cfg, files, "ops: execute read-only tasks"):
+        files += ["state/executor/last_run.json"]
+        for note in ghcommit.commit_files_batch(args.root, cfg, files, "ops: execute read-only tasks"):
             print(note)
 
     summary = {"executed": done, "skipped": skipped, "at": C.iso(now)}

@@ -17,6 +17,61 @@ from ops import common as C
 API = "https://api.github.com"
 
 
+def commit_files_batch(root: str, cfg: dict, files: list[str], message: str, branch: str = "main") -> list[str]:
+    """单次提交多个文件（Git Data API），避免每个文件一个 commit 的噪声。"""
+    token = os.getenv("GITHUB_TOKEN", "")
+    repo = os.getenv("GITHUB_REPOSITORY", "") or cfg.get("ops_repo", "")
+    if not token:
+        return ["本地模式：未设置 GITHUB_TOKEN，状态文件未提交"]
+    headers = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28", "User-Agent": C.UA}
+
+    def req(method, path, body=None):
+        r = urllib.request.Request(API + path, data=json.dumps(body).encode() if body is not None else None,
+                                   headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(r, timeout=40) as resp:
+                raw = resp.read()
+                return resp.status, (json.loads(raw) if raw else {})
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode("utf-8", "replace")[:200]
+
+    code, ref = req("GET", f"/repos/{repo}/git/ref/heads/{branch}")
+    if code != 200:
+        return [f"读分支失败 HTTP {code}"]
+    base = ref["object"]["sha"]
+    code, commit = req("GET", f"/repos/{repo}/git/commits/{base}")
+    if code != 200:
+        return [f"读提交失败 HTTP {code}"]
+
+    entries = []
+    for rel in files:
+        path = os.path.join(root, rel)
+        if not os.path.exists(path):
+            continue
+        code, blob = req("POST", f"/repos/{repo}/git/blobs",
+                         {"content": base64.b64encode(open(path, "rb").read()).decode(),
+                          "encoding": "base64"})
+        if code not in (200, 201):
+            return [f"blob {rel} 失败 HTTP {code}"]
+        entries.append({"path": rel, "mode": "100644", "type": "blob", "sha": blob["sha"]})
+    if not entries:
+        return ["没有可提交的文件"]
+
+    code, tree = req("POST", f"/repos/{repo}/git/trees",
+                     {"base_tree": commit["tree"]["sha"], "tree": entries})
+    if code not in (200, 201):
+        return [f"建树失败 HTTP {code}"]
+    code, new_commit = req("POST", f"/repos/{repo}/git/commits",
+                           {"message": message, "tree": tree["sha"], "parents": [base]})
+    if code not in (200, 201):
+        return [f"建提交失败 HTTP {code}"]
+    code, _ = req("PATCH", f"/repos/{repo}/git/refs/heads/{branch}",
+                  {"sha": new_commit["sha"], "force": False})
+    return [f"batch committed {new_commit['sha'][:10]} ({len(entries)} files)"] if code in (200, 201) \
+        else [f"更新分支失败 HTTP {code}"]
+
+
 def commit_files(root: str, cfg: dict, files: list[str], message: str, retries: int = 2) -> list[str]:
     token = os.getenv("GITHUB_TOKEN", "")
     repo = os.getenv("GITHUB_REPOSITORY", "") or cfg.get("ops_repo", "")
