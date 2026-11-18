@@ -1,0 +1,89 @@
+name: 九十刻度 AI 运维 · 15分钟巡检
+
+on:
+  schedule:
+    # Every 15 minutes (UTC cron; GitHub may delay a few minutes under load).
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # only to persist state/budget + triage result in THIS repo
+  actions: read
+
+concurrency:
+  group: 90scale-ai-ops-inspect
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: 只读巡检
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      verdict: ${{ steps.check.outputs.verdict }}
+      signature: ${{ steps.check.outputs.signature }}
+      failed: ${{ steps.check.outputs.failed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 运行只读检查
+        id: check
+        env:
+          # 可选：只读私人引擎 Actions 记录，用于 engine_runs 检查；没有则该项 SKIP
+          ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+        run: |
+          python ops/inspector.py \
+            --config config/ops.json \
+            --out state/latest.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: 上传巡检快照
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inspect-${{ github.run_id }}
+          path: state/latest.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  triage:
+    name: DeepSeek 诊断（仅异常）
+    needs: inspect
+    if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 取回巡检结果
+        uses: actions/download-artifact@v4
+        with:
+          name: inspect-${{ github.run_id }}
+          path: state
+      - name: 预算闸门 + DeepSeek 诊断
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ops/triage.py --config config/ops.json --status state/latest.json \
+            | tee triage.out
+          {
+            echo "## AI 诊断结果"
+            echo ''
+            echo '```json'
+            head -c 4000 triage.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 保存诊断结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-${{ github.run_id }}
+          path: |
+            state/triage/latest.json
+            logs/triage.jsonl
+          retention-days: 30
+          if-no-files-found: ignore
