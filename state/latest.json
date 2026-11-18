@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-18T16:56:08Z",
-  "beijing_time": "2026-11-19 00:56:08",
+  "generated_at": "2026-11-18T17:40:41Z",
+  "beijing_time": "2026-11-19 01:40:41",
   "in_sale_window": false,
   "verdict": "WARN",
-  "signature": "independent_review,site_workflows",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review",
   "failed": [],
   "warned": [
-    "independent_review",
-    "site_workflows"
+    "independent_review"
   ],
   "checks": [
     {
@@ -16,7 +16,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，90120 字节，耗时 149ms"
+      "detail": "HTTP 200，90120 字节，耗时 109ms"
     },
     {
       "id": "site_data_sync",
@@ -33,17 +33,26 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-18，快照 305 分钟前生成",
+      "detail": "sale_day=2026-11-18，快照 350 分钟前生成",
       "sale_day": "2026-11-18",
-      "generated_age_min": 305.4,
+      "generated_age_min": 350.0,
       "in_window": false
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录"
+      "detail": "已核对 0 个计划点，无漏跑；今天 0 次运行",
+      "missed_points": [],
+      "checked_points": 0,
+      "runs_today": 0,
+      "last_run_age_min": 353.0,
+      "retired_workflows_ignored": [
+        "engine4-settlement.yml",
+        "engine4-verify-results.yml",
+        "engine4-result-backfill.yml"
+      ]
     },
     {
       "id": "pool_coverage",
@@ -78,7 +87,7 @@
           "day": "2026-11-18",
           "matches": 4,
           "pending": 4,
-          "overdue_h": -5.6
+          "overdue_h": -4.8
         }
       ]
     },
@@ -104,7 +113,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 2410,
+          "elapsed_ms": 1695,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -114,8 +123,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 44358,
-          "elapsed_ms": 1405,
+          "bytes": 44281,
+          "elapsed_ms": 1763,
           "error": null,
           "cn_only": true,
           "required": false
@@ -126,7 +135,7 @@
           "status": "up",
           "http": 200,
           "bytes": 26878,
-          "elapsed_ms": 185,
+          "elapsed_ms": 115,
           "error": null,
           "cn_only": false,
           "required": false
@@ -137,7 +146,7 @@
           "status": "down",
           "http": 405,
           "bytes": 2657,
-          "elapsed_ms": 801,
+          "elapsed_ms": 1227,
           "error": "HTTP 405",
           "cn_only": true,
           "required": false
@@ -153,11 +162,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 1 次运行，无失败",
       "failures": [],
-      "recent_runs": 0
+      "recent_runs": 1
     },
     {
       "id": "legacy_sale_status",
@@ -172,17 +181,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.019136,
-    "remaining_cny": 9.980864,
-    "calls": 3,
+    "spent_cny": 0.024576,
+    "remaining_cny": 9.975424,
+    "calls": 4,
     "exhausted": false,
-    "used_pct": 0.19
+    "used_pct": 0.25
   },
   "runner": {
     "host": "runnervmccnms",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44352913583",
+    "run_id": "44361290536",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
