@@ -1,0 +1,76 @@
+{
+  "at": "2026-11-18T07:06:30Z",
+  "verdict": "FAIL",
+  "signature": "sources",
+  "model": "deepseek-chat",
+  "status": "ok",
+  "triage": {
+    "summary": "关键数据源（体彩官方接口）不可用，导致预测主引擎快照滞后 226 分钟、独立复核滞后 5 天、网站工作流 120 分钟无运行；但缺少数据源错误码、引擎日志与调度器状态证据，根因待确认。",
+    "root_causes": [
+      {
+        "cause": "体彩官方接口不可用（上游故障或网络/鉴权问题），采集链路中断，下游快照与工作流随之停滞",
+        "confidence": 0.72,
+        "evidence": "checks[sources].status=fail, detail=关键数据源不可用：体彩官方接口；engine_fresh.generated_age_min=225.7 超阈值 180；site_workflows.recent_runs=0"
+      },
+      {
+        "cause": "调度器/工作流触发停滞，导致采集与引擎任务未按时启动（与数据源故障可能叠加）",
+        "confidence": 0.45,
+        "evidence": "site_workflows.detail=120 分钟内没有任何工作流运行记录，疑似调度停滞；failures=[] 且 recent_runs=0"
+      },
+      {
+        "cause": "独立复核流程长期未执行（流程或人员层面滞后），与当日故障非同一原因",
+        "confidence": 0.35,
+        "evidence": "independent_review.latest=2026-11-13, lag_days=5"
+      }
+    ],
+    "diagnose_steps": [
+      {
+        "command": "curl -sS -o /dev/null -w '%{http_code} %{time_total}\\n' --max-time 10 <体彩官方接口URL>",
+        "purpose": "确认体彩官方接口当前 HTTP 状态与响应耗时，判断是上游不可用还是网络/鉴权问题"
+      },
+      {
+        "command": "curl -sS --max-time 10 <体彩官方接口URL> | head -c 500",
+        "purpose": "查看接口返回体，确认是否为错误页、限流提示或结构变更"
+      },
+      {
+        "command": "python -c \"import json;d=json.load(open('<引擎快照目录>/latest.json'));print(d.get('generated_at'),d.get('sale_day'))\"",
+        "purpose": "只读核对最新引擎快照的生成时间与销售日，验证 226 分钟滞后"
+      },
+      {
+        "command": "git -C <网站仓库路径> log --since='6 hours ago' --oneline -- .github/workflows",
+        "purpose": "只读查看工作流配置近期是否有变更，排除配置改动导致调度停滞"
+      },
+      {
+        "command": "ls -l <复核文件目录> | tail -n 10",
+        "purpose": "只读确认独立复核文件的最新时间戳，验证 5 天滞后"
+      }
+    ],
+    "suggested_fix": {
+      "action": "先人工确认体彩官方接口可用性（状态码/返回体），若为上游故障则等待恢复并在恢复后手动触发一次采集与引擎快照重算；同时检查调度器（cron/工作流）是否存活并补跑当日任务；独立复核滞后需安排人工补做复核。",
+      "risk": "medium",
+      "needs_approval": true
+    },
+    "customer_impact": "销售窗口内预测快照已滞后约 3.7 小时，会员可能看到过期预测或无法获取当日推荐；若采集持续中断，网站相关展示与工作流产出将停更。",
+    "escalate": true
+  },
+  "budget": {
+    "month": "2026-11",
+    "cap_cny": 10.0,
+    "spent_cny": 0.006714,
+    "remaining_cny": 9.993286,
+    "calls": 1,
+    "exhausted": false,
+    "used_pct": 0.07
+  },
+  "usage": {
+    "prompt_tokens": 589,
+    "completion_tokens": 692,
+    "total_tokens": 1281,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 589
+  },
+  "cost_cny": 0.006714
+}
