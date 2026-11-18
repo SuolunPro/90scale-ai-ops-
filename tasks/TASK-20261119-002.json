@@ -1,0 +1,19 @@
+{
+  "id": "TASK-20261119-002",
+  "title": "验收：云端工单执行与报告持久化",
+  "created_by": "gpt",
+  "created_at": "2026-11-18T17:20:19+00:00",
+  "priority": "P2",
+  "scope": "read-only",
+  "status": "queued",
+  "assignee": "",
+  "sla_minutes": 240,
+  "evidence": [],
+  "acceptance": "报告与 state/executor 均出现在仓库，且结论可追溯",
+  "notes": "",
+  "links": [],
+  "action": "site_probe",
+  "params": {
+    "url": "https://suolunpro.github.io/data/engine4/latest.json"
+  }
+}

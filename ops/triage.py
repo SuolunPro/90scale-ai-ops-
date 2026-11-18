@@ -182,8 +182,10 @@ def main(argv=None) -> int:
     with open(log, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps({k: v for k, v in result_doc.items() if k != "triage"}, ensure_ascii=False) + "\n")
 
-    files = [f"state/budget/{budget.month_key(now)}.json", "state/triage/latest.json"]
-    for line in ghcommit.commit_files(args.root, cfg, files, f"ops: triage {verdict} ({signature[:40]})"):
+    for line in budget.commit_with_merge(args.root, cfg, now=now):
+        print(line)
+    for line in ghcommit.commit_files(args.root, cfg, ["state/triage/latest.json"],
+                                      f"ops: triage {verdict} ({signature[:40]})"):
         print(line)
     return 0
 

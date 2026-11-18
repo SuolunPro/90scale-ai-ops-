@@ -300,9 +300,9 @@ class TestRecoveryGuards(unittest.TestCase):
         p = recovery.preflight(self.CFG, "dispatch_engine4", recovery.CONFIRM_PHRASE, self._now(2), [])
         self.assertEqual(p, [])
 
-    def test_rerun_allowed_inside_window(self):
+    def test_rerun_blocked_inside_window(self):
         p = recovery.preflight(self.CFG, "rerun_failed_run", recovery.CONFIRM_PHRASE, self._now(12), [])
-        self.assertEqual(p, [])
+        self.assertTrue(any("停售保护" in x for x in p))
 
     def test_rate_limit(self):
         now = self._now(2)
@@ -345,6 +345,48 @@ class TestPersist(unittest.TestCase):
                   "generated_at": (now - dt.timedelta(minutes=90)).isoformat()}
         ok, _ = persist.should_commit(local, remote, now)
         self.assertTrue(ok)
+
+
+class TestBudgetConcurrency(unittest.TestCase):
+    def test_merge_keeps_both_sides(self):
+        local = {"entries": [{"at": "t2", "note": "n2", "cost_cny": 0.01}]}
+        remote = {"entries": [{"at": "t1", "note": "n1", "cost_cny": 0.02}]}
+        merged = budget.merge_entries(local, remote)
+        self.assertEqual(len(merged["entries"]), 2)
+        self.assertEqual([e["at"] for e in merged["entries"]], ["t1", "t2"])
+
+    def test_merge_dedupes_identical_entry(self):
+        e = {"at": "t1", "note": "n1", "cost_cny": 0.02}
+        merged = budget.merge_entries({"entries": [e]}, {"entries": [dict(e)]})
+        self.assertEqual(len(merged["entries"]), 1)
+
+    def test_merge_total_not_lost(self):
+        local = {"entries": [{"at": "t1", "note": "a", "cost_cny": 0.1},
+                             {"at": "t2", "note": "b", "cost_cny": 0.2}]}
+        remote = {"entries": [{"at": "t2", "note": "b", "cost_cny": 0.2},
+                              {"at": "t3", "note": "c", "cost_cny": 0.3}]}
+        merged = budget.merge_entries(local, remote)
+        self.assertAlmostEqual(sum(e["cost_cny"] for e in merged["entries"]), 0.6)
+
+
+class TestStopSaleWindowConfig(unittest.TestCase):
+    def test_window_is_config_driven(self):
+        cfg = {"recovery": {"stop_sale_window_bj": ["10:00", "11:00"]}}
+        inside = dt.datetime(2026, 11, 19, 10, 30, tzinfo=common.BJ)
+        outside = dt.datetime(2026, 11, 19, 9, 0, tzinfo=common.BJ)
+        self.assertTrue(recovery.in_stop_sale_window(inside, cfg))
+        self.assertFalse(recovery.in_stop_sale_window(outside, cfg))
+
+    def test_default_window_boundaries(self):
+        self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 45, tzinfo=common.BJ), {}))
+        self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 22, 45, tzinfo=common.BJ), {}))
+        self.assertFalse(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 44, tzinfo=common.BJ), {}))
+
+    def test_rerun_blocked_in_window(self):
+        cfg = {"recovery": {"enabled": True, "max_per_hour": 2}}
+        now = dt.datetime(2026, 11, 19, 12, 0, tzinfo=common.BJ).astimezone(dt.timezone.utc)
+        p = recovery.preflight(cfg, "rerun_failed_run", recovery.CONFIRM_PHRASE, now, [])
+        self.assertTrue(any("停售保护" in x for x in p))
 
 
 if __name__ == "__main__":

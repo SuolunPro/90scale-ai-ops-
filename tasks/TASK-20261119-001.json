@@ -5,16 +5,13 @@
   "created_at": "2026-11-18T17:05:04+00:00",
   "priority": "P2",
   "scope": "read-only",
-  "status": "done",
-  "assignee": "deepseek-executor",
+  "status": "queued",
+  "assignee": "",
   "sla_minutes": 240,
   "evidence": [],
   "acceptance": "返回 verdict 与异常清单，证明执行器 inspect_all 动作可用",
   "notes": "",
   "links": [],
   "action": "inspect_all",
-  "params": {},
-  "claimed_at": "2026-11-18T17:06:09+00:00",
-  "completed_at": "2026-11-18T17:06:09+00:00",
-  "report_id": "RPT-20261119-007"
+  "params": {}
 }

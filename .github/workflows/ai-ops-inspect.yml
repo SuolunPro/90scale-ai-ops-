@@ -58,6 +58,10 @@ jobs:
     if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN'
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    # 预算锁：跨工作流串行化所有 AI 调用，避免并发写账本互相覆盖
+    concurrency:
+      group: deepseek-budget-lock
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

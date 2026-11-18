@@ -43,9 +43,20 @@ def _api(method: str, path: str, token: str, body=None):
         return e.code, e.read()[:300]
 
 
-def in_stop_sale_window(now) -> bool:
+def stop_sale_bounds(cfg: dict | None) -> tuple[tuple[int, int], tuple[int, int]]:
+    rec = (cfg or {}).get("recovery") or {}
+    window = rec.get("stop_sale_window_bj") or ["08:45", "22:45"]
+
+    def parse(x: str) -> tuple[int, int]:
+        h, m = x.split(":")
+        return int(h), int(m)
+
+    return parse(window[0]), parse(window[1])
+
+
+def in_stop_sale_window(now, cfg: dict | None = None) -> bool:
     bj = now.astimezone(C.BJ)
-    start, end = (8, 45), (22, 45)
+    start, end = stop_sale_bounds(cfg)
     return start <= (bj.hour, bj.minute) <= end
 
 
@@ -68,8 +79,9 @@ def preflight(cfg: dict, action: str, confirm: str, now, history: list) -> list[
         problems.append(f"缺少授权串（需要在输入框填写 {CONFIRM_PHRASE}）")
     if action not in ALLOWED:
         problems.append(f"动作不在白名单：{action}")
-    if in_stop_sale_window(now) and action != "rerun_failed_run":
-        problems.append("当前处于停售保护窗口（北京时间 08:45-22:45），拒绝触发写生产的恢复动作")
+    if in_stop_sale_window(now, cfg):
+        problems.append("当前处于停售保护窗口（北京时间 08:45-22:45），拒绝任何会写生产的恢复动作；"
+                        "如确属紧急，请等窗口结束或由人工在 GitHub 上直接操作并留痕")
     rate = check_rate(history, now, int(rec.get("max_per_hour", 2)))
     if rate:
         problems.append(rate)
@@ -125,6 +137,12 @@ def main(argv=None) -> int:
     print(json.dumps(record, ensure_ascii=False, indent=2))
     if problems:
         print("REFUSED: " + "；".join(problems))
+        if not args.dry_run:  # 拒绝也要留痕
+            os.makedirs(os.path.dirname(hist_path), exist_ok=True)
+            with open(hist_path, "a", encoding="utf-8", newline="\n") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            ghcommit.commit_files(args.root, cfg, ["state/recovery/history.jsonl"],
+                                  f"ops: recovery refused {args.action} by {args.actor}")
         return 0 if args.dry_run else 1
     if args.dry_run:
         print("DRY-RUN: 通过预检，未实际执行")

@@ -1,0 +1,30 @@
+name: 九十刻度 AI 运维 · 运维 Token 只读权限审计
+
+# 只做 GET 探测，不 dispatch、不写文件、不触发生产。手动触发。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 只读探测 ENGINE4_REPAIR_TOKEN 的实际能力
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python ops/perm_audit.py | tee probe.out
+          {
+            echo "## 运维 Token 只读审计"
+            echo '```'
+            cat probe.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
