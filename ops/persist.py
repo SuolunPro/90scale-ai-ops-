@@ -51,6 +51,9 @@ def should_commit(local: dict, remote: dict | None, now) -> tuple[bool, str]:
         return True, f"判定变化 {remote.get('verdict')} -> {local.get('verdict')}"
     if local.get("signature") != remote.get("signature"):
         return True, "故障签名变化"
+    if local.get("fingerprint") and remote.get("fingerprint") \
+            and local["fingerprint"] != remote["fingerprint"]:
+        return True, "单项检查状态变化（fingerprint 不同）"
     age = C.age_min(C.parse_ts(remote.get("generated_at")), now)
     if age is None or age >= MAX_AGE_MIN:
         return True, f"远端快照已 {age or 0:.0f} 分钟未刷新，按每小时一次刷新"

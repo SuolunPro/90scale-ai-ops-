@@ -81,6 +81,7 @@ def main(argv=None) -> int:
         "beijing_time": now.astimezone(C.BJ).strftime("%Y-%m-%d %H:%M:%S"),
         "in_sale_window": C.in_sale_window(now),
         "verdict": verdict,
+        "fingerprint": ",".join(f"{c['id']}={c['status']}" for c in results),
         "signature": ",".join(sorted(failed)) or ",".join(sorted(warned)) or "OK",
         "failed": failed,
         "warned": warned,

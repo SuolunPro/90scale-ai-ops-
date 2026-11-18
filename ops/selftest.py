@@ -371,6 +371,16 @@ class TestPersist(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn("判定变化", why)
 
+    def test_fingerprint_change_commits(self):
+        now = dt.datetime(2026, 11, 19, 0, 0, tzinfo=dt.timezone.utc)
+        local = {"verdict": "WARN", "signature": "sources", "generated_at": now.isoformat(),
+                 "fingerprint": "a=ok,b=skip"}
+        remote = {"verdict": "WARN", "signature": "sources", "generated_at": now.isoformat(),
+                  "fingerprint": "a=ok,b=warn"}
+        ok, why = persist.should_commit(local, remote, now)
+        self.assertTrue(ok)
+        self.assertIn("fingerprint", why)
+
     def test_stale_forces_commit(self):
         now = dt.datetime(2026, 11, 19, 0, 0, tzinfo=dt.timezone.utc)
         local = {"verdict": "OK", "signature": "OK", "generated_at": now.isoformat()}
