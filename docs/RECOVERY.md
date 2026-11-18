@@ -51,7 +51,7 @@ python ops/recovery.py --plan engine_missed_run --confirm YES-I-APPROVE \
 # 3) 真执行（需在 GitHub 手动触发，dry_run=false）
 ```
 
-## 六、代码修复示例
+## 七、代码修复示例
 
 ```bash
 python ops/fix_pr.py --branch fix/collector-timeout --title "fix: 采集超时重试" \
@@ -60,3 +60,10 @@ python ops/fix_pr.py --branch fix/collector-timeout --title "fix: 采集超时�
 
 脚本会先跑 `ops/selftest.py`，**测试不通过直接拒绝开 PR**；PR 创建后不会自动合并，
 需人工审核。
+
+## 八、变更记录
+
+- **V1.3（2026-11-19）**：恢复通道与代码通道彻底分离；停售保护改为按计划类别判定；
+  未定义计划、冻结数据写入、代码类计划一律拒绝；拒绝操作也写审计日志。
+  审计细节见 `docs/AUDIT-V1.3.md`。
+
