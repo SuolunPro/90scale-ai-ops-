@@ -51,6 +51,8 @@ def should_commit(local: dict, remote: dict | None, now) -> tuple[bool, str]:
         return True, f"判定变化 {remote.get('verdict')} -> {local.get('verdict')}"
     if local.get("signature") != remote.get("signature"):
         return True, "故障签名变化"
+    if local.get("fingerprint") and not remote.get("fingerprint"):
+        return True, "远端快照缺少 fingerprint，升级一次"
     if local.get("fingerprint") and remote.get("fingerprint") \
             and local["fingerprint"] != remote["fingerprint"]:
         return True, "单项检查状态变化（fingerprint 不同）"
