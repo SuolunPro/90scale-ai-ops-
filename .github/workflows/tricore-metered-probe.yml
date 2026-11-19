@@ -1,0 +1,41 @@
+name: Phase one single metered DeepSeek probe
+on:
+  push:
+    branches: [research/tricore-audit-20261119]
+    paths: ['.github/workflows/tricore-metered-probe.yml']
+permissions: {}
+jobs:
+  probe:
+    if: github.run_attempt == 1 && github.event.before == 'e5c08a8dd7e573a0e6a7948cef70343c9543ef70'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: One bounded request with usage receipt
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          from decimal import Decimal
+          def api(path, payload=None):
+              data = None if payload is None else json.dumps(payload).encode()
+              req = urllib.request.Request('https://api.deepseek.com/'+path, data=data,
+                  headers={'Authorization':'Bearer '+os.environ['DEEPSEEK_API_KEY'],'Content-Type':'application/json'})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  return json.load(response)
+          def funds():
+              result = api('user/balance')
+              return next(Decimal(i['total_balance']) for i in result['balance_infos'] if i['currency']=='CNY')
+          # Fixed tiny input, no retrieval or tool calls; overestimate prompt at 512 tokens.
+          ceiling = Decimal(512*2+16*8)/1000000
+          before = funds()
+          if ceiling > 1 or before < ceiling:
+              raise SystemExit('budget or currency guard')
+          result = api('chat/completions', {'model':'deepseek-flash','messages':[{'role':'user','content':'Reply OK.'}],
+              'thinking':{'type':'disabled'},'max_tokens':16,'stream':False})
+          usage = result['usage']
+          after = funds()
+          print(json.dumps({'request_id':result['id'],'model':result['model'],'usage':usage,
+              'has_reply':bool(result['choices'][0]['message']['content']),'max_estimated_cny':str(ceiling),
+              'observed_account_delta_cny':str(before-after)}))
+          PY
