@@ -1,0 +1,26 @@
+name: Isolated dual-core research acceptance
+on:
+  push:
+    branches: [research/tricore-phase2-20261119]
+    paths: ['.github/workflows/phase2-sample.yml']
+permissions: {contents: read}
+jobs:
+  deepseek:
+    if: github.event.before == '4dfd4eb9ea1f25c909c4c6aa26a076bdeafe2ce9' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python research/phase2/predict.py
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  gpt:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Inspect configuration without making a billable request
+        env:
+          KEY_CONFIGURED: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: echo "GPT_GATE configured=$KEY_CONFIGURED approved_paid_calls=false calls=0"
