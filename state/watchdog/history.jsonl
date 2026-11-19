@@ -1,0 +1,1 @@
+{"at": "2026-11-19T02:27:29Z", "phase": "dispatched", "run_id": 44444457211, "trigger_reason": "missed_schedule_points", "missed_points": ["09:12"], "http": 204, "ok": true, "in_sale_window": true}
