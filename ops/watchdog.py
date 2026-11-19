@@ -44,9 +44,13 @@ def decide(ctx: dict) -> dict:
     active = ctx.get("active_runs") or []
     if cfg.get("require_no_active_run", True) and active:
         blocked.append(f"引擎有 {len(active)} 个运行中的任务：{[a['id'] for a in active][:3]}")
+    if ctx.get("runs_error"):
+        blocked.append("GitHub Actions 运行状态读取失败，禁止把未知状态当成漏跑")
     missed = ctx.get("missed") or []
     if not missed:
         blocked.append("窗口内没有漏跑计划点")
+    if not ctx.get("sale_verified", False):
+        blocked.append("没有独立核实实时在售标识和停售时间，禁止自动补触发")
     if ctx.get("in_sale_window") and cfg.get("block_in_sale_window", True):
         stale = ctx.get("fresh_status") == "fail"
         if manual and cfg.get("manual_override_in_sale", True):
@@ -173,7 +177,8 @@ def gather(cfg: dict, token: str, root: str, now) -> dict:
     last_dispatch = max((C.parse_ts(h["at"]) for h in auto_today if h.get("at")), default=None)
     bj_now = now.astimezone(C.BJ)
     return {
-        "runs_error": doc.get("error") if code != 200 else None,
+        "runs_error": (doc.get("error") or f"HTTP {code}") if code != 200 else None,
+        "sale_verified": False,  # 需接入实时官方/镜像逐场在售核验后才可放行
         "runs": runs,
         "active_runs": [r for r in runs if r.get("status") in ("queued", "in_progress", "waiting")],
         "missed": missed_points(cfg, runs, now),
@@ -225,6 +230,7 @@ def main(argv=None) -> int:
         return 0
     ctx = gather(cfg, token, args.root, now)
     manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")
+    # Fail closed: old GitHub snapshots and future kickoffs do not prove current sale.
     decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now, "manual": manual})
 
     report = {"at": C.iso(now), "phase": "decide", "apply": args.apply,
