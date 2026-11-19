@@ -129,6 +129,11 @@ def resolve_pending(root: str, cfg: dict, token: str, now) -> dict | None:
     wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
     code, doc = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs/{pending['run_id']}", token)
     if code != 200:
+        # 某些情况下 workflow 维度的 run 端点会 404，退回仓库维度
+        code2, doc2 = _api(f"https://api.github.com/repos/{repo}/actions/runs/{pending['run_id']}", token)
+        if code2 == 200:
+            code, doc = code2, doc2
+    if code != 200:
         return {"pending": True, "run_id": pending["run_id"], "http": code,
                 "error": str(doc.get("error"))[:200]}
     if doc.get("status") != "completed":
