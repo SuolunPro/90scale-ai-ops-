@@ -1,0 +1,32 @@
+name: Official November 16 historical cutoff probe
+on:
+  push:
+    branches: [research/tricore-phase2-20261119]
+    paths: ['.github/workflows/official-cutoff-probe.yml']
+permissions: {}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          python - <<'PY'
+          import json, urllib.request
+          from concurrent.futures import ThreadPoolExecutor
+          urls=['https://webapi.sporttery.cn/gateway/uniform/football/getUniformMatchResultV1.qry?startDate=2026-11-16&endDate=2026-11-17','https://webapi.sporttery.cn/gateway/jc/football/getMatchResultV1.qry?matchPage=1&matchBeginDate=2026-11-16&matchEndDate=2026-11-17&leagueId=&pageSize=200&pageNo=1&isFix=0&pcOrWap=1']
+          def read(u):
+              try:
+                  req=urllib.request.Request(u,headers={'Referer':'https://www.sporttery.cn/','Accept':'application/json','User-Agent':'90scale-research/1.0'})
+                  with urllib.request.urlopen(req,timeout=12) as r: d=json.load(r)
+                  def walk(x):
+                      if isinstance(x,list):
+                          for v in x:walk(v)
+                      if isinstance(x,dict):
+                          if any(k in x for k in ('homeTeamAllName','homeTeamAbbName','homeTeam')):
+                              print('OFFICIAL_ROW '+json.dumps({k:v for k,v in x.items() if any(t in k.lower() for t in ('date','time','home','away','sell','sale','matchnum','matchid','end','close')) and isinstance(v,(str,int,float))},ensure_ascii=False))
+                          else:
+                              for v in x.values():walk(v)
+                  print('RESPONSE',u.split('?')[0],d.get('success'),str(d.get('errorMessage',''))[:100]);walk(d.get('value'))
+              except Exception as exc:print('UNAVAILABLE',u.split('?')[0],type(exc).__name__,str(exc)[:120])
+          list(ThreadPoolExecutor(2).map(read,urls))
+          PY
