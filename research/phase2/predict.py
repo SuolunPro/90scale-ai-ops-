@@ -75,7 +75,7 @@ def now():
     return dt.datetime.now(UTC)
 def run():
     end=dt.datetime(2026,11,19,22,tzinfo=BJT)
-    messages=[{'role':'system','content':'Independent soccer forecast. Use only supplied timestamped facts. No other predictions, external tools or invented news. Supply JSON only. Each full distribution must sum to 1. Interpret sources separately; different profit indices need not agree. Asian line is not official handicap. Choose PASS if inputs cannot justify a single. Use source names LOTA and Okooo.'},
+    messages=[{'role':'system','content':'Independent soccer forecast. Use only supplied timestamped facts. No other predictions, external tools or invented news. Return exactly one flat JSON object at the root with these exact English keys: spf, rq, scores, htft, goals, risk, reason, single, single_reason, facts_used. Do not nest it inside output, facts, analysis or prediction. Use native numeric arrays and exact key spellings. Each full distribution must sum to 1. Interpret sources separately; different profit indices need not agree. Asian line is not official handicap. Choose PASS if inputs cannot justify a single. Use source names LOTA and Okooo.'},
               {'role':'user','content':json.dumps({'facts':FACTS,'output':SCHEMA},ensure_ascii=False)}]
     limit=1800
     input_ceiling=len(json.dumps(messages,ensure_ascii=False).encode())+256
@@ -92,7 +92,12 @@ def run():
     raw=json.loads(res['choices'][0]['message']['content'])
     result={'schema':'tricore-shadow-v1','core':'DeepSeek','fixture':FACTS,'model':res['model'],
             'frozen_at':frozen.isoformat(),'fact_hash':hashlib.sha256(json.dumps(FACTS,sort_keys=True).encode()).hexdigest(),
-            'modules':canonical(raw),'raw':raw,'receipt':receipt,'settlement':'PENDING','formal_comparison':'WITHHELD_FROM_PROMPT'}
+            'raw':raw,'receipt':receipt,'settlement':'PENDING','formal_comparison':'WITHHELD_FROM_PROMPT'}
+    try:
+        result['modules']=canonical(raw)
+        result['validation']='VALID'
+    except (TypeError,KeyError,ValueError) as error:
+        result['validation']=type(error).__name__
     encoded=json.dumps(result,ensure_ascii=False).encode()
     # Only the research recipient can read predictions from the public runner log.
     key=os.urandom(32);iv=os.urandom(16)
