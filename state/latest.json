@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-19T05:45:12Z",
-  "beijing_time": "2026-11-19 13:45:12",
+  "generated_at": "2026-11-19T06:45:13Z",
+  "beijing_time": "2026-11-19 14:45:13",
   "in_sale_window": true,
   "verdict": "WARN",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=warn,legacy_sale_status=ok",
@@ -19,7 +19,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，90120 字节，耗时 194ms"
+      "detail": "HTTP 200，90120 字节，耗时 97ms"
     },
     {
       "id": "site_data_sync",
@@ -36,9 +36,9 @@
       "title": "预测主引擎当日快照",
       "status": "warn",
       "severity": "warn",
-      "detail": "最新快照已 194 分钟未更新（阈值 180 分钟）",
+      "detail": "最新快照已 254 分钟未更新（阈值 180 分钟）",
       "sale_day": "2026-11-19",
-      "generated_age_min": 194.5,
+      "generated_age_min": 254.5,
       "in_window": true
     },
     {
@@ -46,15 +46,15 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 3 个计划点无运行：11:12、12:12、13:12；最近一次运行 198 分钟前",
+      "detail": "近 180 分钟内 3 个计划点无运行：12:12、13:12、14:12；最近一次运行 258 分钟前",
       "missed_points": [
-        "11:12",
         "12:12",
-        "13:12"
+        "13:12",
+        "14:12"
       ],
       "checked_points": 3,
       "runs_today": 3,
-      "last_run_age_min": 197.7,
+      "last_run_age_min": 257.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -119,8 +119,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1266,
+          "bytes": 7352,
+          "elapsed_ms": 3611,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -130,8 +130,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 44334,
-          "elapsed_ms": 1825,
+          "bytes": 44664,
+          "elapsed_ms": 1651,
           "error": null,
           "cn_only": true,
           "required": false
@@ -142,7 +142,7 @@
           "status": "up",
           "http": 200,
           "bytes": 27379,
-          "elapsed_ms": 237,
+          "elapsed_ms": 243,
           "error": null,
           "cn_only": false,
           "required": false
@@ -152,8 +152,8 @@
           "name": "澳客竞彩",
           "status": "down",
           "http": 405,
-          "bytes": 4681,
-          "elapsed_ms": 10225,
+          "bytes": 2657,
+          "elapsed_ms": 918,
           "error": "HTTP 405",
           "cn_only": true,
           "required": false
@@ -188,17 +188,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.06127,
-    "remaining_cny": 9.93873,
-    "calls": 10,
+    "spent_cny": 0.069076,
+    "remaining_cny": 9.930924,
+    "calls": 11,
     "exhausted": false,
-    "used_pct": 0.61
+    "used_pct": 0.69
   },
   "runner": {
     "host": "runnervmccnms",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44467294937",
+    "run_id": "44474455115",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
