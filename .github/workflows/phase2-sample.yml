@@ -6,7 +6,7 @@ on:
 permissions: {contents: read}
 jobs:
   deepseek:
-    if: github.event.before == '4dfd4eb9ea1f25c909c4c6aa26a076bdeafe2ce9' && github.run_attempt == 1
+    if: github.event.before == 'b75a047b83fc2c865171824ae849d5387d6c72f9' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
