@@ -1,68 +1,76 @@
 {
-  "at": "2026-11-19T16:00:35Z",
+  "at": "2026-11-19T16:45:31Z",
   "verdict": "WARN",
-  "signature": "independent_review",
+  "signature": "independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "唯一告警是独立复核数据已滞后 7 天（最新 2026-11-13），当前不在销售窗口且无 fail 项；但巡检未提供复核任务调度状态、复核人排班或上游数据产出情况，无法确认是流程停摆还是正常空档，根因置信度偏低。",
+    "summary": "巡检整体为 WARN：独立复核数据已滞后 7 天，网站仓库工作流在 120 分钟内没有任何运行记录；当前证据只能说明存在滞后和疑似调度停滞，尚不能确定根因，需要补充复核文件生成日志、工作流调度器状态和仓库最近提交记录。",
     "root_causes": [
       {
-        "cause": "独立复核流程未按周期执行（复核任务漏跑或复核人未提交）",
+        "cause": "独立复核任务未按计划生成新文件（调度未触发或执行失败）",
         "confidence": 0.45,
-        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=7，且 in_sale_window=false 说明非销售高峰导致的延迟"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=7, status=warn"
       },
       {
-        "cause": "上游数据未产出导致复核无输入，复核文件被动滞后",
-        "confidence": 0.3,
-        "evidence": "checks 中仅 independent_review 一项异常，其余检查未报 fail；但巡检 JSON 未包含上游数据新鲜度字段，此因缺乏直接证据"
+        "cause": "网站仓库工作流调度停滞（cron/触发源未运行或仓库无新事件）",
+        "confidence": 0.4,
+        "evidence": "site_workflows: recent_runs=0, failures=[], detail=120 分钟内没有任何工作流运行记录"
       },
       {
-        "cause": "复核周期本身为低频（如周更），7 天滞后处于正常边界",
-        "confidence": 0.25,
-        "evidence": "lag_days=7 恰为一个整周，且 verdict 仅为 WARN 而非 FAIL，severity=warn"
+        "cause": "处于非销售窗口且近期无提交，工作流本就不该触发，属于低活跃期的正常空窗",
+        "confidence": 0.2,
+        "evidence": "in_sale_window=false；site_workflows.failures 为空，无失败记录"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "ls -l --time-style=long-iso <复核文件目录> | tail -20",
-        "purpose": "确认复核文件的实际最新时间与历史产出节奏，判断 7 天是否偏离常态周期"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://<站点域名>/",
+        "purpose": "确认网站本身是否可访问，排除站点整体不可用"
       },
       {
-        "command": "git log --since='2026-11-01' --oneline -- <复核相关路径>",
-        "purpose": "查看复核相关提交记录，确认 2026-11-13 之后是否有产出动作或流程中断痕迹"
+        "command": "git -C <网站仓库路径> log --since='8 days ago' --oneline -n 50",
+        "purpose": "查看近 8 天是否有提交，判断工作流空窗是否因无代码变更"
       },
       {
-        "command": "curl -s <只读健康检查接口>/review/status",
-        "purpose": "读取复核任务调度与最近执行状态，区分漏跑与无输入两种情况"
+        "command": "git -C <网站仓库路径> log -1 --format='%H %ci %s'",
+        "purpose": "确认仓库最新提交时间，与工作流最近运行时间对照"
+      },
+      {
+        "command": "python -c \"import os,glob,datetime;fs=sorted(glob.glob('<复核文件目录>/*'));print([(f,datetime.datetime.fromtimestamp(os.path.getmtime(f)).isoformat()) for f in fs[-5:]])\"",
+        "purpose": "只读列出最近复核文件及其修改时间，确认滞后是否持续以及是否卡在同一日期"
+      },
+      {
+        "command": "curl -s https://<工作流调度服务地址>/health",
+        "purpose": "只读检查调度服务健康状态，确认是否整体停滞"
       }
     ],
     "suggested_fix": {
-      "action": "由值班人员联系独立复核责任人，确认 2026-11-13 之后复核未更新的原因；若为漏跑则补做一次复核并记录，若为上游无数据则同步上游产出方。全程只做人工确认与补录，不改动历史复核数据。",
-      "risk": "low",
+      "action": "人工登录调度平台与复核任务所在环境，核对独立复核任务的定时配置和最近执行日志，并检查网站仓库工作流触发源（cron/webhook）是否正常；确认原因后再由负责人决定是否手动补跑一次复核与工作流。",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前不在销售窗口，且无 fail 项，对会员下单与网站访问暂无直接影响；若复核长期滞后延续至下个销售窗口，可能削弱价格/算法变更的独立把关，存在间接合规与准确性风险。",
+    "customer_impact": "目前无 fail 项且不在销售窗口，会员与网站访问预计不受直接影响；但复核数据滞后 7 天会削弱风控与对账的时效性，若工作流停滞持续，后续代码或配置变更可能无法自动发布。",
     "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.12083,
-    "remaining_cny": 9.87917,
-    "calls": 19,
+    "spent_cny": 0.126806,
+    "remaining_cny": 9.873194,
+    "calls": 20,
     "exhausted": false,
-    "used_pct": 1.21
+    "used_pct": 1.27
   },
   "usage": {
-    "prompt_tokens": 381,
-    "completion_tokens": 545,
-    "total_tokens": 926,
+    "prompt_tokens": 452,
+    "completion_tokens": 634,
+    "total_tokens": 1086,
     "prompt_tokens_details": {
-      "cached_tokens": 128
+      "cached_tokens": 256
     },
-    "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 253
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 196
   },
-  "cost_cny": 0.005122
+  "cost_cny": 0.005976
 }
