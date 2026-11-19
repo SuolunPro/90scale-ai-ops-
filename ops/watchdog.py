@@ -148,7 +148,10 @@ def resolve_pending(root: str, cfg: dict, token: str, now) -> dict | None:
         "site_sale_day": site_doc.get("sale_day"), "site_generated_at": site_doc.get("generated_at"),
         "site_http": site.get("status"),
     }
-    append_history(root, record)
+    already = any(h.get("phase") == "resolved" and str(h.get("run_id")) == str(pending["run_id"])
+                  for h in load_history(root))
+    if not already:
+        append_history(root, record)
     try:
         os.remove(path)
     except OSError:
@@ -215,6 +218,10 @@ def main(argv=None) -> int:
         for note in ghcommit.commit_files_batch(args.root, cfg, [HISTORY],
                                                 "ops: watchdog resolve run result"):
             print(note)
+        if not os.path.exists(os.path.join(args.root, PENDING)):
+            for note in ghcommit.delete_file(args.root, cfg, PENDING,
+                                             "ops: watchdog clear resolved pending"):
+                print(note)
         return 0
     ctx = gather(cfg, token, args.root, now)
     manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")

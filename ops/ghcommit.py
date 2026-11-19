@@ -72,6 +72,30 @@ def commit_files_batch(root: str, cfg: dict, files: list[str], message: str, bra
         else [f"更新分支失败 HTTP {code}"]
 
 
+def delete_file(root: str, cfg: dict, rel: str, message: str) -> list[str]:
+    """删除仓库中的文件（用于清理 pending 这类一次性状态）。"""
+    import base64 as _b64
+    token = os.getenv("GITHUB_TOKEN", "")
+    repo = os.getenv("GITHUB_REPOSITORY", "") or cfg.get("ops_repo", "")
+    if not token:
+        return ["本地模式：未删除远端文件"]
+    headers = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28", "User-Agent": C.UA}
+    api = f"{API}/repos/{repo}/contents/{rel}"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(api, headers=headers), timeout=20) as r:
+            sha = json.load(r).get("sha")
+    except urllib.error.HTTPError as e:
+        return [f"{rel}: 读取失败 HTTP {e.code}"]
+    body = json.dumps({"message": message, "sha": sha, "branch": "main"}).encode()
+    req = urllib.request.Request(api, data=body, headers=headers, method="DELETE")
+    try:
+        with urllib.request.urlopen(req, timeout=25) as r:
+            return [f"{rel}: deleted ({r.status})"]
+    except urllib.error.HTTPError as e:
+        return [f"{rel}: 删除失败 HTTP {e.code}"]
+
+
 def commit_files(root: str, cfg: dict, files: list[str], message: str, retries: int = 2) -> list[str]:
     token = os.getenv("GITHUB_TOKEN", "")
     repo = os.getenv("GITHUB_REPOSITORY", "") or cfg.get("ops_repo", "")
