@@ -1,14 +1,15 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-19T16:00:16Z",
-  "beijing_time": "2026-11-20 00:00:16",
+  "generated_at": "2026-11-19T16:45:13Z",
+  "beijing_time": "2026-11-20 00:45:13",
   "in_sale_window": false,
   "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "independent_review",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=warn,legacy_sale_status=ok",
+  "signature": "independent_review,site_workflows",
   "failed": [],
   "warned": [
-    "independent_review"
+    "independent_review",
+    "site_workflows"
   ],
   "checks": [
     {
@@ -16,7 +17,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，95048 字节，耗时 82ms"
+      "detail": "HTTP 200，95048 字节，耗时 84ms"
     },
     {
       "id": "site_data_sync",
@@ -33,9 +34,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-19，快照 127 分钟前生成",
+      "detail": "sale_day=2026-11-19，快照 172 分钟前生成",
       "sale_day": "2026-11-19",
-      "generated_age_min": 127.2,
+      "generated_age_min": 172.2,
       "in_window": false
     },
     {
@@ -47,7 +48,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 0,
-      "last_run_age_min": 130.9,
+      "last_run_age_min": 175.9,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -87,7 +88,7 @@
           "day": "2026-11-19",
           "matches": 4,
           "pending": 4,
-          "overdue_h": -6.5
+          "overdue_h": -5.7
         }
       ]
     },
@@ -112,8 +113,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1608,
+          "bytes": 7350,
+          "elapsed_ms": 1766,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -124,7 +125,7 @@
           "status": "up",
           "http": 200,
           "bytes": 64714,
-          "elapsed_ms": 2529,
+          "elapsed_ms": 1969,
           "error": null,
           "cn_only": true,
           "required": false
@@ -135,7 +136,7 @@
           "status": "up",
           "http": 200,
           "bytes": 84852,
-          "elapsed_ms": 281,
+          "elapsed_ms": 276,
           "error": null,
           "cn_only": false,
           "required": false
@@ -146,7 +147,7 @@
           "status": "up",
           "http": 200,
           "bytes": 113288,
-          "elapsed_ms": 1216,
+          "elapsed_ms": 2711,
           "error": null,
           "cn_only": true,
           "required": false
@@ -162,36 +163,36 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "ok",
-      "severity": "info",
-      "detail": "120 分钟内 4 次运行，无失败",
+      "status": "warn",
+      "severity": "warn",
+      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
       "failures": [],
-      "recent_runs": 4
+      "recent_runs": 0
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 10.5 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 10.6 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 10.5
+      "age_days": 10.6
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.115708,
-    "remaining_cny": 9.884292,
-    "calls": 18,
+    "spent_cny": 0.12083,
+    "remaining_cny": 9.87917,
+    "calls": 19,
     "exhausted": false,
-    "used_pct": 1.16
+    "used_pct": 1.21
   },
   "runner": {
     "host": "runnervmccnms",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44561117653",
+    "run_id": "44569614672",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
