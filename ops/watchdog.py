@@ -56,8 +56,8 @@ def decide(ctx: dict) -> dict:
         stale = ctx.get("fresh_status") == "fail"
         if manual and cfg.get("manual_override_in_sale", True):
             overrides.append("sale_window: 人工授权放行")
-        elif stale and cfg.get("allow_in_sale_when_stale", False):
-            overrides.append("sale_window: 数据已过期(fail)，按方案 B 放行自动补跑")
+        elif (stale or (missed and ctx.get("engine_status") in ("warn", "fail"))) and cfg.get("allow_in_sale_when_stale", False):
+            overrides.append("sale_window: DeepSeek漏跑预警且球来了确认在售，允许自动补跑")
         else:
             blocked.append("当前处于停售窗口（08:45-22:45），不自动补跑")
     if ctx.get("engine_status") not in ("warn", "fail") and ctx.get("fresh_status") not in ("warn", "fail"):
@@ -212,8 +212,8 @@ def main(argv=None) -> int:
     now = C.now_utc()
     token = os.getenv("ENGINE4_REPAIR_TOKEN") or os.getenv("ENGINE4_READ_TOKEN", "")
     if not token:
-        print("SKIP: 缺少 ENGINE4_REPAIR_TOKEN")
-        return 0
+        print("ERROR: 缺少 ENGINE4_REPAIR_TOKEN，无法核验或补跑主引擎")
+        return 2
 
     resolved = resolve_pending(args.root, cfg, token, now)
     if args.resolve_only:
