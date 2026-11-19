@@ -48,6 +48,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
+      - name: 校验运行模式（防止误报成功）
+        env:
+          APPLY: ${{ inputs.apply }}
+          CONFIRM: ${{ inputs.confirm }}
+          RESOLVE_ONLY: ${{ inputs.resolve_only }}
+        run: |
+          if [ "$APPLY" = "true" ] && [ "$RESOLVE_ONLY" = "true" ]; then
+            echo "::error::apply 与 resolve_only 不得同时开启"
+            exit 1
+          fi
+          if [ "$APPLY" = "true" ] && [ "$CONFIRM" != "YES-I-APPROVE" ]; then
+            echo "::error::申请人工补跑但授权串无效；拒绝并标记失败"
+            exit 1
+          fi
+          if [ "$RESOLVE_ONLY" = "true" ]; then
+            echo "::notice::本次仅验收上一轮结果，不会触发主引擎"
+          elif [ "$APPLY" = "true" ]; then
+            echo "::notice::本次为人工授权补跑，自动模式不执行"
+          else
+            echo "::notice::本次为自动巡检，按安全闸门决定是否补跑"
+          fi
       - name: 判定 / 自动补跑（按 config.auto_apply）
         if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.resolve_only != true && inputs.apply != true }}
         env:
