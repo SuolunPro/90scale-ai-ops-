@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      resolve_only:
+        description: '仅补齐上一轮 Run 结论（绝不触发引擎）'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -44,7 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
       - name: 判定 / 自动补跑（按 config.auto_apply）
-        if: steps.dedupe.outputs.skip != 'true'
+        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.resolve_only != true }}
         env:
           ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,6 +59,19 @@ jobs:
             echo "## 引擎漏跑看门狗判定"
             echo '```json'
             head -c 4000 watchdog.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 仅补齐上一轮结论（不触发引擎）
+        if: ${{ inputs.resolve_only == true }}
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ops/watchdog.py --config config/ops.json --resolve-only | tee resolve.out
+          {
+            echo "## 看门狗结果补齐"
+            echo '```json'
+            head -c 3000 resolve.out
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: 受控补触发（需授权）

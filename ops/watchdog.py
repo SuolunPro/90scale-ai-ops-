@@ -184,6 +184,8 @@ def main(argv=None) -> int:
     ap.add_argument("--apply", action="store_true", help="允许真正 dispatch（需 workflow 显式授权）")
     ap.add_argument("--auto", action="store_true", help="自动模式：按 config.watchdog.auto_apply 决定是否 dispatch")
     ap.add_argument("--confirm", default="")
+    ap.add_argument("--resolve-only", action="store_true",
+                    help="只补齐上一轮 Run 的结论与网站同步状态，绝不触发引擎")
     args = ap.parse_args(argv)
 
     cfg = C.load_json(os.path.join(args.root, args.config))
@@ -200,6 +202,14 @@ def main(argv=None) -> int:
         return 0
 
     resolved = resolve_pending(args.root, cfg, token, now)
+    if args.resolve_only:
+        print(json.dumps({"at": C.iso(now), "phase": "resolve_only", "resolved": resolved},
+                         ensure_ascii=False, indent=2))
+        from ops import ghcommit
+        for note in ghcommit.commit_files_batch(args.root, cfg, [HISTORY],
+                                                "ops: watchdog resolve run result"):
+            print(note)
+        return 0
     ctx = gather(cfg, token, args.root, now)
     manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")
     decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now, "manual": manual})
