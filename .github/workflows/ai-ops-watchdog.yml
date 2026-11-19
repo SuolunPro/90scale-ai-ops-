@@ -43,12 +43,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
-      - name: 判定（不触发）
+      - name: 判定 / 自动补跑（按 config.auto_apply）
         if: steps.dedupe.outputs.skip != 'true'
         env:
           ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python ops/watchdog.py --config config/ops.json | tee watchdog.out
+          python ops/watchdog.py --config config/ops.json --auto | tee watchdog.out
           {
             echo "## 引擎漏跑看门狗判定"
             echo '```json'

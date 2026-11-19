@@ -48,8 +48,11 @@ def decide(ctx: dict) -> dict:
     if not missed:
         blocked.append("窗口内没有漏跑计划点")
     if ctx.get("in_sale_window") and cfg.get("block_in_sale_window", True):
+        stale = ctx.get("fresh_status") == "fail"
         if manual and cfg.get("manual_override_in_sale", True):
             overrides.append("sale_window: 人工授权放行")
+        elif stale and cfg.get("allow_in_sale_when_stale", False):
+            overrides.append("sale_window: 数据已过期(fail)，按方案 B 放行自动补跑")
         else:
             blocked.append("当前处于停售窗口（08:45-22:45），不自动补跑")
     if ctx.get("engine_status") not in ("warn", "fail") and ctx.get("fresh_status") not in ("warn", "fail"):
@@ -179,6 +182,7 @@ def main(argv=None) -> int:
     ap.add_argument("--root", default=".")
     ap.add_argument("--config", default="config/ops.json")
     ap.add_argument("--apply", action="store_true", help="允许真正 dispatch（需 workflow 显式授权）")
+    ap.add_argument("--auto", action="store_true", help="自动模式：按 config.watchdog.auto_apply 决定是否 dispatch")
     ap.add_argument("--confirm", default="")
     args = ap.parse_args(argv)
 
@@ -186,6 +190,9 @@ def main(argv=None) -> int:
     if not cfg:
         print("FATAL: 配置不可读")
         return 2
+    auto_mode = bool(args.auto)
+    if auto_mode and (cfg.get("watchdog") or {}).get("auto_apply"):
+        args.apply = True
     now = C.now_utc()
     token = os.getenv("ENGINE4_REPAIR_TOKEN") or os.getenv("ENGINE4_READ_TOKEN", "")
     if not token:
@@ -194,7 +201,7 @@ def main(argv=None) -> int:
 
     resolved = resolve_pending(args.root, cfg, token, now)
     ctx = gather(cfg, token, args.root, now)
-    manual = bool(args.apply and args.confirm == "YES-I-APPROVE")
+    manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")
     decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now, "manual": manual})
 
     report = {"at": C.iso(now), "phase": "decide", "apply": args.apply,
@@ -211,13 +218,18 @@ def main(argv=None) -> int:
 
     if not args.apply:
         return 0
-    if args.confirm != "YES-I-APPROVE":
-        print("REFUSED: 缺少授权串 YES-I-APPROVE")
-        return 1
-    if args.apply and not (cfg.get("watchdog", {}).get("auto_apply")
-                           or os.getenv("WATCHDOG_MANUAL_APPLY") == "1"):
-        print("REFUSED: 自动补跑未启用（watchdog.auto_apply=false），且未提供人工授权通道")
-        return 1
+    if auto_mode:
+        if not (cfg.get("watchdog") or {}).get("auto_apply"):
+            print("REFUSED: 自动补跑未启用（watchdog.auto_apply=false）")
+            return 1
+    else:
+        if args.confirm != "YES-I-APPROVE":
+            print("REFUSED: 缺少授权串 YES-I-APPROVE")
+            return 1
+        if not (cfg.get("watchdog", {}).get("auto_apply")
+                or os.getenv("WATCHDOG_MANUAL_APPLY") == "1"):
+            print("REFUSED: 自动补跑未启用（watchdog.auto_apply=false），且未提供人工授权通道")
+            return 1
     if not decision["should_trigger"]:
         print("REFUSED: 未满足补跑条件：" + "；".join(decision["blocked_by"]))
         return 1

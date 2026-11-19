@@ -454,7 +454,8 @@ class TestDedupe(unittest.TestCase):
 class TestWatchdogDecide(unittest.TestCase):
     NOW = dt.datetime(2026, 11, 19, 2, 0, tzinfo=dt.timezone.utc)
     CFG = {"enabled": True, "cooldown_min": 90, "max_per_day": 3,
-           "require_no_active_run": True, "block_in_sale_window": True}
+           "require_no_active_run": True, "block_in_sale_window": True,
+           "manual_override_in_sale": True, "allow_in_sale_when_stale": True}
 
     def ctx(self, **kw):
         base = {"now": self.NOW, "cfg": self.CFG, "missed": ["12:12"], "active_runs": [],
@@ -488,6 +489,17 @@ class TestWatchdogDecide(unittest.TestCase):
 
     def test_manual_cannot_override_active_run(self):
         d = watchdog.decide(self.ctx(in_sale_window=True, manual=True, active_runs=[{"id": 1}]))
+        self.assertFalse(d["should_trigger"])
+
+    def test_auto_allowed_in_sale_when_stale(self):
+        d = watchdog.decide(self.ctx(in_sale_window=True, fresh_status="fail",
+                                     engine_status="warn"))
+        self.assertTrue(d["should_trigger"], d["blocked_by"])
+        self.assertTrue(any("stale" in x or "过期" in x for x in d["overrides"]))
+
+    def test_auto_blocked_in_sale_when_not_stale(self):
+        d = watchdog.decide(self.ctx(in_sale_window=True, fresh_status="warn",
+                                     engine_status="warn"))
         self.assertFalse(d["should_trigger"])
 
     def test_fresh_data_blocks(self):

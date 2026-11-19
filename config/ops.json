@@ -120,7 +120,8 @@
   },
   "watchdog": {
     "enabled": true,
-    "auto_apply": false,
+    "auto_apply": true,
+    "allow_in_sale_when_stale": true,
     "lookback_min": 90,
     "cooldown_min": 90,
     "max_per_day": 3,
