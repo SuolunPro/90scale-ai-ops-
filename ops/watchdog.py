@@ -129,7 +129,8 @@ def resolve_pending(root: str, cfg: dict, token: str, now) -> dict | None:
     wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
     code, doc = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs/{pending['run_id']}", token)
     if code != 200:
-        return None
+        return {"pending": True, "run_id": pending["run_id"], "http": code,
+                "error": str(doc.get("error"))[:200]}
     if doc.get("status") != "completed":
         return {"pending": True, "run_id": pending["run_id"], "status": doc.get("status")}
     site = C.http_get(cfg["site"] + "/data/engine4/latest.json", timeout=20, retries=1)
