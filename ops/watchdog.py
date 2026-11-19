@@ -29,9 +29,15 @@ HISTORY = "state/watchdog/history.jsonl"
 
 # ------------------------------------------------------------------ decisions
 def decide(ctx: dict) -> dict:
-    """纯函数：给定上下文，返回是否允许补触发及原因。"""
+    """纯函数：给定上下文，返回是否允许补触发及原因。
+
+    manual=True 表示人工显式授权（workflow_dispatch + 授权串）。
+    停售窗口对自动模式一律拦截；对人工授权模式可按配置放行，并记录 override。
+    """
     cfg = ctx.get("cfg") or {}
+    manual = bool(ctx.get("manual"))
     blocked = []
+    overrides = []
 
     if not cfg.get("enabled", False):
         blocked.append("watchdog 未启用")
@@ -42,7 +48,10 @@ def decide(ctx: dict) -> dict:
     if not missed:
         blocked.append("窗口内没有漏跑计划点")
     if ctx.get("in_sale_window") and cfg.get("block_in_sale_window", True):
-        blocked.append("当前处于停售窗口（08:45-22:45），不自动补跑")
+        if manual and cfg.get("manual_override_in_sale", True):
+            overrides.append("sale_window: 人工授权放行")
+        else:
+            blocked.append("当前处于停售窗口（08:45-22:45），不自动补跑")
     if ctx.get("engine_status") not in ("warn", "fail") and ctx.get("fresh_status") not in ("warn", "fail"):
         blocked.append("引擎数据仍然新鲜，无需补跑")
     cooldown = float(cfg.get("cooldown_min", 90))
@@ -54,6 +63,7 @@ def decide(ctx: dict) -> dict:
         blocked.append(f"今日自动补跑已达上限 {cap} 次")
 
     return {"should_trigger": not blocked, "blocked_by": blocked,
+            "overrides": overrides, "manual": manual,
             "missed_points": missed, "at": C.iso(ctx["now"])}
 
 
@@ -184,7 +194,8 @@ def main(argv=None) -> int:
 
     resolved = resolve_pending(args.root, cfg, token, now)
     ctx = gather(cfg, token, args.root, now)
-    decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now})
+    manual = bool(args.apply and args.confirm == "YES-I-APPROVE")
+    decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now, "manual": manual})
 
     report = {"at": C.iso(now), "phase": "decide", "apply": args.apply,
               "engine_runs_error": ctx["runs_error"],

@@ -481,6 +481,15 @@ class TestWatchdogDecide(unittest.TestCase):
         self.assertFalse(d["should_trigger"])
         self.assertTrue(any("停售" in x for x in d["blocked_by"]))
 
+    def test_manual_override_in_sale(self):
+        d = watchdog.decide(self.ctx(in_sale_window=True, manual=True))
+        self.assertTrue(d["should_trigger"], d["blocked_by"])
+        self.assertTrue(any("sale_window" in x for x in d["overrides"]))
+
+    def test_manual_cannot_override_active_run(self):
+        d = watchdog.decide(self.ctx(in_sale_window=True, manual=True, active_runs=[{"id": 1}]))
+        self.assertFalse(d["should_trigger"])
+
     def test_fresh_data_blocks(self):
         d = watchdog.decide(self.ctx(engine_status="ok", fresh_status="ok"))
         self.assertFalse(d["should_trigger"])
