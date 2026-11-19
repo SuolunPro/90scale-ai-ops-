@@ -1,0 +1,48 @@
+name: Tricore 5 hourly research and shadow settlement
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [predict, collect, settle]
+        default: settle
+  push:
+    branches: [research/tricore-phase2-20261119]
+    paths: ['.github/workflows/tricore-v3.yml']
+  schedule:
+    - cron: '18 4-13 * * *'
+    - cron: '36 4-13 * * *'
+    - cron: '11 0-3,14-23 * * *'
+permissions: {contents: read}
+concurrency:
+  group: tricore-v3-shadow-private-state
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: SuolunPro/90scale-engine
+          ref: research/tricore-phase2-20261119
+          token: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          path: state
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: SuolunPro/suolunpro.github.io
+          path: site
+          persist-credentials: false
+      - name: Run pinned isolated research release
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          MODE: ${{ inputs.mode || (github.event_name == 'push' && 'predict') || (github.event.schedule == '18 4-13 * * *' && 'predict') || 'settle' }}
+        run: |
+          set -euo pipefail
+          git -C state config user.name 'tricore-shadow[bot]'
+          git -C state config user.email 'tricore-shadow@users.noreply.github.com'
+          mkdir runner
+          git -C state archive 627149472a253fcf782a8c691e7aee5b77ab5b71 research/tricore5/v3/bin | tar -x -C runner
+          python runner/research/tricore5/v3/bin/selftest.py
+          python runner/research/tricore5/v3/bin/main.py "$MODE"
