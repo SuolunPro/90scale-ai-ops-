@@ -1,0 +1,27 @@
+name: Tricore isolated daily pair shadow
+on:
+  schedule:
+    - cron: '12 13 * * *'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: tricore-isolated-pair
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Read pinned private research program and write isolated receipts
+        env:
+          RESEARCH_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python - <<'PY'
+          import base64, hashlib, json, os, urllib.request
+          url='https://api.github.com/repos/SuolunPro/90scale-engine/contents/research/tricore5/daily.py?ref=d15c74abf95a225af45beba129de5656d1a63e47'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['RESEARCH_TOKEN'],'User-Agent':'90scale-private-shadow'})
+          with urllib.request.urlopen(req,timeout=30) as r: src=base64.b64decode(json.load(r)['content'])
+          if hashlib.sha256(src).hexdigest()!='207e5cb2dcd98571368f38a217373911e9677a0ac6b0c23e7fa161aed6b64f0b':
+              raise SystemExit('Research program hash mismatch')
+          exec(compile(src,'private-shadow','exec'),{'__name__':'__main__'})
+          PY
