@@ -5,6 +5,7 @@ from decimal import Decimal
 import hashlib
 import json
 import math
+from joint import project
 import os
 from pathlib import Path
 import subprocess
@@ -75,8 +76,9 @@ def now():
     return dt.datetime.now(UTC)
 def run():
     end=dt.datetime(2026,11,19,22,tzinfo=BJT)
-    messages=[{'role':'system','content':'Independent soccer forecast. Use only supplied timestamped facts. No other predictions, external tools or invented news. Return exactly one flat JSON object at the root with these exact English keys: spf, rq, scores, htft, goals, risk, reason, single, single_reason, facts_used. Do not nest it inside output, facts, analysis or prediction. Use native numeric arrays and exact key spellings. Each full distribution must sum to 1. Interpret sources separately; different profit indices need not agree. Asian line is not official handicap. Choose PASS if inputs cannot justify a single. Use source names LOTA and Okooo.'},
-              {'role':'user','content':json.dumps({'facts':FACTS,'output':SCHEMA},ensure_ascii=False)}]
+    schema={'half_rates':'four numeric scoring intensities in order first-half home, first-half away, second-half home, second-half away','risk':'CLEAR WATCH or ALERT','reason':'Chinese risk reason','single':'PASS or 胜 平 负 让胜 让平 让负','single_reason':'Chinese reason','facts_used':['LOTA','Okooo']}
+    messages=[{'role':'system','content':'Independently estimate your own four half-specific scoring intensities from the supplied public prematch facts. Your rates will determine every published probability via independent Poisson halves. Do not claim news or lineup verification. Market data across sources use inconsistent scales. Return one flat JSON object with the exact schema keys. No wrapper. Official home handicap -1. Advise PASS when confidence is inadequate.'},
+              {'role':'user','content':json.dumps({'observations':FACTS,'required_keys':schema},ensure_ascii=False)}]
     limit=1800
     input_ceiling=len(json.dumps(messages,ensure_ascii=False).encode())+256
     ceiling=Decimal(input_ceiling*2+limit*8)/1000000
@@ -94,7 +96,8 @@ def run():
             'frozen_at':frozen.isoformat(),'fact_hash':hashlib.sha256(json.dumps(FACTS,sort_keys=True).encode()).hexdigest(),
             'raw':raw,'receipt':receipt,'settlement':'PENDING','formal_comparison':'WITHHELD_FROM_PROMPT'}
     try:
-        result['modules']=canonical(raw)
+        result['modules']=canonical(project(raw))
+        result['distribution_method']='AI half-specific lambdas, independent Poisson per team and half, 0-14 renormalized per marginal'
         result['validation']='VALID'
     except (TypeError,KeyError,ValueError) as error:
         result['validation']=type(error).__name__
