@@ -21,10 +21,10 @@ jobs:
         run: |
           python - <<'PY'
           import base64, hashlib, json, os, urllib.request
-          url='https://api.github.com/repos/SuolunPro/90scale-engine/contents/research/tricore5/daily.py?ref=d15c74abf95a225af45beba129de5656d1a63e47'
+          url='https://api.github.com/repos/SuolunPro/90scale-engine/contents/research/tricore5/daily.py?ref=067bb78051e17888033cf59a244d4d82e1573b0f'
           req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['RESEARCH_TOKEN'],'User-Agent':'90scale-private-shadow'})
           with urllib.request.urlopen(req,timeout=30) as r: src=base64.b64decode(json.load(r)['content'])
-          if hashlib.sha256(src).hexdigest()!='207e5cb2dcd98571368f38a217373911e9677a0ac6b0c23e7fa161aed6b64f0b':
+          if hashlib.sha256(src).hexdigest()!='3dac3a7c424e1176772024c57c5ad0509d0b90f1244323769c4802ce674329ca':
               raise SystemExit('Research program hash mismatch')
           exec(compile(src,'private-shadow','exec'),{'__name__':'__main__'})
           PY
