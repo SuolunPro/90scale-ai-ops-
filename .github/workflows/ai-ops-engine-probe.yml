@@ -1,0 +1,28 @@
+name: 九十刻度 AI 运维 · 引擎停售/冻结能力探测（只读）
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 只读探测（不输出源码）
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python ops/engine_probe.py | tee probe.out
+          {
+            echo "## 引擎停售/冻结能力探测"
+            echo '```json'
+            cat probe.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
