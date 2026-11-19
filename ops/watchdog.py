@@ -22,6 +22,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ops import common as C  # noqa: E402
+from ops import qiulaile_sale  # noqa: E402
 
 PENDING = "state/watchdog/pending.json"
 HISTORY = "state/watchdog/history.jsonl"
@@ -46,6 +47,8 @@ def decide(ctx: dict) -> dict:
         blocked.append(f"引擎有 {len(active)} 个运行中的任务：{[a['id'] for a in active][:3]}")
     if ctx.get("runs_error"):
         blocked.append("GitHub Actions 运行状态读取失败，禁止把未知状态当成漏跑")
+    if not ctx.get("sale_verified", False):
+        blocked.append("球来了未能确认至少一场实时在售且未开赛（含明确停售时间）")
     missed = ctx.get("missed") or []
     if not missed:
         blocked.append("窗口内没有漏跑计划点")
@@ -226,13 +229,15 @@ def main(argv=None) -> int:
                 print(note)
         return 0
     ctx = gather(cfg, token, args.root, now)
+    sale_check = qiulaile_sale.verify(now=now)
+    ctx["sale_verified"] = bool(sale_check.get("verified"))
     manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")
     # Fail closed: old GitHub snapshots and future kickoffs do not prove current sale.
     decision = decide({**ctx, "cfg": cfg.get("watchdog") or {}, "now": now, "manual": manual})
 
     report = {"at": C.iso(now), "phase": "decide", "apply": args.apply,
               "engine_runs_error": ctx["runs_error"],
-              "active_runs": len(ctx["active_runs"]),
+              "active_runs": len(ctx["active_runs"]), "qiulaile_sale": sale_check,
               "missed_points": ctx["missed"],
               "engine_status": ctx["engine_status"], "fresh_status": ctx["fresh_status"],
               "site_sync_status": ctx["site_sync_status"],
