@@ -1,36 +1,41 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-19T17:30:28Z",
-  "beijing_time": "2026-11-20 01:30:28",
+  "generated_at": "2026-11-19T17:45:14Z",
+  "beijing_time": "2026-11-20 01:45:14",
   "in_sale_window": false,
-  "verdict": "OK",
-  "fingerprint": "site_home=ok,site_data_sync=skip,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=skip,sources=skip,site_workflows=skip,legacy_sale_status=ok",
-  "signature": "OK",
+  "verdict": "WARN",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review",
   "failed": [],
-  "warned": [],
+  "warned": [
+    "independent_review"
+  ],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，95048 字节，耗时 159ms"
+      "detail": "HTTP 200，95048 字节，耗时 186ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "仓库 API 不可用，未能比对：HTTP 403"
+      "detail": "生产与仓库一致（74579 字节），Pages 已生效",
+      "prod_bytes": 74579,
+      "prod_sha": "b833157e04",
+      "repo_sha": "b833157e04"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-19，快照 217 分钟前生成",
+      "detail": "sale_day=2026-11-19，快照 232 分钟前生成",
       "sale_day": "2026-11-19",
-      "generated_age_min": 217.4,
+      "generated_age_min": 232.2,
       "in_window": false
     },
     {
@@ -42,7 +47,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 0,
-      "last_run_age_min": 221.1,
+      "last_run_age_min": 235.9,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -82,16 +87,18 @@
           "day": "2026-11-19",
           "matches": 4,
           "pending": 4,
-          "overdue_h": -5.0
+          "overdue_h": -4.7
         }
       ]
     },
     {
       "id": "independent_review",
       "title": "独立复核数据新鲜度",
-      "status": "skip",
-      "severity": "info",
-      "detail": "目录不可读（HTTP 403）"
+      "status": "warn",
+      "severity": "warn",
+      "detail": "最新复核文件 2026-11-13，已滞后 7 天",
+      "latest": "2026-11-13",
+      "lag_days": 7
     },
     {
       "id": "sources",
@@ -106,7 +113,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 923,
+          "elapsed_ms": 1394,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -116,8 +123,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 64791,
-          "elapsed_ms": 1349,
+          "bytes": 64714,
+          "elapsed_ms": 1694,
           "error": null,
           "cn_only": true,
           "required": false
@@ -128,7 +135,7 @@
           "status": "up",
           "http": 200,
           "bytes": 84852,
-          "elapsed_ms": 283,
+          "elapsed_ms": 315,
           "error": null,
           "cn_only": false,
           "required": false
@@ -139,7 +146,7 @@
           "status": "up",
           "http": 200,
           "bytes": 113288,
-          "elapsed_ms": 1639,
+          "elapsed_ms": 1268,
           "error": null,
           "cn_only": true,
           "required": false
@@ -155,9 +162,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "Actions API 不可用（HTTP 403）"
+      "detail": "120 分钟内 2 次运行，无失败",
+      "failures": [],
+      "recent_runs": 2
     },
     {
       "id": "legacy_sale_status",
@@ -179,10 +188,10 @@
     "used_pct": 1.27
   },
   "runner": {
-    "host": "ip-10-0-141-55",
+    "host": "runnervmccnms",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44577843364",
+    "run_id": "44580524927",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
