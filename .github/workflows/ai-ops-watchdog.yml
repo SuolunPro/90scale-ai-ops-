@@ -49,7 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
       - name: 判定 / 自动补跑（按 config.auto_apply）
-        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.resolve_only != true }}
+        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.resolve_only != true && inputs.apply != true }}
         env:
           ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +75,7 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: 受控补触发（需授权）
-        if: ${{ inputs.apply == true && inputs.confirm == 'YES-I-APPROVE' }}
+        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.apply == true && inputs.confirm == 'YES-I-APPROVE' }}
         env:
           ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
