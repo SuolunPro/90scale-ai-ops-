@@ -68,6 +68,35 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+  recover_engine:
+    name: 漏跑自动恢复（球来了在售闸门）
+    needs: inspect
+    if: ${{ always() && needs.inspect.result == 'success' && (needs.inspect.outputs.verdict == 'WARN' || needs.inspect.outputs.verdict == 'FAIL') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    concurrency:
+      group: 90scale-engine-recovery
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 自动检查漏跑并按安全条件补跑
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          python ops/watchdog.py --config config/ops.json --auto | tee watchdog.out
+          {
+            echo "## DeepSeek巡检联动：主引擎自动恢复"
+            echo '至多补触发一次；球来了未核实在售则拒绝。'
+            echo '```'
+            tail -c 3500 watchdog.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   triage:
     name: DeepSeek 诊断（仅异常）
     needs: inspect
