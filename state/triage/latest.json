@@ -1,72 +1,30 @@
 {
-  "at": "2026-11-19T05:15:34Z",
+  "at": "2026-11-19T05:45:38Z",
   "verdict": "WARN",
-  "signature": "engine_runs,independent_review,site_workflows",
+  "signature": "engine_fresh,engine_runs,independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "三个 warn 均指向调度/流水线停滞：预测引擎近 168 分钟无运行、独立复核滞后 6 天、网站仓库 120 分钟内零工作流记录；但缺少 GitHub Actions 调度状态与运行日志证据，根因尚不能确定。",
-    "root_causes": [
-      {
-        "cause": "GitHub Actions 调度停滞（cron 未触发或工作流被禁用），导致引擎计划点与网站仓库工作流同时无运行",
-        "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[11:12,12:12,13:12], last_run_age_min=167.8；site_workflows: recent_runs=0, failures=[]（无失败记录，说明不是运行失败而是根本没触发）"
-      },
-      {
-        "cause": "引擎工作流配置变更或仓库迁移后计划点未同步（retired_workflows_ignored 显示已有工作流被退役）",
-        "confidence": 0.3,
-        "evidence": "engine_runs.retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]；runs_today=3 说明当日早段仍有运行，之后中断"
-      },
-      {
-        "cause": "独立复核任务依赖上游引擎产出，引擎停跑导致复核文件无法更新",
-        "confidence": 0.25,
-        "evidence": "independent_review.latest=2026-11-13, lag_days=6；与 engine_runs 停跑时间线一致但无直接因果字段"
-      }
-    ],
-    "diagnose_steps": [
-      {
-        "command": "curl -s -H \"Accept: application/vnd.github+json\" https://api.github.com/repos/<owner>/<repo>/actions/workflows",
-        "purpose": "只读列出工作流及其 state，确认是否被 disabled 或 cron 配置存在"
-      },
-      {
-        "command": "curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\"",
-        "purpose": "只读查看最近运行记录与 created_at/status，确认最后一次触发时间与结论字段"
-      },
-      {
-        "command": "git log --since=\"2026-11-18\" --oneline -- .github/workflows",
-        "purpose": "只读检查近期工作流文件是否有改动导致 cron 失效"
-      },
-      {
-        "command": "python -c \"import json,glob;print([ (f, json.load(open(f)).get('date')) for f in glob.glob('review/*.json')][-5:])\"",
-        "purpose": "只读确认独立复核文件最新日期与生成来源，判断是否仅上游停跑所致"
-      }
-    ],
-    "suggested_fix": {
-      "action": "人工登录 GitHub Actions 控制台核对三个工作流的 enabled 状态与 cron 表达式，确认调度是否被暂停；如为平台侧调度异常，手动触发一次引擎工作流并观察后续计划点是否恢复（不修改算法与历史数据）",
-      "risk": "medium",
-      "needs_approval": true
-    },
-    "customer_impact": "当前处于销售窗口内，预测引擎已停跑约 2.8 小时，最新一期预测结果可能未更新，会员看到的预测/复核数据可能停留在旧版本；网站仓库工作流停滞暂未见失败，但若涉及发布流程可能延迟内容更新。",
-    "escalate": true
+    "raw": "{\"summary\":\"售窗内预测主引擎快照已 194 分钟未更新，且 11:12、12:12、13:12 三个计划点连续漏跑，最近一次运行在 198 分钟前；独立复核滞后 6 天，网站仓库 120 分钟内无任何工作流运行。多项证据共同指向调度层停滞，但现有巡检数据无法区分是调度器故障、工作流被禁用还是上游依赖阻塞，需进一步只读排查。\",\"root_causes\":[{\"cause\":\"调度层停滞：预测引擎与网站仓库工作流同时无运行记录，疑似 GitHub Actions 调度或工作流被禁用/暂停\",\"confidence\":0.55,\"evidence\":\"engine_runs: 近 180 分钟 3 个计划点（11:12/12:12/13:12）无运行，last_run_age_min=197.7；site_workflows: 120 分钟内 recent_runs=0，failures 为空（非失败，而是根本没触发）\"},{\"cause\":\"预测引擎工作流自身执行失败或卡住，导致快照未刷新且后续计划点未产生运行\",\"confidence\":0.3,\"evidence\":\"engine_fresh: generated_age_min=194.5 超阈值 180；engine_runs: runs_today=3 但最近一次运行 198 分钟前，之后无新运行记录\"},{\"cause\":\"独立复核流程长期未调度（滞后 6 天），可能是独立于主引擎的另一条流水线停摆\",\"confidence\":0.15,\"evidence\":\"independent_review: latest=2026-11-13，lag_days=6\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<repo>/actions/workflows\\\"\",\"purpose\":\"只读列出预测引擎仓库各工作流状态，确认 engine4 相关 workflow 是否处于 active/disabled 状态\"},{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\\\"\",\"purpose\":\"只读查看最近 20 次运行记录及 conclusion，确认 11:12 之后是否真的没有触发，还是触发后失败/取消\"},{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<site-repo>/actions/runs?per_page=20\\\"\",\"purpose\":\"只读确认网站仓库工作流最近运行时间与状态，判断是否与引擎仓库同步停滞\"},{\"command\":\"git log -5 --format='%h %ci %s' -- <snapshot_dir>\",\"purpose\":\"只读查看快照目录最近提交时间，交叉验证最新快照实际生成时刻\"},{\"command\":\"python -c \\\"import json,glob,os;fs=sorted(glob.glob('<review_dir>/*'));print(fs[-3:] if fs else 'none')\\\"\",\"purpose\":\"只读列出最新复核文件，确认 2026-11-13 之后是否确实无新文件\"}],\"suggested_fix\":{\"action\":\"先由运维人工在 GitHub Actions 页面确认 engine4 主引擎工作流与网站仓库工作流是否被禁用或调度暂停；若为调度停滞，手动触发一次主引擎工作流补齐当日快照，并检查独立复核流水线的调度配置。禁止直接改算法或回填历史数据。\",\"risk\":\"medium\",\"needs_approval\":true},\"customer_impact\":\"售窗内预测快照已近 3.5 小时未更新，会员端可能看到过期预测结果；"
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.06127,
-    "remaining_cny": 9.93873,
-    "calls": 10,
+    "spent_cny": 0.069076,
+    "remaining_cny": 9.930924,
+    "calls": 11,
     "exhausted": false,
-    "used_pct": 0.61
+    "used_pct": 0.69
   },
   "usage": {
-    "prompt_tokens": 612,
-    "completion_tokens": 703,
-    "total_tokens": 1315,
+    "prompt_tokens": 703,
+    "completion_tokens": 800,
+    "total_tokens": 1503,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 484
+    "prompt_cache_miss_tokens": 575
   },
-  "cost_cny": 0.006848
+  "cost_cny": 0.007806
 }
