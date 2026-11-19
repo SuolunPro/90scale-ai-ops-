@@ -1,68 +1,72 @@
 {
-  "at": "2026-11-18T23:03:16Z",
-  "verdict": "WARN",
-  "signature": "independent_review",
+  "at": "2026-11-19T02:00:29Z",
+  "verdict": "FAIL",
+  "signature": "engine_fresh",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检整体为 WARN，唯一告警是独立复核数据已滞后 6 天（最新 2026-11-13），当前不在销售窗口；但缺少复核任务调度日志与失败原因，无法确认是漏跑还是流程停摆。",
+    "summary": "预测主引擎当日快照已 429 分钟未更新（超过 300 分钟阈值），且 09:12 计划点漏跑、最近一次运行在 430 分钟前，最可能是主引擎工作流停摆；结算与独立复核的告警为次要问题，但缺少引擎进程/工作流运行日志与失败原因的直接证据。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按日执行（调度缺失或任务被跳过）",
-        "confidence": 0.45,
-        "evidence": "independent_review.status=warn, latest=2026-11-13, lag_days=6, in_sale_window=false"
+        "cause": "预测主引擎工作流停摆或调度未触发，导致当日快照与计划点均未产出",
+        "confidence": 0.72,
+        "evidence": "engine_fresh: generated_age_min=428.9 超过阈值 300，status=fail；engine_runs: missed_points=[\"09:12\"]，last_run_age_min=430.3，runs_today=2"
       },
       {
-        "cause": "复核流程依赖人工操作，近期无人提交复核文件",
+        "cause": "上游数据源或引擎依赖异常导致运行失败后未重试（如数据拉取失败、依赖服务不可用）",
         "confidence": 0.35,
-        "evidence": "detail=最新复核文件 2026-11-13，已滞后 6 天；巡检未提供任务执行日志字段"
+        "evidence": "engine_runs 显示近 180 分钟内计划点无运行且最近运行在 430 分钟前，但巡检未提供失败日志或错误码，属推测"
       },
       {
-        "cause": "复核产出写入路径或命名规则变化，导致巡检未识别到新文件",
-        "confidence": 0.2,
-        "evidence": "仅依据 latest 字段滞后，checks 中无文件路径/数量等辅助字段"
+        "cause": "赛果核验/结算链路滞后，与引擎停摆可能同源（同一调度或数据管道受影响）",
+        "confidence": 0.25,
+        "evidence": "settlement: 2026-11-18 有 3 场开赛 3.5h 未结算；independent_review: 最新复核文件 2026-11-13，lag_days=6"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:<巡检服务端口>/checks/independent_review",
-        "purpose": "读取该检查项的完整明细，确认复核文件的路径与判定逻辑"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<引擎健康检查端口>/health",
+        "purpose": "确认主引擎服务进程是否存活、健康检查是否可达"
       },
       {
-        "command": "python -c \"import os,glob;print(sorted(glob.glob('/<复核目录>/*'))[-10:])\"",
-        "purpose": "只读列出复核目录最近文件，确认是否真的没有 11-13 之后的新文件"
+        "command": "git log --since='2026-11-19 00:00' --oneline -- .",
+        "purpose": "查看当日是否有代码/配置变更导致引擎或调度异常"
       },
       {
-        "command": "git log --oneline -20 -- <复核相关目录或配置>",
-        "purpose": "查看复核流程/配置近期是否有变更导致产出中断"
+        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<快照目录>/*.json'));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
+        "purpose": "只读列出最新快照文件及修改时间，确认快照是否真的停止产出"
+      },
+      {
+        "command": "curl -s '<工作流运行记录只读接口>/runs?limit=10'",
+        "purpose": "确认 09:12 计划点及最近一次运行的状态与失败原因"
       }
     ],
     "suggested_fix": {
-      "action": "人工确认独立复核任务在 11-13 之后是否正常排期与执行；若为漏跑，补做复核并核对调度配置，不改动历史复核数据",
-      "risk": "low",
+      "action": "人工检查预测主引擎工作流调度与运行日志，确认停摆原因（进程退出/调度未触发/依赖失败），在确认原因后由值班人员手动触发一次引擎运行并补齐当日快照；结算与复核滞后另行跟进",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前不在销售窗口，暂无直接会员/网站影响；若复核长期滞后，后续销售窗口开启前的数据校验可能缺失，存在合规与决策依据风险。",
-    "escalate": false
+    "customer_impact": "当日预测快照缺失，会员端可能看到过期或空白的预测内容；2026-11-18 有 3 场赛果未结算，影响相关场次的结算展示与用户信任；独立复核滞后 6 天降低结果可信度。",
+    "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.034148,
-    "remaining_cny": 9.965852,
-    "calls": 6,
+    "spent_cny": 0.041268,
+    "remaining_cny": 9.958732,
+    "calls": 7,
     "exhausted": false,
-    "used_pct": 0.34
+    "used_pct": 0.41
   },
   "usage": {
-    "prompt_tokens": 381,
-    "completion_tokens": 454,
-    "total_tokens": 835,
+    "prompt_tokens": 780,
+    "completion_tokens": 695,
+    "total_tokens": 1475,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 253
+    "prompt_cache_miss_tokens": 652
   },
-  "cost_cny": 0.004394
+  "cost_cny": 0.00712
 }
