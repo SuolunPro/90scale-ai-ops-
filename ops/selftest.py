@@ -14,7 +14,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from ops import budget, checks, common, handoff, inspector, persist, recovery, task_runner, triage  # noqa: E402
+from ops import budget, checks, common, dedupe, handoff, inspector, persist, recovery, task_runner, triage, watchdog  # noqa: E402
 
 
 class TestBudget(unittest.TestCase):
@@ -424,6 +424,81 @@ class TestStopSaleWindowConfig(unittest.TestCase):
         self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 45, tzinfo=common.BJ), {}))
         self.assertTrue(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 22, 45, tzinfo=common.BJ), {}))
         self.assertFalse(recovery.in_stop_sale_window(dt.datetime(2026, 11, 19, 8, 44, tzinfo=common.BJ), {}))
+
+
+class TestDedupe(unittest.TestCase):
+    NOW = dt.datetime(2026, 11, 19, 2, 0, tzinfo=dt.timezone.utc)
+
+    def _run(self, rid, minutes_ago, event="schedule"):
+        return {"id": rid, "event": event,
+                "created_at": (self.NOW - dt.timedelta(minutes=minutes_ago)).isoformat()}
+
+    def test_recent_other_run_skips(self):
+        ok, why = dedupe.decide([self._run(1, 2)], "99", self.NOW, 5)
+        self.assertFalse(ok)
+        self.assertIn("已有运行", why)
+
+    def test_old_run_proceeds(self):
+        ok, _ = dedupe.decide([self._run(1, 30)], "99", self.NOW, 5)
+        self.assertTrue(ok)
+
+    def test_self_is_ignored(self):
+        ok, _ = dedupe.decide([self._run(99, 0)], "99", self.NOW, 5)
+        self.assertTrue(ok)
+
+    def test_empty_history_proceeds(self):
+        ok, _ = dedupe.decide([], "99", self.NOW, 5)
+        self.assertTrue(ok)
+
+
+class TestWatchdogDecide(unittest.TestCase):
+    NOW = dt.datetime(2026, 11, 19, 2, 0, tzinfo=dt.timezone.utc)
+    CFG = {"enabled": True, "cooldown_min": 90, "max_per_day": 3,
+           "require_no_active_run": True, "block_in_sale_window": True}
+
+    def ctx(self, **kw):
+        base = {"now": self.NOW, "cfg": self.CFG, "missed": ["12:12"], "active_runs": [],
+                "in_sale_window": False, "engine_status": "warn", "fresh_status": "warn",
+                "last_auto_age_min": 200, "today_auto_count": 0}
+        base.update(kw)
+        return base
+
+    def test_trigger_when_all_conditions_met(self):
+        d = watchdog.decide(self.ctx())
+        self.assertTrue(d["should_trigger"], d["blocked_by"])
+
+    def test_active_run_blocks(self):
+        d = watchdog.decide(self.ctx(active_runs=[{"id": 5}]))
+        self.assertFalse(d["should_trigger"])
+        self.assertTrue(any("运行中" in x for x in d["blocked_by"]))
+
+    def test_no_missed_blocks(self):
+        d = watchdog.decide(self.ctx(missed=[]))
+        self.assertFalse(d["should_trigger"])
+
+    def test_sale_window_blocks(self):
+        d = watchdog.decide(self.ctx(in_sale_window=True))
+        self.assertFalse(d["should_trigger"])
+        self.assertTrue(any("停售" in x for x in d["blocked_by"]))
+
+    def test_fresh_data_blocks(self):
+        d = watchdog.decide(self.ctx(engine_status="ok", fresh_status="ok"))
+        self.assertFalse(d["should_trigger"])
+        self.assertTrue(any("新鲜" in x for x in d["blocked_by"]))
+
+    def test_cooldown_blocks(self):
+        d = watchdog.decide(self.ctx(last_auto_age_min=10))
+        self.assertFalse(d["should_trigger"])
+        self.assertTrue(any("冷却" in x for x in d["blocked_by"]))
+
+    def test_daily_cap_blocks(self):
+        d = watchdog.decide(self.ctx(today_auto_count=3))
+        self.assertFalse(d["should_trigger"])
+        self.assertTrue(any("上限" in x for x in d["blocked_by"]))
+
+    def test_disabled_blocks(self):
+        d = watchdog.decide(self.ctx(cfg={"enabled": False}))
+        self.assertFalse(d["should_trigger"])
 
 
 if __name__ == "__main__":

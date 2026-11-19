@@ -1,0 +1,71 @@
+name: 九十刻度 AI 运维 · 引擎漏跑看门狗
+
+# V1.4：定时只做判定（dry-run），不触发生产引擎。
+# 只有人工 workflow_dispatch 且 apply=true + 授权串，才可能真的补触发一次 engine4.yml。
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: '是否允许真实补触发（默认 false，仅判定）'
+        required: false
+        type: boolean
+        default: false
+      confirm:
+        description: '授权串：YES-I-APPROVE（apply=true 时必填）'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: 90scale-ai-ops-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 跨触发来源去重
+        id: dedupe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
+      - name: 判定（不触发）
+        if: steps.dedupe.outputs.skip != 'true'
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python ops/watchdog.py --config config/ops.json | tee watchdog.out
+          {
+            echo "## 引擎漏跑看门狗判定"
+            echo '```json'
+            head -c 4000 watchdog.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 受控补触发（需授权）
+        if: ${{ inputs.apply == true && inputs.confirm == 'YES-I-APPROVE' }}
+        env:
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WATCHDOG_MANUAL_APPLY: '1'
+        run: |
+          python ops/watchdog.py --config config/ops.json --apply --confirm YES-I-APPROVE | tee watchdog-apply.out
+          {
+            echo "## 受控补触发"
+            echo '```json'
+            tail -c 3000 watchdog-apply.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

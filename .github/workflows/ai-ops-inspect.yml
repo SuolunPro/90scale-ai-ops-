@@ -19,7 +19,6 @@ on:
 permissions:
   contents: write   # only to persist state/budget + triage result in THIS repo
   actions: read
-
 concurrency:
   group: 90scale-ai-ops-inspect
   cancel-in-progress: false
@@ -38,8 +37,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: 跨触发来源去重（schedule / external_tick / 手动）
+        id: dedupe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python ops/dedupe.py --workflow ai-ops-inspect.yml --window-min 5
       - name: 运行只读检查
         id: check
+        if: steps.dedupe.outputs.skip != 'true'
         env:
           # 可选：只读私人引擎 Actions 记录，用于 engine_runs 检查；没有则该项 SKIP
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
@@ -50,12 +55,12 @@ jobs:
             --out state/latest.json \
             --summary "$GITHUB_STEP_SUMMARY"
       - name: 持久化巡检状态
-        if: always()
+        if: always() && steps.dedupe.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ops/persist.py --file state/latest.json
       - name: 上传巡检快照
-        if: always()
+        if: always() && steps.dedupe.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: inspect-${{ github.run_id }}

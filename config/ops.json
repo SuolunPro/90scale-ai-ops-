@@ -118,6 +118,16 @@
     "max_attempts": 2,
     "allowed_actions": ["site_probe", "inspect_all", "engine_runs_audit", "workflow_runs"]
   },
+  "watchdog": {
+    "enabled": true,
+    "auto_apply": false,
+    "lookback_min": 90,
+    "cooldown_min": 90,
+    "max_per_day": 3,
+    "require_no_active_run": true,
+    "block_in_sale_window": true,
+    "note": "auto_apply=false：定时触发只做判定不补跑；人工 dispatch + 授权串才可真实补触发"
+  },
   "recovery": {
     "enabled": true,
     "max_per_hour": 2,
