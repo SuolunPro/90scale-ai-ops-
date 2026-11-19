@@ -43,6 +43,6 @@ jobs:
           git -C state config user.name 'tricore-shadow[bot]'
           git -C state config user.email 'tricore-shadow@users.noreply.github.com'
           mkdir runner
-          git -C state archive 627149472a253fcf782a8c691e7aee5b77ab5b71 research/tricore5/v3/bin | tar -x -C runner
+          git -C state archive 11597268d5fec8ea8ef553054ce8e3f5b429be67 research/tricore5/v3/bin | tar -x -C runner
           python runner/research/tricore5/v3/bin/selftest.py
           python runner/research/tricore5/v3/bin/main.py "$MODE"
