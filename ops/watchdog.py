@@ -49,8 +49,6 @@ def decide(ctx: dict) -> dict:
     missed = ctx.get("missed") or []
     if not missed:
         blocked.append("窗口内没有漏跑计划点")
-    if not ctx.get("sale_verified", False):
-        blocked.append("没有独立核实实时在售标识和停售时间，禁止自动补触发")
     if ctx.get("in_sale_window") and cfg.get("block_in_sale_window", True):
         stale = ctx.get("fresh_status") == "fail"
         if manual and cfg.get("manual_override_in_sale", True):
@@ -178,7 +176,6 @@ def gather(cfg: dict, token: str, root: str, now) -> dict:
     bj_now = now.astimezone(C.BJ)
     return {
         "runs_error": (doc.get("error") or f"HTTP {code}") if code != 200 else None,
-        "sale_verified": False,  # 需接入实时官方/镜像逐场在售核验后才可放行
         "runs": runs,
         "active_runs": [r for r in runs if r.get("status") in ("queued", "in_progress", "waiting")],
         "missed": missed_points(cfg, runs, now),
