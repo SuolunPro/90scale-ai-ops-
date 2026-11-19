@@ -1,10 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-19T23:00:15Z",
-  "beijing_time": "2026-11-20 07:00:15",
-  "in_sale_window": false,
+  "generated_at": "2026-11-19T23:00:38Z",
   "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review",
   "failed": [],
   "warned": [
@@ -16,7 +13,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，95048 字节，耗时 83ms"
+      "detail": "HTTP 200，95048 字节，耗时 206ms"
     },
     {
       "id": "site_data_sync",
@@ -35,24 +32,15 @@
       "severity": "info",
       "detail": "sale_day=2026-11-20，快照 236 分钟前生成",
       "sale_day": "2026-11-20",
-      "generated_age_min": 235.5,
+      "generated_age_min": 235.9,
       "in_window": false
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "ok",
+      "status": "skip",
       "severity": "info",
-      "detail": "已核对 0 个计划点，无漏跑；今天 2 次运行",
-      "missed_points": [],
-      "checked_points": 0,
-      "runs_today": 2,
-      "last_run_age_min": 241.7,
-      "retired_workflows_ignored": [
-        "engine4-settlement.yml",
-        "engine4-verify-results.yml",
-        "engine4-result-backfill.yml"
-      ]
+      "detail": "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录"
     },
     {
       "id": "pool_coverage",
@@ -113,7 +101,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1596,
+          "elapsed_ms": 1426,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -123,8 +111,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 64710,
-          "elapsed_ms": 1530,
+          "bytes": 64787,
+          "elapsed_ms": 1695,
           "error": null,
           "cn_only": true,
           "required": false
@@ -135,7 +123,7 @@
           "status": "up",
           "http": 200,
           "bytes": 84804,
-          "elapsed_ms": 245,
+          "elapsed_ms": 135,
           "error": null,
           "cn_only": false,
           "required": false
@@ -146,7 +134,7 @@
           "status": "up",
           "http": 200,
           "bytes": 113288,
-          "elapsed_ms": 1350,
+          "elapsed_ms": 1169,
           "error": null,
           "cn_only": true,
           "required": false
@@ -179,19 +167,6 @@
     }
   ],
   "budget": {
-    "month": "2026-11",
-    "cap_cny": 10.0,
-    "spent_cny": 0.142452,
-    "remaining_cny": 9.857548,
-    "calls": 23,
-    "exhausted": false,
-    "used_pct": 1.42
-  },
-  "runner": {
-    "host": "runnervm0hi8g",
-    "python": "3.12.16",
-    "ci": true,
-    "run_id": "44633749050",
-    "repo": "SuolunPro/90scale-ai-ops-"
+    "spent_cny": null
   }
 }
