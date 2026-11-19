@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-19T22:30:28Z",
+  "at": "2026-11-19T23:30:36Z",
   "verdict": "WARN",
-  "signature": "independent_review",
+  "signature": "independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检整体为 WARN，唯一异常是独立复核数据已滞后 7 天（最新 2026-11-13）；当前不在销售窗口，且无 fail 项，但仅凭该字段无法判断滞后原因是复核任务未运行、文件未产出还是路径配置问题，需补充复核任务调度日志与目录清单证据。",
+    "summary": "本次巡检无 fail 项，仅两项 warn：独立复核数据已滞后 7 天，网站仓库在 120 分钟内没有工作流运行记录；当前证据不足以判定是调度停滞还是正常空档，需补充工作流历史与复核产出记录。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按日调度或调度失败，导致复核文件停止产出",
+        "cause": "网站仓库工作流调度停滞或未触发（cron/触发器失效）",
         "confidence": 0.45,
-        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=7，detail=“最新复核文件 2026-11-13，已滞后 7 天”"
+        "evidence": "site_workflows: recent_runs=0, failures=[], detail=120 分钟内没有任何工作流运行记录"
       },
       {
-        "cause": "复核文件已产出但写入路径或命名规则变化，巡检读取到旧文件",
+        "cause": "独立复核流程未按周期产出新文件（人工复核未执行或产出未落盘）",
+        "confidence": 0.4,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=7"
+      },
+      {
+        "cause": "处于非销售窗口的低频运行时段，工作流本就稀疏，属正常空档",
         "confidence": 0.3,
-        "evidence": "仅给出 latest 与 lag_days，无目录文件列表与路径配置字段，无法排除路径/命名不一致"
-      },
-      {
-        "cause": "复核流程依赖的上游数据缺失，复核无法生成新结果",
-        "confidence": 0.25,
-        "evidence": "巡检 JSON 中无上游数据新鲜度相关检查项，failed 为空，缺乏上游状态证据"
+        "evidence": "in_sale_window=false, beijing_time=2026-11-20 07:30:13"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "ls -l --time-style=long-iso <复核文件目录>",
-        "purpose": "确认目录内实际文件列表与最新修改时间，判断是未产出还是读取到旧路径"
+        "command": "git log --since='3 days ago' --oneline -- .github/workflows",
+        "purpose": "确认工作流定义近期是否被改动导致触发失效"
       },
       {
-        "command": "crontab -l 或 systemctl list-timers --all（只读查看调度配置）",
-        "purpose": "确认独立复核任务的调度是否存在、是否近期触发"
+        "command": "curl -s -o /dev/null -w '%{http_code}' https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=5",
+        "purpose": "只读查询最近工作流运行记录，判断是否真停滞"
       },
       {
-        "command": "curl -s <复核任务健康/状态只读接口>",
-        "purpose": "确认复核任务最近一次执行状态与失败原因"
-      },
-      {
-        "command": "git log -n 20 --oneline -- <复核相关配置/脚本路径>",
-        "purpose": "确认近期是否有路径、命名或调度配置变更"
+        "command": "python -c \"import os,glob,time;fs=sorted(glob.glob('reviews/*'));print([(f,time.ctime(os.path.getmtime(f))) for f in fs[-5:]])\"",
+        "purpose": "列出最新复核文件及修改时间，核实滞后 7 天是否属实"
       }
     ],
     "suggested_fix": {
-      "action": "先由人工只读排查复核任务调度与文件产出路径，确认原因后手动触发一次复核任务或修正调度/路径配置，并补跑缺失日期的复核数据",
-      "risk": "medium",
+      "action": "人工确认工作流调度器与触发器状态，并补做一次独立复核产出；确认前不改动任何历史数据或算法",
+      "risk": "low",
       "needs_approval": true
     },
-    "customer_impact": "当前不在销售窗口且无 fail 项，对会员与网站暂无直接可见影响；若复核持续滞后，后续销售窗口前的数据校验与决策依据可能不完整。",
+    "customer_impact": "当前无 fail 项且非销售窗口，会员与网站访问预计不受直接影响；若工作流确为停滞，后续发布与复核链路可能延迟。",
     "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.142452,
-    "remaining_cny": 9.857548,
-    "calls": 23,
+    "spent_cny": 0.14726,
+    "remaining_cny": 9.85274,
+    "calls": 24,
     "exhausted": false,
-    "used_pct": 1.42
+    "used_pct": 1.47
   },
   "usage": {
-    "prompt_tokens": 381,
-    "completion_tokens": 518,
-    "total_tokens": 899,
+    "prompt_tokens": 452,
+    "completion_tokens": 488,
+    "total_tokens": 940,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 253
+    "prompt_cache_miss_tokens": 324
   },
-  "cost_cny": 0.004906
+  "cost_cny": 0.004808
 }
