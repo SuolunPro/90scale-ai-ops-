@@ -99,9 +99,9 @@ def missed_points(cfg: dict, runs: list[dict], now) -> list[str]:
     for hhmm in eng.get("schedule_bj", []):
         hh, mm = (int(x) for x in hhmm.split(":"))
         point = bj_now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        if point > bj_now or (bj_now - point) > lookback:
+        if point + grace > bj_now or (bj_now - point) > lookback:
             continue
-        if not any(point - dt.timedelta(minutes=2) <= s <= point + grace for s in stamps):
+        if not any(point - dt.timedelta(minutes=2) <= s <= bj_now for s in stamps):
             missed.append(hhmm)
     return missed
 
@@ -177,7 +177,7 @@ def gather(cfg: dict, token: str, root: str, now) -> dict:
     return {
         "runs_error": (doc.get("error") or f"HTTP {code}") if code != 200 else None,
         "runs": runs,
-        "active_runs": [r for r in runs if r.get("status") in ("queued", "in_progress", "waiting")],
+        "active_runs": [r for r in runs if r.get("status") in ("queued", "pending", "requested", "in_progress", "waiting")],
         "missed": missed_points(cfg, runs, now),
         "engine_status": status.get("engine_runs"),
         "fresh_status": status.get("engine_fresh"),
@@ -226,6 +226,10 @@ def main(argv=None) -> int:
                 print(note)
         return 0
     ctx = gather(cfg, token, args.root, now)
+    local = now.astimezone(C.BJ)
+    cutoff = 23 if local.weekday() >= 5 else 22
+    if args.auto and not 9 <= local.hour < cutoff:
+        ctx["missed"] = []
     # Recovery is an engine refresh, not a bet placement: do not block on external sale API.
     sale_check = {"verified": None, "reason": "not required for engine recovery"}
     manual = bool(not auto_mode and args.apply and args.confirm == "YES-I-APPROVE")
@@ -269,7 +273,8 @@ def main(argv=None) -> int:
     ok = code in (201, 204)
     record = {"at": C.iso(now), "phase": "dispatched", "run_id": None,
               "trigger_reason": "missed_schedule_points", "missed_points": ctx["missed"],
-              "http": code, "ok": ok, "in_sale_window": ctx["in_sale_window"]}
+              "source_event": os.getenv("GITHUB_EVENT_NAME"), "ops_run_id": os.getenv("GITHUB_RUN_ID"),
+              "auto_mode": auto_mode, "http": code, "ok": ok, "in_sale_window": ctx["in_sale_window"]}
     if ok:
         import time
         time.sleep(8)
