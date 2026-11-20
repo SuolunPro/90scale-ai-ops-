@@ -1,76 +1,72 @@
 {
-  "at": "2026-11-20T01:00:29Z",
-  "verdict": "FAIL",
-  "signature": "engine_fresh",
+  "at": "2026-11-20T01:30:39Z",
+  "verdict": "WARN",
+  "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测主引擎当日快照已 355 分钟未更新（超过 300 分钟阈值），且处于销售窗口内，疑似引擎停摆；独立复核数据滞后 7 天为次要告警。当前证据仅能确认快照陈旧，尚缺引擎进程状态、调度日志与上游数据源可用性证据，根因待进一步只读排查确认。",
+    "summary": "巡检为 WARN：2026-11-19 有 3 场开赛已 3.0h 仍未结算（观察中），独立复核数据滞后 7 天；目前无 fail，但缺少赛果源状态、结算任务日志与复核文件内容，根因尚不能确定。",
     "root_causes": [
       {
-        "cause": "预测主引擎进程停摆或调度任务未触发，导致当日快照停止生成",
-        "confidence": 0.6,
-        "evidence": "checks[id=engine_fresh].status=fail, generated_age_min=355.4, 阈值 300 分钟, in_window=true, detail=疑似引擎停摆"
+        "cause": "赛果数据源延迟或缺失，导致 3 场比赛无法核验结算",
+        "confidence": 0.45,
+        "evidence": "settlement: 2026-11-19 matches=4, pending=3, overdue_h=3.0；前两日 pending=0，说明是当日新增异常而非长期积压"
       },
       {
-        "cause": "引擎上游数据源或依赖服务不可用，引擎虽在运行但无法产出新快照",
+        "cause": "结算/核验任务未正常执行或卡住（调度或任务异常）",
         "confidence": 0.3,
-        "evidence": "engine_fresh 仅显示快照年龄超阈值，无上游数据源状态字段可佐证，属推断"
+        "evidence": "settlement 仅 2026-11-19 出现 pending=3 且 overdue_h=3.0，2026-11-17/18 均 pending=0"
       },
       {
-        "cause": "独立复核流程长期未运行（滞后 7 天），复核侧链路可能同样存在调度中断",
-        "confidence": 0.2,
-        "evidence": "checks[id=independent_review].status=warn, latest=2026-11-13, lag_days=7"
+        "cause": "独立复核流程停更（人工或定时任务未产出新复核文件）",
+        "confidence": 0.25,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=7"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<引擎健康检查端口>/health",
-        "purpose": "确认预测主引擎服务是否存活、健康检查是否可达"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <赛果源只读接口地址>",
+        "purpose": "确认外部赛果数据源是否可访问、是否返回 2026-11-19 的赛果"
       },
       {
-        "command": "curl -s http://127.0.0.1:<引擎状态端口>/status",
-        "purpose": "读取引擎运行状态与最近一次快照生成时间，确认是否停摆"
+        "command": "python -c \"import json;d=json.load(open('<结算任务状态只读导出文件>'));print(d)\"",
+        "purpose": "只读查看结算任务最近运行时间与失败记录，确认任务是否卡住"
       },
       {
-        "command": "python -c \"import os,time; p='<快照目录>'; [print(f, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in sorted(os.listdir(p))[-5:]]\"",
-        "purpose": "只读列出最新快照文件及其修改时间，核实 355 分钟未更新的具体文件"
+        "command": "git log --oneline -n 20 -- <复核文件目录>",
+        "purpose": "确认独立复核文件最近提交记录，判断是流程停更还是文件未同步"
       },
       {
-        "command": "git log -n 20 --date=iso --pretty='%h %ad %s' -- <引擎代码或配置目录>",
-        "purpose": "确认近期是否有代码或配置变更可能影响引擎调度"
-      },
-      {
-        "command": "curl -s http://127.0.0.1:<调度器端口>/api/jobs?status=failed",
-        "purpose": "只读查询调度任务失败记录，确认当日快照任务是否报错"
+        "command": "curl -s <内部只读查询接口>/settlement/pending?day=2026-11-19",
+        "purpose": "列出 3 场未结算比赛的 ID 与当前状态，定位卡在核验还是结算环节"
       }
     ],
     "suggested_fix": {
-      "action": "由值班运维人工登录引擎主机，依据只读排查结果确认进程与调度状态；若确认为进程停摆，按既定运维流程人工重启预测主引擎并补跑当日快照任务，同时核查独立复核调度链路。",
+      "action": "先只读确认赛果源与结算任务状态；若为赛果源延迟则等待并人工补录核验，若为任务卡住则由值班人员按预案重启结算任务，并补做 2026-11-13 之后的独立复核",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到过期或缺失的预测结果，影响下单体验与信任；网站预测展示功能可能降级或显示旧数据。",
+    "customer_impact": "3 场已开赛比赛暂未结算，涉及相关会员的派彩/积分到账延迟；独立复核滞后 7 天，期间结算结果缺少二次校验，存在差错未被发现的风险；网站访问本身未见异常。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.158294,
-    "remaining_cny": 9.841706,
-    "calls": 26,
+    "spent_cny": 0.164244,
+    "remaining_cny": 9.835756,
+    "calls": 27,
     "exhausted": false,
-    "used_pct": 1.58
+    "used_pct": 1.64
   },
   "usage": {
-    "prompt_tokens": 472,
-    "completion_tokens": 687,
-    "total_tokens": 1159,
+    "prompt_tokens": 547,
+    "completion_tokens": 607,
+    "total_tokens": 1154,
     "prompt_tokens_details": {
       "cached_tokens": 256
     },
     "prompt_cache_hit_tokens": 256,
-    "prompt_cache_miss_tokens": 216
+    "prompt_cache_miss_tokens": 291
   },
-  "cost_cny": 0.00644
+  "cost_cny": 0.00595
 }
