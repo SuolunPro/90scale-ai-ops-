@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-20T03:15:29Z",
+  "at": "2026-11-20T03:30:29Z",
   "verdict": "WARN",
-  "signature": "engine_runs,independent_review,settlement",
+  "signature": "engine_runs,independent_review,settlement,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检整体为 WARN：预测引擎 11:12 计划点漏跑（最近运行约 120 分钟前），11-19 有 3 场开赛 4.8h 未结算，独立复核文件滞后 7 天；三项均为 warn 级、无 fail，但缺少引擎调度日志、结算任务输出与复核生成记录，根因尚不能确定。",
+    "summary": "巡检整体为 WARN：预测引擎漏跑 11:12 计划点、11-19 有 3 场赛果超 5 小时未结算、独立复核数据滞后 7 天、网站仓库工作流 120 分钟无运行记录；四项告警可能同源于调度停滞，但缺少工作流调度器状态与赛果源数据证据，根因置信度偏低。",
     "root_causes": [
       {
-        "cause": "预测引擎调度未触发或工作流被跳过，导致 11:12 计划点无运行记录",
-        "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[\"11:12\"], last_run_age_min=119.7, runs_today=3, checked_points=2；retired_workflows_ignored 含 engine4-settlement.yml 等已退役工作流"
-      },
-      {
-        "cause": "赛果数据源未回填或结算任务未执行，导致 11-19 的 3 场超 4.8h 仍 pending",
+        "cause": "GitHub Actions 调度停滞或队列积压，导致引擎计划点、结算与网站工作流同时无运行记录",
         "confidence": 0.45,
-        "evidence": "settlement: 2026-11-19 matches=4, pending=3, overdue_h=4.8；11-17、11-18 pending 均为 0"
+        "evidence": "engine_runs: 11:12 计划点无运行、last_run_age_min=134.7；site_workflows: 120 分钟内 recent_runs=0 且 failures 为空（非失败而是无运行）"
       },
       {
-        "cause": "独立复核流程停更（人工或定时任务中断），复核文件停留在 11-13",
-        "confidence": 0.4,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=7"
+        "cause": "赛果数据源延迟或核验流程未触发，导致 11-19 场次长期 pending",
+        "confidence": 0.35,
+        "evidence": "settlement: 2026-11-19 matches=4, pending=3, overdue_h=5.0；前两日 pending=0，说明非普遍性结算逻辑故障"
+      },
+      {
+        "cause": "独立复核流程长期未执行（可能依赖已退役工作流或人工触发）",
+        "confidence": 0.3,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=7；engine_runs 中 retired_workflows_ignored 含 engine4-verify-results.yml 等已退役工作流"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "git log --since='2026-11-20 08:00' --oneline -- .github/workflows/",
-        "purpose": "确认 11:12 前后是否有工作流文件变更或提交，排除配置改动导致漏跑"
+        "command": "curl -s 'https://api.github.com/repos/<org>/<repo>/actions/runs?per_page=20'",
+        "purpose": "只读查看最近工作流运行时间与状态，确认是否整体调度停滞"
       },
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20",
-        "purpose": "只读查询近期 Actions 运行列表，确认 11:12 计划点是否真的未触发（需替换实际仓库地址）"
+        "command": "curl -s 'https://api.github.com/repos/<org>/<repo>/actions/workflows'",
+        "purpose": "确认 engine4 与网站仓库工作流是否处于 active/disabled 状态"
       },
       {
-        "command": "python -c \"import json,glob;[print(f) for f in sorted(glob.glob('data/settlement/*2026-11-19*'))]\"",
-        "purpose": "只读列出 11-19 结算相关文件，确认赛果是否已落盘但未结算"
+        "command": "git log --since='2026-11-13' --oneline -- <review_dir>",
+        "purpose": "只读检查独立复核文件目录的提交历史，确认复核是否真的未产出"
       },
       {
-        "command": "python -c \"import os,glob;fs=sorted(glob.glob('data/review/*'));print(fs[-3:] if fs else 'none')\"",
-        "purpose": "只读确认最新复核文件时间，判断复核停更范围"
+        "command": "python -c \"import json,glob;[print(f) for f in glob.glob('<settlement_dir>/*2026-11-19*')]\"",
+        "purpose": "只读列出 11-19 结算相关文件，确认 3 场 pending 是否缺赛果输入"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查 11:12 计划点的调度触发记录与 11-19 三场赛果源数据；确认后手动补跑一次引擎与结算任务，并补做独立复核；全程只读排查后再决定是否重跑",
+      "action": "人工确认 GitHub Actions 调度状态与赛果数据源可用性；若为调度停滞，手动触发一次引擎与结算工作流（需人工在 CI 侧操作，非本助手执行）；若为赛果缺失，补齐赛果后重跑核验",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "处于售窗期内，11:12 计划点漏跑可能导致该时段预测未更新，会员看到的推荐可能滞后；11-19 三场未结算使相关场次结果与积分未落账，影响会员对账与信任；复核滞后 7 天降低结果可信度，但当前无 fail，站点核心功能未见中断。",
+    "customer_impact": "11-19 有 3 场未结算，相关会员积分/赛果展示可能延迟；若调度停滞持续，后续预测计划点与网站数据更新将中断，影响会员访问与信任。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.17147,
-    "remaining_cny": 9.82853,
-    "calls": 28,
+    "spent_cny": 0.178414,
+    "remaining_cny": 9.821586,
+    "calls": 29,
     "exhausted": false,
-    "used_pct": 1.71
+    "used_pct": 1.78
   },
   "usage": {
-    "prompt_tokens": 689,
-    "completion_tokens": 731,
-    "total_tokens": 1420,
+    "prompt_tokens": 760,
+    "completion_tokens": 678,
+    "total_tokens": 1438,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 561
+    "prompt_cache_miss_tokens": 632
   },
-  "cost_cny": 0.007226
+  "cost_cny": 0.006944
 }
