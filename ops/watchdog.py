@@ -53,8 +53,8 @@ def decide(ctx: dict) -> dict:
         stale = ctx.get("fresh_status") == "fail"
         if manual and cfg.get("manual_override_in_sale", True):
             overrides.append("sale_window: 人工授权放行")
-        elif (stale or (missed and ctx.get("engine_status") in ("warn", "fail"))) and cfg.get("allow_in_sale_when_stale", False):
-            overrides.append("sale_window: DeepSeek漏跑预警且球来了确认在售，允许自动补跑")
+        elif (stale or (ctx.get("confirmed_missed") and missed and ctx.get("engine_status") in ("warn", "fail"))) and cfg.get("allow_in_sale_when_stale", False):
+            overrides.append("sale_window: 快照过期或已核实超过宽限期的漏跑点")
         else:
             blocked.append("当前处于停售窗口（08:45-22:45），不自动补跑")
     if ctx.get("engine_status") not in ("warn", "fail") and ctx.get("fresh_status") not in ("warn", "fail"):
@@ -93,7 +93,8 @@ def missed_points(cfg: dict, runs: list[dict], now) -> list[str]:
     grace = dt.timedelta(minutes=float(eng.get("grace_min", 20)))
     lookback = dt.timedelta(minutes=float((cfg.get("watchdog") or {}).get("lookback_min", 90)))
     bj_now = now.astimezone(C.BJ)
-    stamps = [C.parse_ts(r.get("created_at")) for r in runs]
+    stamps = [C.parse_ts(r.get("created_at")) for r in runs
+              if r.get("conclusion") not in ("failure", "cancelled", "timed_out", "startup_failure")]
     stamps = [s for s in stamps if s]
     missed = []
     for hhmm in eng.get("schedule_bj", []):
@@ -213,7 +214,7 @@ def main(argv=None) -> int:
         return 2
 
     resolved = resolve_pending(args.root, cfg, token, now)
-    if args.resolve_only:
+    if args.resolve_only or (resolved and resolved.get("resolved")):
         print(json.dumps({"at": C.iso(now), "phase": "resolve_only", "resolved": resolved},
                          ensure_ascii=False, indent=2))
         from ops import ghcommit
@@ -224,8 +225,10 @@ def main(argv=None) -> int:
             for note in ghcommit.delete_file(args.root, cfg, PENDING,
                                              "ops: watchdog clear resolved pending"):
                 print(note)
-        return 0
+        if args.resolve_only:
+            return 0
     ctx = gather(cfg, token, args.root, now)
+    ctx["confirmed_missed"] = bool(ctx["missed"]) and not ctx["runs_error"]
     local = now.astimezone(C.BJ)
     cutoff = 23 if local.weekday() >= 5 else 22
     if args.auto and not 9 <= local.hour < cutoff:
