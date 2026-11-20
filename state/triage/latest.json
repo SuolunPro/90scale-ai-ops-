@@ -1,68 +1,76 @@
 {
-  "at": "2026-11-20T00:45:30Z",
-  "verdict": "WARN",
-  "signature": "independent_review",
+  "at": "2026-11-20T01:00:29Z",
+  "verdict": "FAIL",
+  "signature": "engine_fresh",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检整体为 WARN，唯一告警是独立复核数据已滞后 7 天（最新 2026-11-13）；当前不在销售窗口，且没有 fail 项，因此影响有限，但复核链路是否停摆仍需进一步确认。",
+    "summary": "预测主引擎当日快照已 355 分钟未更新（超过 300 分钟阈值），且处于销售窗口内，疑似引擎停摆；独立复核数据滞后 7 天为次要告警。当前证据仅能确认快照陈旧，尚缺引擎进程状态、调度日志与上游数据源可用性证据，根因待进一步只读排查确认。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按计划产出新文件（调度未触发或执行失败）",
-        "confidence": 0.45,
-        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=7，detail=已滞后 7 天"
+        "cause": "预测主引擎进程停摆或调度任务未触发，导致当日快照停止生成",
+        "confidence": 0.6,
+        "evidence": "checks[id=engine_fresh].status=fail, generated_age_min=355.4, 阈值 300 分钟, in_window=true, detail=疑似引擎停摆"
       },
       {
-        "cause": "复核流程本身按周或低频节奏运行，7 天滞后属于正常周期边界",
+        "cause": "引擎上游数据源或依赖服务不可用，引擎虽在运行但无法产出新快照",
         "confidence": 0.3,
-        "evidence": "in_sale_window=false，failed=[]，仅 1 项 warn，无其他关联检查失败"
+        "evidence": "engine_fresh 仅显示快照年龄超阈值，无上游数据源状态字段可佐证，属推断"
       },
       {
-        "cause": "复核文件产出后未同步到巡检读取路径（路径或挂载问题）",
-        "confidence": 0.25,
-        "evidence": "巡检仅记录 latest 与 lag_days，未提供文件路径、任务状态或日志字段，证据不足"
+        "cause": "独立复核流程长期未运行（滞后 7 天），复核侧链路可能同样存在调度中断",
+        "confidence": 0.2,
+        "evidence": "checks[id=independent_review].status=warn, latest=2026-11-13, lag_days=7"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "ls -l --time-style=long-iso <复核文件目录> | tail -20",
-        "purpose": "确认最新复核文件的实际修改时间与命名规律，判断是未产出还是未同步"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<引擎健康检查端口>/health",
+        "purpose": "确认预测主引擎服务是否存活、健康检查是否可达"
       },
       {
-        "command": "git log --since=2026-11-10 --oneline -- <复核相关路径>",
-        "purpose": "查看复核相关文件近期是否有提交记录，佐证产出链路是否活跃"
+        "command": "curl -s http://127.0.0.1:<引擎状态端口>/status",
+        "purpose": "读取引擎运行状态与最近一次快照生成时间，确认是否停摆"
       },
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <复核任务健康检查只读接口>",
-        "purpose": "只读探测复核任务调度或健康接口是否可达（若存在）"
+        "command": "python -c \"import os,time; p='<快照目录>'; [print(f, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in sorted(os.listdir(p))[-5:]]\"",
+        "purpose": "只读列出最新快照文件及其修改时间，核实 355 分钟未更新的具体文件"
+      },
+      {
+        "command": "git log -n 20 --date=iso --pretty='%h %ad %s' -- <引擎代码或配置目录>",
+        "purpose": "确认近期是否有代码或配置变更可能影响引擎调度"
+      },
+      {
+        "command": "curl -s http://127.0.0.1:<调度器端口>/api/jobs?status=failed",
+        "purpose": "只读查询调度任务失败记录，确认当日快照任务是否报错"
       }
     ],
     "suggested_fix": {
-      "action": "人工确认独立复核任务的调度状态与最近一次执行结果；若为调度停摆，按流程补跑一次复核并核对产出文件时间戳，无需改动算法或历史数据",
-      "risk": "low",
+      "action": "由值班运维人工登录引擎主机，依据只读排查结果确认进程与调度状态；若确认为进程停摆，按既定运维流程人工重启预测主引擎并补跑当日快照任务，同时核查独立复核调度链路。",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前不在销售窗口且无 fail 项，对会员与网站无直接可见影响；若复核链路持续停摆，后续销售窗口前的复核保障会缺失。",
-    "escalate": false
+    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到过期或缺失的预测结果，影响下单体验与信任；网站预测展示功能可能降级或显示旧数据。",
+    "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.151854,
-    "remaining_cny": 9.848146,
-    "calls": 25,
+    "spent_cny": 0.158294,
+    "remaining_cny": 9.841706,
+    "calls": 26,
     "exhausted": false,
-    "used_pct": 1.52
+    "used_pct": 1.58
   },
   "usage": {
-    "prompt_tokens": 381,
-    "completion_tokens": 479,
-    "total_tokens": 860,
+    "prompt_tokens": 472,
+    "completion_tokens": 687,
+    "total_tokens": 1159,
     "prompt_tokens_details": {
-      "cached_tokens": 128
+      "cached_tokens": 256
     },
-    "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 253
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 216
   },
-  "cost_cny": 0.004594
+  "cost_cny": 0.00644
 }
