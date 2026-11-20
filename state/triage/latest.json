@@ -1,76 +1,68 @@
 {
-  "at": "2026-11-20T23:00:33Z",
-  "verdict": "FAIL",
-  "signature": "settlement",
+  "at": "2026-11-20T23:30:31Z",
+  "verdict": "WARN",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-20 有 5 场比赛在开赛后 14.3 小时仍未结算，属于结算流程异常；独立复核数据已滞后 8 天，但仅为 warn。当前证据只能定位到“结算卡住”，还缺少赛果源是否已出结果、结算任务日志与队列状态，因此根因置信度有限。",
+    "summary": "巡检整体为 WARN，唯一异常是独立复核数据已滞后 8 天（最新 2026-11-13）；当前不在售窗口，暂无 failed 项，但缺少复核任务调度日志与复核人排班证据，无法确认是漏跑还是正常空档。",
     "root_causes": [
       {
-        "cause": "赛果数据未到位或赛果核验环节卡住，导致 11-20 的 5 场比赛无法进入结算",
+        "cause": "独立复核任务未按周期执行（调度缺失或任务被跳过）",
         "confidence": 0.45,
-        "evidence": "checks[settlement].detail=2026-11-20 有 5 场开赛 14.3h 仍未结算；同日 matches=8、pending=5，而 11-18/11-19 pending=0，说明异常集中在 11-20"
+        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=8，且无 failed 项，说明不是执行报错而是没有产出新文件"
       },
       {
-        "cause": "结算任务或队列积压、调度未执行（任务侧故障）",
-        "confidence": 0.3,
-        "evidence": "settlement.status=fail、severity=critical，overdue_h=14.3 远超正常结算时延；巡检未提供任务日志，无法直接确认"
+        "cause": "复核流程处于正常空档（如复核周期本身长于 8 天或近期无待复核数据）",
+        "confidence": 0.35,
+        "evidence": "in_sale_window=false，非售窗口期可能无新增待复核数据；巡检仅给出 lag_days=8，未提供复核周期配置"
       },
       {
-        "cause": "独立复核数据长期未更新，复核链路停滞，可能间接影响结算前的人工复核放行",
+        "cause": "复核文件产出后未同步到巡检读取路径（路径或同步延迟问题）",
         "confidence": 0.2,
-        "evidence": "independent_review.latest=2026-11-13、lag_days=8，status=warn"
+        "evidence": "detail 仅说明“最新复核文件 2026-11-13”，未包含目录列表或同步状态字段，无法排除文件存在但未被巡检采集"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'http://localhost:<结算服务只读端口>/health' 或 curl -s 'http://localhost:<结算服务只读端口>/status'",
-        "purpose": "确认结算服务进程与依赖是否存活（只读健康检查）"
+        "command": "curl -s http://127.0.0.1:<巡检服务端口>/api/checks/independent_review",
+        "purpose": "只读拉取该检查项的完整明细，确认巡检读取的目录路径与判定阈值"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/pending_2026-11-20.json'));print(len(d));print(d[:5])\"",
-        "purpose": "只读查看 11-20 待结算比赛的赛果字段是否为空，区分“赛果未到”与“结算未执行”"
+        "command": "python -c \"import os,glob,time; p='<复核文件目录>'; fs=sorted(glob.glob(os.path.join(p,'*')),key=os.path.getmtime)[-10:]; [print(time.strftime('%Y-%m-%d %H:%M',time.localtime(os.path.getmtime(f))),f) for f in fs]\"",
+        "purpose": "只读列出复核目录最近文件及修改时间，确认是否真的没有 2026-11-13 之后的新文件"
       },
       {
-        "command": "git log --oneline -20 --since='2026-11-18' -- <结算/赛果相关目录>",
-        "purpose": "确认 11-18 之后是否有结算或赛果解析相关代码变更上线"
-      },
-      {
-        "command": "curl -s 'http://localhost:<赛果源只读接口>/results?date=2026-11-20'",
-        "purpose": "只读核对赛果源在 11-20 是否已返回这 5 场比赛的结果"
-      },
-      {
-        "command": "python -c \"import os,time;p='/var/lib/review/latest';print(time.ctime(os.path.getmtime(p)))\"",
-        "purpose": "只读确认独立复核文件的实际更新时间，验证 lag_days=8 是否属实"
+        "command": "git log --since=2026-11-10 --oneline -- <复核相关配置或脚本路径>",
+        "purpose": "只读查看近期是否有复核周期配置或脚本变更，排除配置被改动导致漏跑"
       }
     ],
     "suggested_fix": {
-      "action": "先由人工只读核对 11-20 这 5 场比赛的赛果源是否已出结果：若赛果缺失，联系赛果数据提供方补数；若赛果已到但未结算，人工触发一次结算重跑（需审批后执行），并同步补做独立复核数据更新。",
-      "risk": "medium",
+      "action": "人工确认独立复核的既定周期与责任人排班：若周期短于 8 天，补做一次复核并检查调度任务是否被禁用；若周期本身较长或非售窗口无待复核数据，则在巡检中调整该检查项的阈值或标注豁免。",
+      "risk": "low",
       "needs_approval": true
     },
-    "customer_impact": "11-20 的 5 场比赛会员派彩延迟，涉及这 5 场的会员可能看到“已开赛未结算”状态，产生客诉与信任风险；网站其他场次结算不受影响。",
-    "escalate": true
+    "customer_impact": "当前不在售窗口且无 failed 项，对会员与网站无直接可见影响；若复核长期缺失，后续售窗口内的数据准确性缺少独立校验环节，存在潜在风险。",
+    "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.28305,
-    "remaining_cny": 9.71695,
-    "calls": 45,
+    "spent_cny": 0.288772,
+    "remaining_cny": 9.711228,
+    "calls": 46,
     "exhausted": false,
-    "used_pct": 2.83
+    "used_pct": 2.89
   },
   "usage": {
-    "prompt_tokens": 539,
-    "completion_tokens": 757,
-    "total_tokens": 1296,
+    "prompt_tokens": 381,
+    "completion_tokens": 620,
+    "total_tokens": 1001,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 411
+    "prompt_cache_miss_tokens": 253
   },
-  "cost_cny": 0.007134
+  "cost_cny": 0.005722
 }
