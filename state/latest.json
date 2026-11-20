@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-20T19:15:16Z",
-  "beijing_time": "2026-11-21 03:15:16",
+  "generated_at": "2026-11-20T20:15:12Z",
+  "beijing_time": "2026-11-21 04:15:12",
   "in_sale_window": false,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，96860 字节，耗时 156ms"
+      "detail": "HTTP 200，96860 字节，耗时 157ms"
     },
     {
       "id": "site_data_sync",
@@ -35,9 +35,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-21，快照 34 分钟前生成",
+      "detail": "sale_day=2026-11-21，快照 94 分钟前生成",
       "sale_day": "2026-11-21",
-      "generated_age_min": 34.0,
+      "generated_age_min": 94.0,
       "in_window": false
     },
     {
@@ -49,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 2,
-      "last_run_age_min": 39.1,
+      "last_run_age_min": 99.1,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -71,7 +71,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-20 有 5 场开赛 10.6h 仍未结算",
+      "detail": "2026-11-20 有 5 场开赛 11.6h 仍未结算",
       "checked": [
         {
           "day": "2026-11-18",
@@ -89,7 +89,7 @@
           "day": "2026-11-20",
           "matches": 8,
           "pending": 5,
-          "overdue_h": 10.6
+          "overdue_h": 11.6
         }
       ]
     },
@@ -115,7 +115,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1203,
+          "elapsed_ms": 1815,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -125,8 +125,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 58426,
-          "elapsed_ms": 1998,
+          "bytes": 58432,
+          "elapsed_ms": 1908,
           "error": null,
           "cn_only": true,
           "required": false
@@ -137,7 +137,7 @@
           "status": "up",
           "http": 200,
           "bytes": 275675,
-          "elapsed_ms": 575,
+          "elapsed_ms": 554,
           "error": null,
           "cn_only": false,
           "required": false
@@ -147,8 +147,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 226188,
-          "elapsed_ms": 1237,
+          "bytes": 226184,
+          "elapsed_ms": 1466,
           "error": null,
           "cn_only": true,
           "required": false
@@ -166,9 +166,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 8 次运行，无失败",
+      "detail": "120 分钟内 3 次运行，无失败",
       "failures": [],
-      "recent_runs": 8
+      "recent_runs": 3
     },
     {
       "id": "legacy_sale_status",
@@ -183,17 +183,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.251694,
-    "remaining_cny": 9.748306,
-    "calls": 40,
+    "spent_cny": 0.257612,
+    "remaining_cny": 9.742388,
+    "calls": 41,
     "exhausted": false,
-    "used_pct": 2.52
+    "used_pct": 2.58
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44800383639",
+    "run_id": "44809635525",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
