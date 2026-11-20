@@ -1,17 +1,15 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-20T03:30:14Z",
-  "beijing_time": "2026-11-20 11:30:14",
+  "generated_at": "2026-11-20T03:45:12Z",
+  "beijing_time": "2026-11-20 11:45:12",
   "in_sale_window": true,
   "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=warn,independent_review=warn,sources=skip,site_workflows=warn,legacy_sale_status=ok",
-  "signature": "engine_runs,independent_review,settlement,site_workflows",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=warn,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review,settlement",
   "failed": [],
   "warned": [
-    "engine_runs",
     "settlement",
-    "independent_review",
-    "site_workflows"
+    "independent_review"
   ],
   "checks": [
     {
@@ -19,40 +17,38 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，95048 字节，耗时 80ms"
+      "detail": "HTTP 200，95048 字节，耗时 200ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（121783 字节），Pages 已生效",
-      "prod_bytes": 121783,
-      "prod_sha": "9326c1c71a",
-      "repo_sha": "9326c1c71a"
+      "detail": "生产与仓库一致（139456 字节），Pages 已生效",
+      "prod_bytes": 139456,
+      "prod_sha": "f5e456336d",
+      "repo_sha": "f5e456336d"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-20，快照 128 分钟前生成",
+      "detail": "sale_day=2026-11-20，快照 9 分钟前生成",
       "sale_day": "2026-11-20",
-      "generated_age_min": 128.4,
+      "generated_age_min": 9.1,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：11:12；最近一次运行 135 分钟前",
-      "missed_points": [
-        "11:12"
-      ],
+      "status": "ok",
+      "severity": "info",
+      "detail": "已核对 2 个计划点，无漏跑；今天 4 次运行",
+      "missed_points": [],
       "checked_points": 2,
-      "runs_today": 3,
-      "last_run_age_min": 134.7,
+      "runs_today": 4,
+      "last_run_age_min": 14.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -74,7 +70,7 @@
       "title": "赛果核验与结算",
       "status": "warn",
       "severity": "warn",
-      "detail": "2026-11-19 有 3 场开赛 5.0h 未结算（观察中）",
+      "detail": "2026-11-19 有 3 场开赛 5.3h 未结算（观察中）",
       "checked": [
         {
           "day": "2026-11-17",
@@ -92,7 +88,7 @@
           "day": "2026-11-19",
           "matches": 4,
           "pending": 3,
-          "overdue_h": 5.0
+          "overdue_h": 5.3
         }
       ]
     },
@@ -118,7 +114,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1477,
+          "elapsed_ms": 1585,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,7 +125,7 @@
           "status": "up",
           "http": 200,
           "bytes": 66339,
-          "elapsed_ms": 2058,
+          "elapsed_ms": 1997,
           "error": null,
           "cn_only": true,
           "required": false
@@ -140,7 +136,7 @@
           "status": "up",
           "http": 200,
           "bytes": 85625,
-          "elapsed_ms": 243,
+          "elapsed_ms": 237,
           "error": null,
           "cn_only": false,
           "required": false
@@ -151,7 +147,7 @@
           "status": "up",
           "http": 200,
           "bytes": 113260,
-          "elapsed_ms": 1179,
+          "elapsed_ms": 2201,
           "error": null,
           "cn_only": true,
           "required": false
@@ -167,11 +163,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 2 次运行，无失败",
       "failures": [],
-      "recent_runs": 0
+      "recent_runs": 2
     },
     {
       "id": "legacy_sale_status",
@@ -186,17 +182,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.17147,
-    "remaining_cny": 9.82853,
-    "calls": 28,
+    "spent_cny": 0.178414,
+    "remaining_cny": 9.821586,
+    "calls": 29,
     "exhausted": false,
-    "used_pct": 1.71
+    "used_pct": 1.78
   },
   "runner": {
-    "host": "runnervmccnms",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44668144116",
+    "run_id": "44669819107",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
