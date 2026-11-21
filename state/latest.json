@@ -1,15 +1,16 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-21T01:00:12Z",
-  "beijing_time": "2026-11-21 09:00:12",
+  "generated_at": "2026-11-21T01:15:13Z",
+  "beijing_time": "2026-11-21 09:15:13",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=fail,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=fail,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "engine_fresh",
   "failed": [
     "engine_fresh"
   ],
   "warned": [
+    "engine_runs",
     "independent_review"
   ],
   "checks": [
@@ -18,7 +19,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，96860 字节，耗时 74ms"
+      "detail": "HTTP 200，96860 字节，耗时 111ms"
     },
     {
       "id": "site_data_sync",
@@ -35,21 +36,23 @@
       "title": "预测主引擎当日快照",
       "status": "fail",
       "severity": "critical",
-      "detail": "最新快照已 379 分钟未更新（阈值 300 分钟），疑似引擎停摆",
+      "detail": "最新快照已 394 分钟未更新（阈值 300 分钟），疑似引擎停摆",
       "sale_day": "2026-11-21",
-      "generated_age_min": 379.0,
+      "generated_age_min": 394.0,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "ok",
-      "severity": "info",
-      "detail": "已核对 0 个计划点，无漏跑；今天 2 次运行",
-      "missed_points": [],
-      "checked_points": 0,
+      "status": "warn",
+      "severity": "warn",
+      "detail": "近 180 分钟内 1 个计划点无运行：09:12；最近一次运行 399 分钟前",
+      "missed_points": [
+        "09:12"
+      ],
+      "checked_points": 1,
       "runs_today": 2,
-      "last_run_age_min": 384.1,
+      "last_run_age_min": 399.1,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -115,7 +118,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 1683,
+          "elapsed_ms": 2418,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -126,7 +129,7 @@
           "status": "up",
           "http": 200,
           "bytes": 58481,
-          "elapsed_ms": 1770,
+          "elapsed_ms": 1612,
           "error": null,
           "cn_only": true,
           "required": false
@@ -136,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 277987,
-          "elapsed_ms": 379,
+          "bytes": 278318,
+          "elapsed_ms": 513,
           "error": null,
           "cn_only": false,
           "required": false
@@ -148,7 +151,7 @@
           "status": "up",
           "http": 200,
           "bytes": 226180,
-          "elapsed_ms": 2621,
+          "elapsed_ms": 1430,
           "error": null,
           "cn_only": true,
           "required": false
@@ -183,17 +186,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.288772,
-    "remaining_cny": 9.711228,
-    "calls": 46,
+    "spent_cny": 0.294804,
+    "remaining_cny": 9.705196,
+    "calls": 47,
     "exhausted": false,
-    "used_pct": 2.89
+    "used_pct": 2.95
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44847449699",
+    "run_id": "44849029925",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
