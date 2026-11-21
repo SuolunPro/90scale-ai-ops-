@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-21T20:30:13Z",
-  "beijing_time": "2026-11-22 04:30:13",
+  "generated_at": "2026-11-21T21:30:16Z",
+  "beijing_time": "2026-11-22 05:30:16",
   "in_sale_window": false,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，98019 字节，耗时 131ms"
+      "detail": "HTTP 200，98019 字节，耗时 465ms"
     },
     {
       "id": "site_data_sync",
@@ -35,9 +35,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-21，快照 431 分钟前生成",
+      "detail": "sale_day=2026-11-21，快照 491 分钟前生成",
       "sale_day": "2026-11-21",
-      "generated_age_min": 430.7,
+      "generated_age_min": 490.8,
       "in_window": false
     },
     {
@@ -49,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 2,
-      "last_run_age_min": 182.5,
+      "last_run_age_min": 242.5,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -71,7 +71,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-21 有 1 场开赛 15.5h 仍未结算",
+      "detail": "2026-11-21 有 1 场开赛 16.5h 仍未结算",
       "checked": [
         {
           "day": "2026-11-19",
@@ -89,7 +89,7 @@
           "day": "2026-11-21",
           "matches": 22,
           "pending": 1,
-          "overdue_h": 15.5
+          "overdue_h": 16.5
         }
       ]
     },
@@ -107,7 +107,7 @@
       "title": "采集链路可用性",
       "status": "skip",
       "severity": "info",
-      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像、澳客竞彩 正常",
+      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 澳客竞彩 正常",
       "probes": [
         {
           "id": "sporttery",
@@ -115,7 +115,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 1645,
+          "elapsed_ms": 3056,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -123,10 +123,10 @@
         {
           "id": "qiulaile",
           "name": "球来了镜像",
-          "status": "up",
+          "status": "down",
           "http": 200,
-          "bytes": 53164,
-          "elapsed_ms": 1635,
+          "bytes": 407,
+          "elapsed_ms": 11110,
           "error": null,
           "cn_only": true,
           "required": false
@@ -137,7 +137,7 @@
           "status": "up",
           "http": 200,
           "bytes": 179096,
-          "elapsed_ms": 342,
+          "elapsed_ms": 716,
           "error": null,
           "cn_only": false,
           "required": false
@@ -147,8 +147,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 200884,
-          "elapsed_ms": 1135,
+          "bytes": 200886,
+          "elapsed_ms": 1285,
           "error": null,
           "cn_only": true,
           "required": false
@@ -175,25 +175,25 @@
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 12.7 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 12.8 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 12.7
+      "age_days": 12.8
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.39581,
-    "remaining_cny": 9.60419,
-    "calls": 63,
+    "spent_cny": 0.401664,
+    "remaining_cny": 9.598336,
+    "calls": 64,
     "exhausted": false,
-    "used_pct": 3.96
+    "used_pct": 4.02
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44946594362",
+    "run_id": "44951849092",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
