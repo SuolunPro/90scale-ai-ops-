@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-21T10:45:32Z",
+  "at": "2026-11-21T11:15:37Z",
   "verdict": "WARN",
-  "signature": "engine_runs,independent_review",
+  "signature": "engine_runs",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎在售窗内连续漏跑 3 个计划点（最近一次运行在 115 分钟前），独立复核数据滞后 8 天；目前证据只能定位到调度或运行层面，尚缺引擎运行日志与调度器状态，根因置信度偏低。",
+    "summary": "预测引擎近 180 分钟内 4 个计划点（17:12、18:12、18:42、19:12）均无运行，最近一次运行在 145 分钟前；当前处于销售窗口内，但仅有 engine_runs 一项 warn，缺少调度器日志与工作流运行记录，根因尚不能确定。",
     "root_causes": [
       {
-        "cause": "预测引擎调度或工作流未触发（计划点 17:12、18:12、18:42 均无运行记录）",
-        "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[17:12,18:12,18:42], last_run_age_min=115.3, runs_today=14, in_sale_window=true"
+        "cause": "调度器或定时任务配置异常，导致计划点未触发（如 cron 被禁用、调度服务停摆）",
+        "confidence": 0.45,
+        "evidence": "engine_runs: missed_points=[17:12,18:12,18:42,19:12]，last_run_age_min=145.4，checked_points=4 全部漏跑，呈连续漏跑而非偶发"
       },
       {
-        "cause": "引擎运行失败或卡住，导致计划点被跳过且未回写运行记录",
+        "cause": "引擎工作流执行失败或排队阻塞，运行未产生可识别的运行记录",
         "confidence": 0.3,
-        "evidence": "engine_runs 最近一次运行在 115 分钟前，之后 3 个计划点无运行；巡检未提供失败日志或退出码"
+        "evidence": "runs_today=14 说明当日仍有运行，但近 180 分钟无新运行；retired_workflows_ignored 仅列出已退役工作流，未提供失败运行明细"
       },
       {
-        "cause": "独立复核流程未按日更新（复核文件停留在 2026-11-13）",
-        "confidence": 0.5,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=8"
+        "cause": "上游数据或依赖未就绪，引擎主动跳过计划点",
+        "confidence": 0.15,
+        "evidence": "巡检 JSON 未包含上游数据就绪状态字段，此项为推测，证据不足"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -sS -m 10 http://127.0.0.1:<engine_port>/health",
-        "purpose": "确认预测引擎服务进程是否存活、是否处于可调度状态"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:<engine_health_port>/health",
+        "purpose": "确认预测引擎服务本身是否存活可响应"
       },
       {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<engine_run_log_dir>/*'),key=os.path.getmtime)[-5:];[print(f,os.path.getmtime(f)) for f in fs]\"",
-        "purpose": "只读列出最近引擎运行日志文件及时间，确认 17:12 之后是否有运行痕迹或报错"
+        "command": "git log --since='6 hours ago' --oneline -- .github/workflows/",
+        "purpose": "只读查看近期工作流配置是否有变更，排查 cron 被改动"
       },
       {
-        "command": "git log --since='2026-11-21 16:00' --oneline -- <engine_workflow_dir>",
-        "purpose": "只读查看调度/工作流配置近期是否有变更，排除配置改动导致漏跑"
-      },
-      {
-        "command": "python -c \"import os;print(os.path.getmtime('<review_file_path>'))\"",
-        "purpose": "确认独立复核文件的实际更新时间，核对 8 天滞后是否属实"
+        "command": "python -c \"import json,sys; d=json.load(open('<engine_run_log_path>')); print([r for r in d if r.get('start_time','')>='2026-11-21T17:00'])\"",
+        "purpose": "只读读取引擎运行日志，确认 17:12 后是否有启动记录或失败记录"
       }
     ],
     "suggested_fix": {
-      "action": "人工检查预测引擎调度器与工作流触发状态，确认 17:12 起漏跑原因；同时补跑独立复核流程并核对复核文件更新链路。",
+      "action": "人工登录调度侧只读核对 17:12 起各计划点的触发记录与引擎运行日志，确认是调度未触发还是执行失败，再决定是否手动补跑或恢复调度；补跑与配置变更需另行审批",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "售窗内预测结果可能停更约 2 小时，会员端展示的预测/推荐可能滞后或缺失；独立复核滞后 8 天，复核结论的时效性下降，但不直接阻断网站访问。",
+    "customer_impact": "销售窗口内预测结果可能停止更新，会员看到的预测/推荐数据滞后约 145 分钟以上，若持续将影响下单转化与结果页准确性；当前未见站点不可用证据。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.33054,
-    "remaining_cny": 9.66946,
-    "calls": 53,
+    "spent_cny": 0.336186,
+    "remaining_cny": 9.663814,
+    "calls": 54,
     "exhausted": false,
-    "used_pct": 3.31
+    "used_pct": 3.36
   },
   "usage": {
-    "prompt_tokens": 541,
-    "completion_tokens": 612,
-    "total_tokens": 1153,
+    "prompt_tokens": 471,
+    "completion_tokens": 588,
+    "total_tokens": 1059,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 413
+    "prompt_cache_miss_tokens": 343
   },
-  "cost_cny": 0.005978
+  "cost_cny": 0.005646
 }
