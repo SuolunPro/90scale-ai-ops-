@@ -172,8 +172,12 @@ def gather(cfg: dict, token: str, root: str, now) -> dict:
     history = load_history(root)
     today = now.astimezone(C.BJ).date()
     auto_today = [h for h in history if h.get("phase") == "dispatched"
-                  and (C.parse_ts(h.get("at")) or now).astimezone(C.BJ).date() == today]
-    last_dispatch = max((C.parse_ts(h["at"]) for h in auto_today if h.get("at")), default=None)
+                  and h.get("auto_mode") is True and h.get("ok") is True
+                  and C.parse_ts(h.get("at"))
+                  and C.parse_ts(h.get("at")).astimezone(C.BJ).date() == today]
+    last_dispatch = max((C.parse_ts(h.get("at")) for h in history
+                         if h.get("phase") == "dispatched" and h.get("auto_mode") is True
+                         and h.get("ok") is True and C.parse_ts(h.get("at"))), default=None)
     bj_now = now.astimezone(C.BJ)
     return {
         "runs_error": (doc.get("error") or f"HTTP {code}") if code != 200 else None,
@@ -255,8 +259,8 @@ def main(argv=None) -> int:
         return 0
     if auto_mode:
         if not (cfg.get("watchdog") or {}).get("auto_apply"):
-            print("REFUSED: 自动补跑未启用（watchdog.auto_apply=false）")
-            return 1
+            print("SKIPPED: 自动补跑未启用（watchdog.auto_apply=false）")
+            return 0
     else:
         if args.confirm != "YES-I-APPROVE":
             print("REFUSED: 缺少授权串 YES-I-APPROVE")
@@ -266,8 +270,11 @@ def main(argv=None) -> int:
             print("REFUSED: 自动补跑未启用（watchdog.auto_apply=false），且未提供人工授权通道")
             return 1
     if not decision["should_trigger"]:
-        print("REFUSED: 未满足补跑条件：" + "；".join(decision["blocked_by"]))
-        return 1
+        if ctx["runs_error"]:
+            print("ERROR: GitHub Actions 运行状态读取失败：" + str(ctx["runs_error"]))
+            return 2
+        print("SKIPPED: 未满足补跑条件：" + "；".join(decision["blocked_by"]))
+        return 0
 
     repo = cfg["engine_repo"]
     wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
