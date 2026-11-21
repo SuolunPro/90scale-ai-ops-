@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-21T19:00:26Z",
+  "at": "2026-11-21T20:00:30Z",
   "verdict": "FAIL",
   "signature": "settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-21 有 18 场比赛在开赛 14 小时后仍未结算（critical），且独立复核数据已滞后 9 天；现有证据只能定位到结算环节，尚缺结算任务日志、赛果源可用性与复核文件生成记录，根因待确认。",
+    "summary": "2026-11-21 有 1 场比赛在开赛 15.0 小时后仍未结算，结算链路可能卡住；独立复核数据已滞后 9 天，但缺少该场比赛的赛果源状态、结算任务日志和复核文件内容，根因尚不能确定。",
     "root_causes": [
       {
-        "cause": "赛果数据源或结算任务在 2026-11-21 中断/延迟，导致当日 22 场中 18 场积压未结算",
-        "confidence": 0.55,
-        "evidence": "checks[settlement].status=fail, detail=2026-11-21 有 18 场开赛 14.0h 仍未结算；前两日 2026-11-19/2026-11-20 pending 均为 0，说明积压集中在 11-21 单日"
+        "cause": "该场比赛赛果未回传或赛果源异常，导致结算条件不满足",
+        "confidence": 0.45,
+        "evidence": "settlement: 2026-11-21 matches=22, pending=1, overdue_h=15.0；前两日 pending=0，说明是单场异常而非整体积压"
       },
       {
-        "cause": "独立复核流程停摆，复核文件自 2026-11-13 后未再生成，可能连带影响结算前的核验环节",
+        "cause": "结算任务或核验流程对该场比赛卡住（任务未触发/异常中断）",
         "confidence": 0.3,
-        "evidence": "checks[independent_review].status=warn, latest=2026-11-13, lag_days=9"
+        "evidence": "settlement 状态 fail，overdue_h=15.0 远超正常结算时延；巡检未提供结算任务日志，无法直接确认"
       },
       {
-        "cause": "11-21 场次量突增（22 场，高于 11-19 的 4 场与 11-20 的 8 场）超出结算处理能力，形成排队积压",
+        "cause": "独立复核流程停更，复核数据滞后可能间接影响结算核验",
         "confidence": 0.15,
-        "evidence": "checks[settlement].checked 中 2026-11-21 matches=22，pending=18，overdue_h=14.0"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=9"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <赛果源只读健康检查地址>",
-        "purpose": "确认赛果数据源接口是否可访问、响应是否正常"
+        "command": "curl -s 'http://localhost:<结算服务只读端口>/api/settlement/pending?day=2026-11-21'",
+        "purpose": "确认该场 pending 比赛的 ID、赛事与当前结算状态"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<结算任务状态文件路径>'));print(d)\"",
-        "purpose": "只读查看结算任务最近一次运行状态与失败信息"
+        "command": "curl -s 'http://localhost:<赛果服务只读端口>/api/results?match_id=<待确认ID>'",
+        "purpose": "确认该场比赛赛果是否已回传、回传时间与内容是否完整"
       },
       {
-        "command": "git log --since=2026-11-12 --oneline -- <复核文件所在目录>",
-        "purpose": "确认独立复核文件自 2026-11-13 后是否有提交或生成记录"
+        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/settlement-2026-11-21.log'));print(d)\"",
+        "purpose": "只读查看结算任务日志，确认该场是否被任务处理及报错信息"
       },
       {
-        "command": "curl -s '<结算服务只读状态接口>'",
-        "purpose": "确认结算服务当前是否在线、队列积压量是否与 18 场一致"
+        "command": "curl -s 'http://localhost:<复核服务只读端口>/api/review/latest'",
+        "purpose": "确认独立复核最新文件时间与滞后原因"
       }
     ],
     "suggested_fix": {
-      "action": "先由人工只读核查 11-21 赛果源与结算任务日志，确认中断点后，按既定流程人工触发补结算并补齐独立复核；不得直接改历史结算数据或算法",
+      "action": "先人工核对该场比赛的官方赛果，确认赛果源是否缺失；若赛果已到而结算未执行，由值班人员按既定流程手动触发该场结算并补记复核记录，同时排查复核任务为何停更 9 天",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "18 场已开赛比赛超过 14 小时未结算，涉及这些场次的会员派奖与账户余额更新延迟，可能引发会员投诉；网站其他功能未见异常证据。",
+    "customer_impact": "该场比赛相关会员的派彩与账务更新延迟，可能引发会员查询与客诉；其余场次结算正常，网站整体访问未见异常证据。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.390108,
-    "remaining_cny": 9.609892,
-    "calls": 62,
+    "spent_cny": 0.39581,
+    "remaining_cny": 9.60419,
+    "calls": 63,
     "exhausted": false,
-    "used_pct": 3.9
+    "used_pct": 3.96
   },
   "usage": {
     "prompt_tokens": 539,
-    "completion_tokens": 652,
-    "total_tokens": 1191,
+    "completion_tokens": 578,
+    "total_tokens": 1117,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 411
   },
-  "cost_cny": 0.006294
+  "cost_cny": 0.005702
 }
