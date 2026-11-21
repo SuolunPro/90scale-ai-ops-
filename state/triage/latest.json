@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-21T21:00:36Z",
+  "at": "2026-11-21T22:00:32Z",
   "verdict": "FAIL",
   "signature": "settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-21 有 1 场比赛在开赛 16 小时后仍未结算，属于结算链路异常；独立复核数据已滞后 9 天，但当前不在售赛窗口，因此影响有限。现有证据不足以判断具体卡在哪一步（赛果抓取、核验还是结算写入），需要进一步只读排查。",
+    "summary": "2026-11-21 有 1 场比赛在开赛 17.0 小时后仍未结算（critical），同时独立复核数据已滞后 9 天；现有巡检数据不足以判定具体根因，需进一步只读排查赛果源与结算队列。",
     "root_causes": [
       {
-        "cause": "赛果抓取或核验环节未完成，导致该场比赛无法进入结算",
+        "cause": "赛果数据源缺失或异常，导致该场比赛无法完成核验",
         "confidence": 0.45,
-        "evidence": "checks[settlement].checked[day=2026-11-21].pending=1, overdue_h=16.0；前两日 pending=0，说明是单场异常而非整体停摆"
+        "evidence": "settlement: 2026-11-21 matches=22, pending=1, overdue_h=17.0；其余日期 pending=0"
       },
       {
-        "cause": "结算任务对该场比赛漏处理或单场结算失败后未重试",
+        "cause": "结算任务或队列积压、卡单，单场比赛未被处理",
         "confidence": 0.35,
-        "evidence": "settlement status=fail，仅 1 场 pending，其余 21 场已结算，符合单场失败特征"
+        "evidence": "settlement 仅 2026-11-21 出现 1 场 pending，前两日均正常（pending=0），呈孤立卡单特征"
       },
       {
-        "cause": "独立复核数据滞后导致结算前复核缺失，间接阻塞结算",
+        "cause": "独立复核流程停更，复核数据滞后可能间接影响结算核验链路",
         "confidence": 0.2,
-        "evidence": "independent_review latest=2026-11-13, lag_days=9；但该检查仅为 warn，且无直接字段证明其阻塞结算"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=9"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'http://localhost:<结算服务端口>/api/settlement/pending?day=2026-11-21'",
-        "purpose": "只读查询该日 pending 场次的比赛 ID、状态与卡住环节"
+        "command": "curl -s http://localhost:<结算服务只读端口>/api/settlement/pending?day=2026-11-21",
+        "purpose": "确认该场未结算比赛的具体 match_id、状态与卡住环节"
       },
       {
-        "command": "curl -s 'http://localhost:<赛果服务端口>/api/results?day=2026-11-21'",
-        "purpose": "确认该场比赛赛果是否已抓取到、字段是否完整"
+        "command": "curl -s http://localhost:<赛果源只读接口>/api/results?day=2026-11-21",
+        "purpose": "确认赛果源是否已返回该场比赛结果"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/2026-11-21.log'));print([l for l in d if 'ERROR' in l][-20:])\"",
-        "purpose": "只读查看结算日志中该场比赛的报错与重试记录"
+        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/settlement-2026-11-21.log'));print(d)\"",
+        "purpose": "只读查看当日结算日志，定位该场比赛报错或跳过原因"
       },
       {
-        "command": "git log --oneline -10 -- 结算/复核相关目录",
-        "purpose": "确认近期是否有结算或复核逻辑变更与本次异常时间吻合"
+        "command": "curl -s http://localhost:<复核服务只读端口>/api/review/latest",
+        "purpose": "确认独立复核文件滞后的原因与最新可用版本"
       }
     ],
     "suggested_fix": {
-      "action": "人工核对该场比赛赛果是否已入库且完整；若赛果缺失则补录赛果后触发单场重新结算，若赛果完整则排查结算任务对该场的处理记录并手动重跑该场结算（需人工确认后执行）",
+      "action": "人工核查该场未结算比赛的赛果源与结算日志，确认赛果缺失还是结算任务卡单后，由值班人员按流程手动触发该场结算；同时排查独立复核数据停更原因并补跑复核",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "该场比赛的会员派彩延迟，涉及该场的注单处于待结算状态；其余场次结算正常，网站整体可用性未见异常。",
+    "customer_impact": "该场比赛涉及的用户派奖/结算延迟，可能引发会员对账疑问与客服咨询；独立复核滞后降低结算结果的独立校验保障，暂未见其他日期受影响",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.401664,
-    "remaining_cny": 9.598336,
-    "calls": 64,
+    "spent_cny": 0.407078,
+    "remaining_cny": 9.592922,
+    "calls": 65,
     "exhausted": false,
-    "used_pct": 4.02
+    "used_pct": 4.07
   },
   "usage": {
     "prompt_tokens": 539,
-    "completion_tokens": 597,
-    "total_tokens": 1136,
+    "completion_tokens": 542,
+    "total_tokens": 1081,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 411
   },
-  "cost_cny": 0.005854
+  "cost_cny": 0.005414
 }
