@@ -1,0 +1,8 @@
+{
+  "run_id": 44862740877,
+  "reason": "missed_schedule_points",
+  "missed_points": [
+    "11:12"
+  ],
+  "at": "2026-11-21T03:45:27Z"
+}
