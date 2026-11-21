@@ -1,68 +1,68 @@
 {
-  "at": "2026-11-21T04:15:27Z",
+  "at": "2026-11-21T05:30:37Z",
   "verdict": "WARN",
-  "signature": "engine_runs,independent_review",
+  "signature": "engine_runs",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎在 11:12、12:12 两个计划点漏跑，独立复核数据已滞后 8 天；当前处于销售窗口内，但缺少引擎调度日志与复核任务运行记录，根因尚不能确定。",
+    "summary": "预测引擎在近180分钟内漏跑11:12、12:12两个计划点，但最近一次运行仅14.6分钟前且今日已运行9次，说明引擎仍在运行，疑似调度延迟或个别计划点被跳过；当前证据不足以定位具体原因，需补充调度器日志与运行记录。",
     "root_causes": [
       {
-        "cause": "引擎调度工作流未按时触发或被跳过（计划点漏跑）",
+        "cause": "调度器（cron/工作流触发器）对个别计划点触发延迟或丢失，导致11:12、12:12未执行",
         "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[11:12,12:12]，checked_points=2，last_run_age_min=29.7，runs_today=7"
+        "evidence": "checks[0].missed_points=[\"11:12\",\"12:12\"]，checked_points=3，last_run_age_min=14.6，runs_today=9，说明引擎整体存活但存在计划点缺口"
       },
       {
-        "cause": "独立复核任务长期未执行或产出未落盘",
-        "confidence": 0.4,
-        "evidence": "independent_review: latest=2026-11-13，lag_days=8"
+        "cause": "计划点运行时长超过间隔或上一轮任务未及时结束，造成后续计划点被跳过/合并",
+        "confidence": 0.3,
+        "evidence": "近180分钟仅检查3个计划点却有2个缺失，且最近一次运行正常（14.6分钟前），符合偶发跳过特征；但巡检未提供单次运行耗时字段"
       },
       {
-        "cause": "已退役工作流被忽略后，实际生效的调度配置与巡检预期不一致",
-        "confidence": 0.2,
-        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]"
+        "cause": "已退役工作流（engine4-settlement.yml 等）被忽略后，调度配置未同步清理，残留触发规则干扰计划点判定",
+        "confidence": 0.15,
+        "evidence": "retired_workflows_ignored=[\"engine4-settlement.yml\",\"engine4-verify-results.yml\",\"engine4-result-backfill.yml\"]，仅为忽略项，无直接失败证据"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "git log --since='2026-11-13' --name-only --pretty=format:'%h %ad %s' --date=iso -- '*review*'",
-        "purpose": "确认独立复核相关文件自 11-13 后是否有提交或产出变更"
+        "command": "curl -s <调度器只读API或状态页地址> | python -c \"import sys,json;d=json.load(sys.stdin);print(d)\"",
+        "purpose": "读取调度器近期触发记录，确认11:12、12:12是否有触发事件及触发时间"
       },
       {
-        "command": "git log -n 20 --pretty=format:'%h %ad %s' --date=iso -- '.github/workflows/'",
-        "purpose": "查看调度工作流配置近期是否被修改或停用"
+        "command": "git log --since=\"2026-11-21 10:00\" --oneline -- .github/workflows/",
+        "purpose": "确认巡检窗口前后是否有工作流配置变更导致计划点丢失"
       },
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://api.github.com/repos/<owner>/<repo>/actions/workflows",
-        "purpose": "只读确认工作流列表与启用状态（需替换实际仓库地址）"
+        "command": "python -c \"import json;d=json.load(open('engine_runs.json'));print([r for r in d if r.get('scheduled') in ('11:12','12:12')])\"",
+        "purpose": "读取引擎运行记录文件，核对两个缺失计划点是否真的无运行及相邻运行耗时"
       }
     ],
     "suggested_fix": {
-      "action": "人工核对引擎调度工作流的触发记录与 cron 配置，确认 11:12、12:12 漏跑原因；同时检查独立复核任务是否仍在运行并补跑一次复核产出",
+      "action": "人工核对调度器触发日志与引擎运行记录，确认11:12、12:12是触发丢失还是运行超时跳过；若为配置残留则清理已退役工作流的调度项，若为超时则评估调整计划间隔，暂不自动改动生产调度",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内预测结果可能缺失最近两个计划点，会员看到的预测/推荐可能滞后；独立复核滞后 8 天意味着结果缺少二次校验，异常结果拦截能力下降。",
-    "escalate": true
+    "customer_impact": "当前处于销售窗口内，若漏跑持续可能导致部分时段预测结果缺失或延迟，影响会员侧预测展示的时效性；目前最近一次运行正常，暂无全站性影响证据。",
+    "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.30513,
-    "remaining_cny": 9.69487,
-    "calls": 49,
+    "spent_cny": 0.311244,
+    "remaining_cny": 9.688756,
+    "calls": 50,
     "exhausted": false,
-    "used_pct": 3.05
+    "used_pct": 3.11
   },
   "usage": {
-    "prompt_tokens": 532,
-    "completion_tokens": 510,
-    "total_tokens": 1042,
+    "prompt_tokens": 453,
+    "completion_tokens": 651,
+    "total_tokens": 1104,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 404
+    "prompt_cache_miss_tokens": 325
   },
-  "cost_cny": 0.005144
+  "cost_cny": 0.006114
 }
