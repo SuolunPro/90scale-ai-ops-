@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-21T08:30:29Z",
+  "at": "2026-11-21T10:45:32Z",
   "verdict": "WARN",
   "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检为 WARN：14:12 计划点漏跑一次，独立复核数据已滞后 8 天；当前处于销售窗口内，但最近一次引擎运行仅 16 分钟前，暂无证据表明引擎整体停摆，需补充漏跑点日志与复核流水线状态才能定论。",
+    "summary": "预测引擎在售窗内连续漏跑 3 个计划点（最近一次运行在 115 分钟前），独立复核数据滞后 8 天；目前证据只能定位到调度或运行层面，尚缺引擎运行日志与调度器状态，根因置信度偏低。",
     "root_causes": [
       {
-        "cause": "14:12 计划点对应的调度触发未执行或被跳过（单点漏跑，非整体停摆）",
+        "cause": "预测引擎调度或工作流未触发（计划点 17:12、18:12、18:42 均无运行记录）",
         "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[\"14:12\"], checked_points=3, runs_today=13, last_run_age_min=16.3，说明后续计划点已恢复运行"
+        "evidence": "engine_runs: missed_points=[17:12,18:12,18:42], last_run_age_min=115.3, runs_today=14, in_sale_window=true"
       },
       {
-        "cause": "独立复核流水线自 2026-11-13 起未再产出新文件（复核任务停跑或产出未落盘）",
+        "cause": "引擎运行失败或卡住，导致计划点被跳过且未回写运行记录",
+        "confidence": 0.3,
+        "evidence": "engine_runs 最近一次运行在 115 分钟前，之后 3 个计划点无运行；巡检未提供失败日志或退出码"
+      },
+      {
+        "cause": "独立复核流程未按日更新（复核文件停留在 2026-11-13）",
         "confidence": 0.5,
         "evidence": "independent_review: latest=2026-11-13, lag_days=8"
-      },
-      {
-        "cause": "已退役工作流（settlement/verify-results/result-backfill）被忽略后，复核环节缺少替代触发链路",
-        "confidence": 0.25,
-        "evidence": "engine_runs.retired_workflows_ignored 含 engine4-settlement.yml、engine4-verify-results.yml、engine4-result-backfill.yml，与复核滞后同期出现"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s https://api.github.com/repos/{owner}/{repo}/actions/workflows/engine4-predict.yml/runs?per_page=20",
-        "purpose": "只读拉取引擎工作流近期运行记录，确认 14:12 计划点是否有触发但失败/被跳过"
+        "command": "curl -sS -m 10 http://127.0.0.1:<engine_port>/health",
+        "purpose": "确认预测引擎服务进程是否存活、是否处于可调度状态"
       },
       {
-        "command": "curl -s https://api.github.com/repos/{owner}/{repo}/actions/runs?created=2026-11-21&per_page=50",
-        "purpose": "查看当日全部工作流运行，定位 14:12 前后是否有并发冲突或取消记录"
+        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<engine_run_log_dir>/*'),key=os.path.getmtime)[-5:];[print(f,os.path.getmtime(f)) for f in fs]\"",
+        "purpose": "只读列出最近引擎运行日志文件及时间，确认 17:12 之后是否有运行痕迹或报错"
       },
       {
-        "command": "git log --since=2026-11-13 --name-only --pretty=format:%h%ad --date=iso -- '*review*'",
-        "purpose": "只读检查复核文件目录的提交历史，确认 11-13 后是否完全无产出"
+        "command": "git log --since='2026-11-21 16:00' --oneline -- <engine_workflow_dir>",
+        "purpose": "只读查看调度/工作流配置近期是否有变更，排除配置改动导致漏跑"
       },
       {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('**/*review*',recursive=True));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
-        "purpose": "只读列出最新复核文件及其修改时间，核对 lag_days=8 是否与本地文件一致"
+        "command": "python -c \"import os;print(os.path.getmtime('<review_file_path>'))\"",
+        "purpose": "确认独立复核文件的实际更新时间，核对 8 天滞后是否属实"
       }
     ],
     "suggested_fix": {
-      "action": "人工核对 14:12 计划点的调度日志与当日运行记录，确认是单次漏跑还是调度配置问题；同时检查独立复核流水线（含已退役工作流的替代链路）为何自 11-13 起无产出，必要时由值班人员手动触发一次复核任务并补齐缺失复核文件。",
+      "action": "人工检查预测引擎调度器与工作流触发状态，确认 17:12 起漏跑原因；同时补跑独立复核流程并核对复核文件更新链路。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前处于销售窗口内，14:12 单点漏跑可能导致该时段预测结果缺失或延迟，影响对应期次的会员推荐/开奖相关展示；独立复核滞后 8 天意味着近期结果缺少独立校验，若存在数据偏差将无法及时发现，存在对会员结果准确性的潜在风险。",
+    "customer_impact": "售窗内预测结果可能停更约 2 小时，会员端展示的预测/推荐可能滞后或缺失；独立复核滞后 8 天，复核结论的时效性下降，但不直接阻断网站访问。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.324562,
-    "remaining_cny": 9.675438,
-    "calls": 52,
+    "spent_cny": 0.33054,
+    "remaining_cny": 9.66946,
+    "calls": 53,
     "exhausted": false,
-    "used_pct": 3.25
+    "used_pct": 3.31
   },
   "usage": {
-    "prompt_tokens": 523,
-    "completion_tokens": 730,
-    "total_tokens": 1253,
+    "prompt_tokens": 541,
+    "completion_tokens": 612,
+    "total_tokens": 1153,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 395
+    "prompt_cache_miss_tokens": 413
   },
-  "cost_cny": 0.006886
+  "cost_cny": 0.005978
 }
