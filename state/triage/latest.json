@@ -1,68 +1,72 @@
 {
-  "at": "2026-11-20T23:30:31Z",
-  "verdict": "WARN",
-  "signature": "independent_review",
+  "at": "2026-11-21T01:00:30Z",
+  "verdict": "FAIL",
+  "signature": "engine_fresh",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检整体为 WARN，唯一异常是独立复核数据已滞后 8 天（最新 2026-11-13）；当前不在售窗口，暂无 failed 项，但缺少复核任务调度日志与复核人排班证据，无法确认是漏跑还是正常空档。",
+    "summary": "预测主引擎当日快照已 379 分钟未更新（超过 300 分钟阈值），且处于销售窗口内，疑似引擎停摆；独立复核数据滞后 8 天，但缺少引擎进程状态、调度日志与快照目录写入时间等证据，根因置信度有限。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按周期执行（调度缺失或任务被跳过）",
-        "confidence": 0.45,
-        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=8，且无 failed 项，说明不是执行报错而是没有产出新文件"
+        "cause": "预测主引擎进程停止或调度任务未触发，导致当日快照未生成",
+        "confidence": 0.6,
+        "evidence": "engine_fresh: status=fail, generated_age_min=379.0, 阈值 300 分钟, in_window=true, sale_day=2026-11-21"
       },
       {
-        "cause": "复核流程处于正常空档（如复核周期本身长于 8 天或近期无待复核数据）",
-        "confidence": 0.35,
-        "evidence": "in_sale_window=false，非售窗口期可能无新增待复核数据；巡检仅给出 lag_days=8，未提供复核周期配置"
+        "cause": "快照生成任务执行失败或写入受阻（如上游数据缺失、磁盘/权限问题），任务存在但产物未落盘",
+        "confidence": 0.3,
+        "evidence": "engine_fresh detail 显示“最新快照已 379 分钟未更新”，仅反映产物时间，未提供任务执行结果"
       },
       {
-        "cause": "复核文件产出后未同步到巡检读取路径（路径或同步延迟问题）",
-        "confidence": 0.2,
-        "evidence": "detail 仅说明“最新复核文件 2026-11-13”，未包含目录列表或同步状态字段，无法排除文件存在但未被巡检采集"
+        "cause": "独立复核流程长期未运行，复核文件停留在 2026-11-13",
+        "confidence": 0.25,
+        "evidence": "independent_review: status=warn, latest=2026-11-13, lag_days=8"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://127.0.0.1:<巡检服务端口>/api/checks/independent_review",
-        "purpose": "只读拉取该检查项的完整明细，确认巡检读取的目录路径与判定阈值"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<引擎健康检查端口>/health",
+        "purpose": "确认预测主引擎服务是否存活、健康检查是否可达"
       },
       {
-        "command": "python -c \"import os,glob,time; p='<复核文件目录>'; fs=sorted(glob.glob(os.path.join(p,'*')),key=os.path.getmtime)[-10:]; [print(time.strftime('%Y-%m-%d %H:%M',time.localtime(os.path.getmtime(f))),f) for f in fs]\"",
-        "purpose": "只读列出复核目录最近文件及修改时间，确认是否真的没有 2026-11-13 之后的新文件"
+        "command": "python -c \"import os,time; p='<快照目录>'; [print(f, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in sorted(os.listdir(p))[-5:]]\"",
+        "purpose": "只读查看快照目录最近文件的修改时间，确认是否确实停在 379 分钟前"
       },
       {
-        "command": "git log --since=2026-11-10 --oneline -- <复核相关配置或脚本路径>",
-        "purpose": "只读查看近期是否有复核周期配置或脚本变更，排除配置被改动导致漏跑"
+        "command": "git log --since='2026-11-20' --oneline -- <引擎/调度配置路径>",
+        "purpose": "确认近期是否有配置或代码变更导致调度异常"
+      },
+      {
+        "command": "python -c \"import os; print(os.path.exists('<复核文件目录>'))\"",
+        "purpose": "确认独立复核输出目录是否存在，辅助判断复核流程是否停摆"
       }
     ],
     "suggested_fix": {
-      "action": "人工确认独立复核的既定周期与责任人排班：若周期短于 8 天，补做一次复核并检查调度任务是否被禁用；若周期本身较长或非售窗口无待复核数据，则在巡检中调整该检查项的阈值或标注豁免。",
-      "risk": "low",
+      "action": "人工登录引擎主机，只读确认调度任务与进程状态后，按运维手册重启预测主引擎的当日快照生成任务，并补跑 2026-11-21 快照；同时排查独立复核流程为何自 2026-11-13 起未产出",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前不在售窗口且无 failed 项，对会员与网站无直接可见影响；若复核长期缺失，后续售窗口内的数据准确性缺少独立校验环节，存在潜在风险。",
-    "escalate": false
+    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到过期或缺失的预测结果，影响下单与网站预测展示的可信度；独立复核滞后降低结果可审计性，但不直接阻断展示。",
+    "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.288772,
-    "remaining_cny": 9.711228,
-    "calls": 46,
+    "spent_cny": 0.294804,
+    "remaining_cny": 9.705196,
+    "calls": 47,
     "exhausted": false,
-    "used_pct": 2.89
+    "used_pct": 2.95
   },
   "usage": {
-    "prompt_tokens": 381,
-    "completion_tokens": 620,
-    "total_tokens": 1001,
+    "prompt_tokens": 472,
+    "completion_tokens": 636,
+    "total_tokens": 1108,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 253
+    "prompt_cache_miss_tokens": 344
   },
-  "cost_cny": 0.005722
+  "cost_cny": 0.006032
 }
