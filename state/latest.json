@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-21T14:30:12Z",
-  "beijing_time": "2026-11-21 22:30:12",
-  "in_sale_window": true,
+  "generated_at": "2026-11-21T15:30:12Z",
+  "beijing_time": "2026-11-21 23:30:12",
+  "in_sale_window": false,
   "verdict": "WARN",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "engine_runs,independent_review",
@@ -17,7 +17,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，97964 字节，耗时 101ms"
+      "detail": "HTTP 200，97964 字节，耗时 188ms"
     },
     {
       "id": "site_data_sync",
@@ -34,25 +34,25 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-21，快照 71 分钟前生成",
+      "detail": "sale_day=2026-11-21，快照 131 分钟前生成",
       "sale_day": "2026-11-21",
-      "generated_age_min": 70.7,
-      "in_window": true
+      "generated_age_min": 130.7,
+      "in_window": false
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 3 个计划点无运行：20:12、21:42、22:12；最近一次运行 70 分钟前",
+      "detail": "近 180 分钟内 3 个计划点无运行：21:42、22:12、22:42；最近一次运行 130 分钟前",
       "missed_points": [
-        "20:12",
         "21:42",
-        "22:12"
+        "22:12",
+        "22:42"
       ],
-      "checked_points": 6,
+      "checked_points": 5,
       "runs_today": 22,
-      "last_run_age_min": 69.8,
+      "last_run_age_min": 129.8,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -110,15 +110,15 @@
       "title": "采集链路可用性",
       "status": "skip",
       "severity": "info",
-      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像 正常",
+      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像、澳客竞彩 正常",
       "probes": [
         {
           "id": "sporttery",
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1466,
+          "bytes": 7352,
+          "elapsed_ms": 1959,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,8 +128,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 59018,
-          "elapsed_ms": 3596,
+          "bytes": 59059,
+          "elapsed_ms": 1114,
           "error": null,
           "cn_only": true,
           "required": false
@@ -139,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 324411,
-          "elapsed_ms": 491,
+          "bytes": 350811,
+          "elapsed_ms": 158,
           "error": null,
           "cn_only": false,
           "required": false
@@ -148,11 +148,11 @@
         {
           "id": "okooo",
           "name": "澳客竞彩",
-          "status": "down",
-          "http": 0,
-          "bytes": 0,
-          "elapsed_ms": 0,
-          "error": "URLError: <urlopen error _ssl.c:994: The handshake operation timed out>",
+          "status": "up",
+          "http": 200,
+          "bytes": 545799,
+          "elapsed_ms": 2052,
+          "error": null,
           "cn_only": true,
           "required": false
         },
@@ -169,9 +169,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 10 次运行，无失败",
+      "detail": "120 分钟内 1 次运行，无失败",
       "failures": [],
-      "recent_runs": 10
+      "recent_runs": 1
     },
     {
       "id": "legacy_sale_status",
@@ -196,7 +196,7 @@
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44914238460",
+    "run_id": "44919497662",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
