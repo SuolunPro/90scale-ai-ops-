@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-21T01:00:30Z",
-  "verdict": "FAIL",
-  "signature": "engine_fresh",
+  "at": "2026-11-21T02:00:33Z",
+  "verdict": "WARN",
+  "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测主引擎当日快照已 379 分钟未更新（超过 300 分钟阈值），且处于销售窗口内，疑似引擎停摆；独立复核数据滞后 8 天，但缺少引擎进程状态、调度日志与快照目录写入时间等证据，根因置信度有限。",
+    "summary": "巡检为 WARN：09:12 计划点漏跑，且独立复核数据已滞后 8 天；但缺少漏跑原因与复核停更原因的日志证据，根因置信度偏低。",
     "root_causes": [
       {
-        "cause": "预测主引擎进程停止或调度任务未触发，导致当日快照未生成",
-        "confidence": 0.6,
-        "evidence": "engine_fresh: status=fail, generated_age_min=379.0, 阈值 300 分钟, in_window=true, sale_day=2026-11-21"
+        "cause": "预测引擎 09:12 计划点因调度或工作流触发异常漏跑（非已退役工作流）",
+        "confidence": 0.45,
+        "evidence": "engine_runs: missed_points=[\"09:12\"], checked_points=1, runs_today=3, last_run_age_min=14.7；retired_workflows_ignored 已排除 3 个退役工作流"
       },
       {
-        "cause": "快照生成任务执行失败或写入受阻（如上游数据缺失、磁盘/权限问题），任务存在但产物未落盘",
-        "confidence": 0.3,
-        "evidence": "engine_fresh detail 显示“最新快照已 379 分钟未更新”，仅反映产物时间，未提供任务执行结果"
+        "cause": "独立复核流程停更或产出未落盘，导致复核文件停留在 2026-11-13",
+        "confidence": 0.4,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=8"
       },
       {
-        "cause": "独立复核流程长期未运行，复核文件停留在 2026-11-13",
-        "confidence": 0.25,
-        "evidence": "independent_review: status=warn, latest=2026-11-13, lag_days=8"
+        "cause": "漏跑与复核滞后同源于上游数据或调度链路异常（如数据源延迟、任务排队）",
+        "confidence": 0.2,
+        "evidence": "两项 warn 同时出现在同一巡检窗口，in_sale_window=true；但无直接日志字段佐证"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<引擎健康检查端口>/health",
-        "purpose": "确认预测主引擎服务是否存活、健康检查是否可达"
+        "command": "curl -s <只读巡检/调度状态接口> | python -c \"import sys,json;d=json.load(sys.stdin);print(d)\"",
+        "purpose": "确认 09:12 计划点的调度触发记录与失败/跳过原因"
       },
       {
-        "command": "python -c \"import os,time; p='<快照目录>'; [print(f, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in sorted(os.listdir(p))[-5:]]\"",
-        "purpose": "只读查看快照目录最近文件的修改时间，确认是否确实停在 379 分钟前"
+        "command": "git log --since='2026-11-13' --oneline -- <复核文件目录>",
+        "purpose": "确认独立复核文件自 2026-11-13 后是否有提交或产出"
       },
       {
-        "command": "git log --since='2026-11-20' --oneline -- <引擎/调度配置路径>",
-        "purpose": "确认近期是否有配置或代码变更导致调度异常"
-      },
-      {
-        "command": "python -c \"import os; print(os.path.exists('<复核文件目录>'))\"",
-        "purpose": "确认独立复核输出目录是否存在，辅助判断复核流程是否停摆"
+        "command": "python -c \"import os,datetime;print(datetime.datetime.now())\"",
+        "purpose": "核对巡检机时钟与北京时间偏差，排除时间漂移导致的漏跑误判"
       }
     ],
     "suggested_fix": {
-      "action": "人工登录引擎主机，只读确认调度任务与进程状态后，按运维手册重启预测主引擎的当日快照生成任务，并补跑 2026-11-21 快照；同时排查独立复核流程为何自 2026-11-13 起未产出",
+      "action": "人工核查 09:12 计划点的调度日志与独立复核产出流水线，确认是偶发漏跑还是链路中断后手动补跑（补跑需走审批）",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到过期或缺失的预测结果，影响下单与网站预测展示的可信度；独立复核滞后降低结果可审计性，但不直接阻断展示。",
+    "customer_impact": "当前处于销售窗口内，若漏跑持续可能影响该时段预测结果更新，会员端展示的预测/复核结论可能滞后；单点漏跑暂未见全站不可用迹象。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.294804,
-    "remaining_cny": 9.705196,
-    "calls": 47,
+    "spent_cny": 0.299986,
+    "remaining_cny": 9.700014,
+    "calls": 48,
     "exhausted": false,
-    "used_pct": 2.95
+    "used_pct": 3.0
   },
   "usage": {
-    "prompt_tokens": 472,
-    "completion_tokens": 636,
-    "total_tokens": 1108,
+    "prompt_tokens": 523,
+    "completion_tokens": 517,
+    "total_tokens": 1040,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 344
+    "prompt_cache_miss_tokens": 395
   },
-  "cost_cny": 0.006032
+  "cost_cny": 0.005182
 }
