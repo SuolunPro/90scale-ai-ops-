@@ -441,6 +441,14 @@
       "completion_tokens": 710,
       "cost_cny": 0.006962,
       "note": "triage:WARN:engine_fresh,engine_runs,independent_review"
+    },
+    {
+      "at": "2026-11-21T12:15:42+00:00",
+      "model": "deepseek-chat",
+      "prompt_tokens": 712,
+      "completion_tokens": 693,
+      "cost_cny": 0.006968,
+      "note": "triage:WARN:engine_fresh,engine_runs,independent_review,site_workflows"
     }
   ]
 }
