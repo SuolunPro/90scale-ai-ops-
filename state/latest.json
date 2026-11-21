@@ -1,13 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-21T11:30:15Z",
-  "beijing_time": "2026-11-21 19:30:15",
+  "generated_at": "2026-11-21T12:00:12Z",
+  "beijing_time": "2026-11-21 20:00:12",
   "in_sale_window": true,
   "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "engine_runs,independent_review",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "engine_fresh,engine_runs,independent_review",
   "failed": [],
   "warned": [
+    "engine_fresh",
     "engine_runs",
     "independent_review"
   ],
@@ -17,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，97964 字节，耗时 129ms"
+      "detail": "HTTP 200，97964 字节，耗时 130ms"
     },
     {
       "id": "site_data_sync",
@@ -32,11 +33,11 @@
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
-      "status": "ok",
-      "severity": "info",
-      "detail": "sale_day=2026-11-21，快照 152 分钟前生成",
+      "status": "warn",
+      "severity": "warn",
+      "detail": "最新快照已 181 分钟未更新（阈值 180 分钟）",
       "sale_day": "2026-11-21",
-      "generated_age_min": 151.5,
+      "generated_age_min": 181.4,
       "in_window": true
     },
     {
@@ -44,16 +45,16 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 4 个计划点无运行：17:12、18:12、18:42、19:12；最近一次运行 160 分钟前",
+      "detail": "近 180 分钟内 4 个计划点无运行：17:12、18:12、18:42、19:12；最近一次运行 10 分钟前",
       "missed_points": [
         "17:12",
         "18:12",
         "18:42",
         "19:12"
       ],
-      "checked_points": 4,
-      "runs_today": 14,
-      "last_run_age_min": 160.3,
+      "checked_points": 5,
+      "runs_today": 17,
+      "last_run_age_min": 10.3,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -119,7 +120,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 2473,
+          "elapsed_ms": 2352,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,8 +130,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 58915,
-          "elapsed_ms": 2376,
+          "bytes": 58995,
+          "elapsed_ms": 1520,
           "error": null,
           "cn_only": true,
           "required": false
@@ -140,8 +141,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 291757,
-          "elapsed_ms": 344,
+          "bytes": 293420,
+          "elapsed_ms": 917,
           "error": null,
           "cn_only": false,
           "required": false
@@ -152,7 +153,7 @@
           "status": "up",
           "http": 200,
           "bytes": 544248,
-          "elapsed_ms": 1659,
+          "elapsed_ms": 4046,
           "error": null,
           "cn_only": true,
           "required": false
@@ -170,18 +171,18 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 2 次运行，无失败",
+      "detail": "120 分钟内 1 次运行，无失败",
       "failures": [],
-      "recent_runs": 2
+      "recent_runs": 1
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 12.3 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 12.4 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 12.3
+      "age_days": 12.4
     }
   ],
   "budget": {
@@ -197,7 +198,7 @@
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44899390682",
+    "run_id": "44901718662",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
