@@ -1,72 +1,30 @@
 {
-  "at": "2026-11-22T06:45:32Z",
+  "at": "2026-11-22T07:30:38Z",
   "verdict": "WARN",
-  "signature": "engine_runs,independent_review",
+  "signature": "engine_runs,independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "巡检为 WARN：预测引擎在近 180 分钟内漏跑 12:12、14:12 两个计划点（最近一次运行约 90 分钟前），且独立复核数据已滞后 9 天；当前处于售窗期，但缺少引擎调度日志与复核任务执行记录，根因尚不能确定。",
-    "root_causes": [
-      {
-        "cause": "预测引擎定时调度未触发或被跳过（调度器/工作流触发异常）",
-        "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[12:12,14:12], checked_points=3, last_run_age_min=89.6, runs_today=5"
-      },
-      {
-        "cause": "引擎运行失败或超时导致计划点无成功运行记录",
-        "confidence": 0.3,
-        "evidence": "engine_runs 状态 warn，近 180 分钟 2 个计划点无运行；巡检未提供运行失败日志字段"
-      },
-      {
-        "cause": "独立复核任务未按周期产出新文件（复核流程停滞或未调度）",
-        "confidence": 0.5,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=9"
-      }
-    ],
-    "diagnose_steps": [
-      {
-        "command": "curl -sS -m 10 https://api.github.com/repos/{owner}/{repo}/actions/workflows/{engine_workflow}/runs?per_page=20",
-        "purpose": "只读查看引擎工作流近期运行记录与结论，确认 12:12、14:12 计划点是未触发还是失败"
-      },
-      {
-        "command": "curl -sS -m 10 https://api.github.com/repos/{owner}/{repo}/actions/runs?per_page=30",
-        "purpose": "只读列出近期全部工作流运行，排查是否存在调度延迟、禁用或并发取消"
-      },
-      {
-        "command": "git log --since='2026-11-13' --oneline -- {review_data_path}",
-        "purpose": "只读确认独立复核文件自 2026-11-13 后是否有提交，判断是未产出还是未入库"
-      },
-      {
-        "command": "python -c \"import json,datetime;print(datetime.datetime.now())\"",
-        "purpose": "只读核对当前时间基准，验证 lag_days=9 与 last_run_age_min 的计算口径"
-      }
-    ],
-    "suggested_fix": {
-      "action": "人工核查引擎调度配置与最近运行日志，确认漏跑原因后手动触发一次引擎运行补齐 12:12、14:12 计划点；同时检查独立复核任务调度并补跑复核，产出新复核文件",
-      "risk": "medium",
-      "needs_approval": true
-    },
-    "customer_impact": "售窗期内预测结果可能未按时更新，会员看到的预测/推荐存在延迟或停留在旧版本；独立复核滞后 9 天意味着近期结果缺少独立校验，准确性风险上升，但暂无证据表明已产生错误输出。",
-    "escalate": true
+    "raw": "{\"summary\":\"巡检为 WARN：预测引擎近 180 分钟漏跑 14:12、15:12 两个计划点（最近运行约 135 分钟前），独立复核数据滞后 9 天，网站仓库 120 分钟内无工作流运行；三项均指向调度/工作流停滞，但现有证据不足以区分是 GitHub Actions 调度延迟、工作流被禁用还是上游提交缺失。\",\"root_causes\":[{\"cause\":\"GitHub Actions 调度停滞或工作流被禁用，导致引擎计划点与网站仓库工作流同时无运行记录\",\"confidence\":0.55,\"evidence\":\"engine_runs: missed_points=[14:12,15:12], last_run_age_min=134.7；site_workflows: recent_runs=0, failures=[], detail=120 分钟内没有任何工作流运行记录\"},{\"cause\":\"预测引擎工作流本身失败或未触发（非调度层面），仅影响引擎计划点\",\"confidence\":0.3,\"evidence\":\"engine_runs 状态 warn、runs_today=5、checked_points=3，但 site_workflows 的 failures 为空，无法确认引擎侧具体失败原因\"},{\"cause\":\"独立复核流程长期未产出新文件（独立于本次调度停滞的既有滞后）\",\"confidence\":0.25,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=9，滞后时间远大于本次 180 分钟窗口\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<engine-repo>/actions/workflows\\\" \",\"purpose\":\"只读列出引擎仓库工作流及其 state，确认是否存在被禁用（disabled）的工作流\"},{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<engine-repo>/actions/runs?per_page=20\\\"\",\"purpose\":\"只读查看引擎仓库最近运行记录的时间、结论与触发方式，确认 14:12/15:12 计划点是否触发及失败原因\"},{\"command\":\"curl -s -H \\\"Accept: application/vnd.github+json\\\" \\\"https://api.github.com/repos/<owner>/<site-repo>/actions/runs?per_page=20\\\"\",\"purpose\":\"只读确认网站仓库最近工作流运行时间，判断是否与引擎侧同步停滞\"},{\"command\":\"git log --since=\\\"2026-11-13\\\" --oneline -- <review-data-path>\",\"purpose\":\"只读检查独立复核数据目录在 11-13 之后是否有提交，区分流程未运行与未提交\"},{\"command\":\"python -c \\\"import json,urllib.request;print(json.load(urllib.request.urlopen('https://www.githubstatus.com/api/v2/status.json')))\\\"\",\"purpose\":\"只读查询 GitHub 平台状态，排除平台级 Actions 故障\"}],\"suggested_fix\":{\"action\":\"先由人工在 GitHub Actions 页面核对引擎与网站仓库工作流是否被禁用或调度延迟，确认后手动触发一次引擎计划点工作流并补跑漏掉的 14:12、15:12；独立复核滞后需人工确认复核流程是否仍在维护\",\"risk\":\"medium\",\"needs_approval\":true},\"customer_impact\":\"当前处于销售窗口内，预测引擎漏跑 2 个计划点可能导致最新预测结果未按时更新，会员看到的预测/推荐数据可能滞后约 2 小时；独立复核滞后 9 天使结果缺少独立校验，若引擎结果异常则缺少兜底核对；网站仓库工作流停滞暂未发现失败，但可能影响站点内容或数据发布时效。\",\"es"
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.466684,
-    "remaining_cny": 9.533316,
-    "calls": 75,
+    "spent_cny": 0.47429,
+    "remaining_cny": 9.52571,
+    "calls": 76,
     "exhausted": false,
-    "used_pct": 4.67
+    "used_pct": 4.74
   },
   "usage": {
-    "prompt_tokens": 532,
-    "completion_tokens": 612,
-    "total_tokens": 1144,
+    "prompt_tokens": 603,
+    "completion_tokens": 800,
+    "total_tokens": 1403,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 404
+    "prompt_cache_miss_tokens": 475
   },
-  "cost_cny": 0.00596
+  "cost_cny": 0.007606
 }
