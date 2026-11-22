@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-22T21:15:27Z",
+  "at": "2026-11-22T22:15:27Z",
   "verdict": "FAIL",
   "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-22 有 3 场比赛在开赛 16.3 小时后仍未结算，且独立复核数据已滞后 10 天；当前证据只能定位到结算与复核环节，尚缺赛果源可用性、结算任务日志与复核文件生成链路的具体证据。",
+    "summary": "2026-11-22 有 3 场比赛在开赛 17.3 小时后仍未结算，且独立复核数据已滞后 10 天；当前证据只能定位到结算与复核链路停滞，尚缺赛果源可用性、结算任务日志与复核文件生成记录来确认根因。",
     "root_causes": [
       {
-        "cause": "赛果数据源或结算任务异常，导致 2026-11-22 的 3 场比赛长期挂起未结算",
+        "cause": "赛果数据源或结算任务在 2026-11-22 批次中断，导致该日 3 场长期挂起",
         "confidence": 0.55,
-        "evidence": "checks[settlement].status=fail，detail=2026-11-22 有 3 场开赛 16.3h 仍未结算；checked 中 2026-11-22 matches=18、pending=3、overdue_h=16.3，而 11-20、11-21 pending 均为 0"
+        "evidence": "checks[settlement].status=fail，detail=2026-11-22 有 3 场开赛 17.3h 仍未结算；checked 中 2026-11-20/21 pending 均为 0，仅 2026-11-22 pending=3、overdue_h=17.3"
       },
       {
-        "cause": "独立复核文件生成或同步链路中断，复核数据停止更新",
-        "confidence": 0.5,
+        "cause": "独立复核流程停摆（复核文件生成或同步中断），与结算异常可能同源或独立",
+        "confidence": 0.4,
         "evidence": "checks[independent_review].status=fail，latest=2026-11-13，lag_days=10"
       },
       {
-        "cause": "结算与复核共用上游数据或调度依赖，同一上游故障同时影响两项检查",
+        "cause": "个别场次赛果缺失或赛果与规则不匹配，需人工核验后才能结算",
         "confidence": 0.25,
-        "evidence": "两项检查同时 fail，且巡检时间 in_sale_window=false，但缺少调度与上游依赖的直接字段证据"
+        "evidence": "settlement 仅显示 2026-11-22 单日 3 场 pending，前两日均正常，属局部异常而非全量积压"
       }
     ],
     "diagnose_steps": [
       {
         "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <赛果源只读健康检查地址>",
-        "purpose": "确认赛果数据源接口是否可访问及响应耗时"
+        "purpose": "确认赛果数据源当前是否可访问、响应是否正常"
       },
       {
         "command": "python -c \"import json;d=json.load(open('<结算任务状态文件路径>'));print(d)\"",
-        "purpose": "只读查看结算任务最近运行状态与 2026-11-22 待结算场次记录"
+        "purpose": "只读查看结算任务最近运行状态与 2026-11-22 批次处理记录"
       },
       {
-        "command": "git log -n 20 --date=iso --pretty='%h %ad %s' -- <复核文件目录>",
-        "purpose": "确认独立复核文件的最近提交与生成时间，定位滞后起点"
+        "command": "git log --oneline -20 -- <结算/复核相关目录>",
+        "purpose": "确认近期是否有结算或复核相关代码/配置变更"
       },
       {
-        "command": "curl -s '<内部只读巡检/结算查询接口>?day=2026-11-22'",
-        "purpose": "只读拉取 2026-11-22 待结算场次明细，确认 3 场具体比赛与卡点"
+        "command": "curl -s <复核文件列表只读接口> | python -c \"import sys,json;print(json.load(sys.stdin))\"",
+        "purpose": "确认复核文件最新生成时间与 2026-11-13 之后是否停止产出"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查 2026-11-22 的 3 场待结算比赛的赛果获取与结算任务日志，并检查独立复核文件生成/同步任务为何自 2026-11-13 起停止更新；确认原因后再由值班人员按流程补结算与补生成复核文件",
+      "action": "人工核查 2026-11-22 三场未结算比赛的赛果获取与结算任务日志，补齐赛果后按既有流程重新触发结算；同时排查独立复核文件自 2026-11-13 起停止生成的原因并恢复复核产出。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "3 场比赛结算延迟 16.3 小时，相关会员的派彩与账务可能延迟；独立复核数据滞后 10 天，复核覆盖与合规留痕存在缺口，暂未发现站点不可用证据。",
+    "customer_impact": "3 场比赛结算延迟 17.3 小时，涉及相关注单的派彩与会员资金到账延迟，可能引发会员投诉；独立复核滞后 10 天削弱结算结果的独立校验，存在结算准确性风险。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.532316,
-    "remaining_cny": 9.467684,
-    "calls": 85,
+    "spent_cny": 0.538626,
+    "remaining_cny": 9.461374,
+    "calls": 86,
     "exhausted": false,
-    "used_pct": 5.32
+    "used_pct": 5.39
   },
   "usage": {
     "prompt_tokens": 539,
-    "completion_tokens": 656,
-    "total_tokens": 1195,
+    "completion_tokens": 654,
+    "total_tokens": 1193,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 411
   },
-  "cost_cny": 0.006326
+  "cost_cny": 0.00631
 }
