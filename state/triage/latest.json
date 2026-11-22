@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-21T23:00:37Z",
-  "verdict": "FAIL",
-  "signature": "settlement",
+  "at": "2026-11-22T00:00:27Z",
+  "verdict": "WARN",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-21 有 1 场比赛在开赛 18.0h 后仍未结算，结算链路疑似卡住；独立复核数据已滞后 9 天，但当前证据不足以定位具体卡点，需补充该场比赛的赛果源与结算任务日志。",
+    "summary": "唯一告警是独立复核数据已滞后 9 天（最新 2026-11-13），当前不在销售窗口且无 fail 项；仅凭巡检 JSON 无法判断滞后原因，需补充复核任务调度日志与文件生成记录。",
     "root_causes": [
       {
-        "cause": "该场比赛赛果未回传或赛果源缺失，导致结算任务无法匹配结果而挂起",
+        "cause": "独立复核任务未按计划执行或调度中断，导致复核文件停止更新",
         "confidence": 0.45,
-        "evidence": "checks[settlement].checked[day=2026-11-21].pending=1, overdue_h=18.0；前两日 pending=0，说明结算链路整体可用，问题集中在单场"
+        "evidence": "independent_review.status=warn，latest=2026-11-13，lag_days=9，in_sale_window=false"
       },
       {
-        "cause": "结算任务对该场比赛处理异常（任务失败/重试耗尽/人工复核挂起），未进入完成态",
-        "confidence": 0.35,
-        "evidence": "settlement 状态 fail、severity critical，detail 明确为“开赛 18.0h 仍未结算”，且 in_sale_window=false 排除销售窗口干扰"
+        "cause": "复核流程依赖的上游数据源未更新，复核任务无新数据可产出",
+        "confidence": 0.3,
+        "evidence": "仅知 lag_days=9，巡检未提供上游数据源状态字段"
       },
       {
-        "cause": "独立复核数据滞后 9 天，复核环节未及时更新，可能间接影响需复核场次的结算放行",
-        "confidence": 0.2,
-        "evidence": "independent_review.latest=2026-11-13, lag_days=9, status=warn"
+        "cause": "复核文件已生成但未落到巡检读取的路径/命名规则，属采集侧遗漏",
+        "confidence": 0.25,
+        "evidence": "detail 仅说明“最新复核文件 2026-11-13”，未包含文件路径与扫描规则"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'http://localhost:8080/api/settlement/pending?day=2026-11-21'",
-        "purpose": "只读查询 2026-11-21 待结算场次明细，确认卡住的具体 match_id 与当前结算状态"
+        "command": "ls -l --time-style=long-iso <复核文件目录> | tail -20",
+        "purpose": "确认复核目录下最新文件的实际修改时间与命名，排除采集路径/命名问题"
       },
       {
-        "command": "curl -s 'http://localhost:8080/api/matches/result?day=2026-11-21'",
-        "purpose": "只读核对该场赛果是否已回传、赛果字段是否完整"
+        "command": "curl -s <复核任务健康检查或调度状态只读接口>",
+        "purpose": "确认复核任务最近一次调度时间与执行结果"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/settlement-2026-11-21.log'));print(d)\"",
-        "purpose": "只读查看当日结算任务日志，确认该场是否出现异常/重试耗尽/待复核标记"
-      },
-      {
-        "command": "curl -s 'http://localhost:8080/api/review/latest'",
-        "purpose": "只读确认独立复核最新文件时间与覆盖范围，判断滞后是否影响该场放行"
+        "command": "python -c \"import json;d=json.load(open('<最近复核文件>'));print(d.get('generated_at'),d.get('source_date'))\"",
+        "purpose": "读取最新复核文件内部生成时间与数据日期，判断是文件旧还是内容旧"
       }
     ],
     "suggested_fix": {
-      "action": "人工核对该场比赛的赛果源与结算任务日志：若赛果缺失则补录赛果后触发单场重算；若为任务异常则按运维手册重跑该场结算；同时补做 2026-11-13 之后的独立复核数据。",
+      "action": "人工确认独立复核任务的调度状态与上游数据源可用性；若为调度中断，由负责人按运维流程恢复任务并补跑 2026-11-14 起的复核，补跑前先核对补跑范围与历史数据不被改写",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "该场比赛的会员派彩与结算延迟，涉及该场的会员资金到账受影响；其余场次结算正常，网站整体可访问。",
-    "escalate": true
+    "customer_impact": "当前不在销售窗口，暂无直接会员/网站影响；若复核滞后延续到下一销售窗口，可能影响开售前的复核合规确认。",
+    "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.413212,
-    "remaining_cny": 9.586788,
-    "calls": 66,
+    "spent_cny": 0.417822,
+    "remaining_cny": 9.582178,
+    "calls": 67,
     "exhausted": false,
-    "used_pct": 4.13
+    "used_pct": 4.18
   },
   "usage": {
-    "prompt_tokens": 539,
-    "completion_tokens": 632,
-    "total_tokens": 1171,
+    "prompt_tokens": 381,
+    "completion_tokens": 481,
+    "total_tokens": 862,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 411
+    "prompt_cache_miss_tokens": 253
   },
-  "cost_cny": 0.006134
+  "cost_cny": 0.00461
 }
