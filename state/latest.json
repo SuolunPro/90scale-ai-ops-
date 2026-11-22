@@ -1,16 +1,15 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T07:30:14Z",
-  "beijing_time": "2026-11-22 15:30:14",
+  "generated_at": "2026-11-22T08:15:19Z",
+  "beijing_time": "2026-11-22 16:15:19",
   "in_sale_window": true,
   "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=warn,legacy_sale_status=ok",
-  "signature": "engine_runs,independent_review,site_workflows",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "engine_runs,independent_review",
   "failed": [],
   "warned": [
     "engine_runs",
-    "independent_review",
-    "site_workflows"
+    "independent_review"
   ],
   "checks": [
     {
@@ -18,26 +17,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，98019 字节，耗时 135ms"
+      "detail": "HTTP 200，98019 字节，耗时 50ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（246884 字节），Pages 已生效",
-      "prod_bytes": 246884,
-      "prod_sha": "0227c2782c",
-      "repo_sha": "0227c2782c"
+      "detail": "生产与仓库一致（245388 字节），Pages 已生效",
+      "prod_bytes": 245388,
+      "prod_sha": "55bb7017b8",
+      "repo_sha": "55bb7017b8"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-22，快照 130 分钟前生成",
+      "detail": "sale_day=2026-11-22，快照 14 分钟前生成",
       "sale_day": "2026-11-22",
-      "generated_age_min": 129.9,
+      "generated_age_min": 13.9,
       "in_window": true
     },
     {
@@ -45,14 +44,15 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 2 个计划点无运行：14:12、15:12；最近一次运行 135 分钟前",
+      "detail": "近 180 分钟内 3 个计划点无运行：14:12、15:12、16:12；最近一次运行 18 分钟前",
       "missed_points": [
         "14:12",
-        "15:12"
+        "15:12",
+        "16:12"
       ],
       "checked_points": 3,
-      "runs_today": 5,
-      "last_run_age_min": 134.7,
+      "runs_today": 6,
+      "last_run_age_min": 18.4,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -117,8 +117,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7352,
-          "elapsed_ms": 1887,
+          "bytes": 7351,
+          "elapsed_ms": 3026,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,8 +128,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 53200,
-          "elapsed_ms": 1751,
+          "bytes": 53199,
+          "elapsed_ms": 2867,
           "error": null,
           "cn_only": true,
           "required": false
@@ -139,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 183694,
-          "elapsed_ms": 386,
+          "bytes": 184125,
+          "elapsed_ms": 290,
           "error": null,
           "cn_only": false,
           "required": false
@@ -151,7 +151,7 @@
           "status": "up",
           "http": 200,
           "bytes": 480550,
-          "elapsed_ms": 3439,
+          "elapsed_ms": 1742,
           "error": null,
           "cn_only": true,
           "required": false
@@ -167,11 +167,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 3 次运行，无失败",
       "failures": [],
-      "recent_runs": 0
+      "recent_runs": 3
     },
     {
       "id": "legacy_sale_status",
@@ -186,17 +186,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.466684,
-    "remaining_cny": 9.533316,
-    "calls": 75,
+    "spent_cny": 0.47429,
+    "remaining_cny": 9.52571,
+    "calls": 76,
     "exhausted": false,
-    "used_pct": 4.67
+    "used_pct": 4.74
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "ip-10-0-142-198",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44998506865",
+    "run_id": "45001922449",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
