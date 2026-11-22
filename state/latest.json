@@ -1,12 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T00:00:11Z",
-  "beijing_time": "2026-11-22 08:00:11",
-  "in_sale_window": false,
-  "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "independent_review",
-  "failed": [],
+  "generated_at": "2026-11-22T01:00:15Z",
+  "beijing_time": "2026-11-22 09:00:15",
+  "in_sale_window": true,
+  "verdict": "FAIL",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=fail,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "engine_fresh",
+  "failed": [
+    "engine_fresh"
+  ],
   "warned": [
     "independent_review"
   ],
@@ -16,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，98019 字节，耗时 55ms"
+      "detail": "HTTP 200，98019 字节，耗时 157ms"
     },
     {
       "id": "site_data_sync",
@@ -31,12 +33,12 @@
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
-      "status": "ok",
-      "severity": "info",
-      "detail": "sale_day=2026-11-21，快照 641 分钟前生成",
+      "status": "fail",
+      "severity": "critical",
+      "detail": "处于销售窗口但最新 sale_day=2026-11-21，不是今天 2026-11-22：疑似漏跑",
       "sale_day": "2026-11-21",
-      "generated_age_min": 640.7,
-      "in_window": false
+      "generated_age_min": 700.7,
+      "in_window": true
     },
     {
       "id": "engine_runs",
@@ -47,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 2,
-      "last_run_age_min": 392.4,
+      "last_run_age_min": 452.5,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -112,8 +114,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7350,
-          "elapsed_ms": 2186,
+          "bytes": 7352,
+          "elapsed_ms": 1668,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -124,7 +126,7 @@
           "status": "up",
           "http": 200,
           "bytes": 53178,
-          "elapsed_ms": 1787,
+          "elapsed_ms": 1847,
           "error": null,
           "cn_only": true,
           "required": false
@@ -134,8 +136,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 179096,
-          "elapsed_ms": 273,
+          "bytes": 182872,
+          "elapsed_ms": 551,
           "error": null,
           "cn_only": false,
           "required": false
@@ -146,7 +148,7 @@
           "status": "up",
           "http": 200,
           "bytes": 200895,
-          "elapsed_ms": 1455,
+          "elapsed_ms": 1457,
           "error": null,
           "cn_only": true,
           "required": false
@@ -164,9 +166,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 4 次运行，无失败",
+      "detail": "120 分钟内 2 次运行，无失败",
       "failures": [],
-      "recent_runs": 4
+      "recent_runs": 2
     },
     {
       "id": "legacy_sale_status",
@@ -181,17 +183,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.413212,
-    "remaining_cny": 9.586788,
-    "calls": 66,
+    "spent_cny": 0.417822,
+    "remaining_cny": 9.582178,
+    "calls": 67,
     "exhausted": false,
-    "used_pct": 4.13
+    "used_pct": 4.18
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "44964462382",
+    "run_id": "44969337029",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
