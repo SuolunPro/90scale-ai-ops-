@@ -1,44 +1,42 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T20:00:14Z",
-  "beijing_time": "2026-11-23 04:00:14",
+  "generated_at": "2026-11-22T20:30:14Z",
+  "beijing_time": "2026-11-23 04:30:14",
   "in_sale_window": false,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=warn,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review,settlement",
   "failed": [
     "settlement",
     "independent_review"
   ],
-  "warned": [
-    "site_workflows"
-  ],
+  "warned": [],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104256 字节，耗时 209ms"
+      "detail": "HTTP 200，104256 字节，耗时 130ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（258725 字节），Pages 已生效",
-      "prod_bytes": 258725,
-      "prod_sha": "36ee2b3046",
-      "repo_sha": "36ee2b3046"
+      "detail": "生产与仓库一致（295947 字节），Pages 已生效",
+      "prod_bytes": 295947,
+      "prod_sha": "d462fe4d83",
+      "repo_sha": "d462fe4d83"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-22，快照 316 分钟前生成",
+      "detail": "sale_day=2026-11-22，快照 346 分钟前生成",
       "sale_day": "2026-11-22",
-      "generated_age_min": 315.8,
+      "generated_age_min": 345.8,
       "in_window": false
     },
     {
@@ -50,7 +48,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 2,
-      "last_run_age_min": 131.7,
+      "last_run_age_min": 161.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -72,7 +70,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-22 有 15 场开赛 15.0h 仍未结算",
+      "detail": "2026-11-22 有 3 场开赛 15.5h 仍未结算",
       "checked": [
         {
           "day": "2026-11-20",
@@ -89,8 +87,8 @@
         {
           "day": "2026-11-22",
           "matches": 18,
-          "pending": 15,
-          "overdue_h": 15.0
+          "pending": 3,
+          "overdue_h": 15.5
         }
       ]
     },
@@ -116,7 +114,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 1577,
+          "elapsed_ms": 1653,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -127,7 +125,7 @@
           "status": "up",
           "http": 200,
           "bytes": 69339,
-          "elapsed_ms": 1652,
+          "elapsed_ms": 1429,
           "error": null,
           "cn_only": true,
           "required": false
@@ -138,7 +136,7 @@
           "status": "up",
           "http": 200,
           "bytes": 45885,
-          "elapsed_ms": 272,
+          "elapsed_ms": 238,
           "error": null,
           "cn_only": false,
           "required": false
@@ -148,8 +146,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 113574,
-          "elapsed_ms": 1246,
+          "bytes": 113553,
+          "elapsed_ms": 971,
           "error": null,
           "cn_only": true,
           "required": false
@@ -165,11 +163,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 4 次运行，无失败",
       "failures": [],
-      "recent_runs": 0
+      "recent_runs": 4
     },
     {
       "id": "legacy_sale_status",
@@ -184,17 +182,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.519628,
-    "remaining_cny": 9.480372,
-    "calls": 83,
+    "spent_cny": 0.52599,
+    "remaining_cny": 9.47401,
+    "calls": 84,
     "exhausted": false,
-    "used_pct": 5.2
+    "used_pct": 5.26
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45063892856",
+    "run_id": "45066771769",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
