@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T16:00:11Z",
-  "beijing_time": "2026-11-23 00:00:11",
+  "generated_at": "2026-11-22T17:00:15Z",
+  "beijing_time": "2026-11-23 01:00:15",
   "in_sale_window": false,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -17,7 +17,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104256 字节，耗时 140ms"
+      "detail": "HTTP 200，104256 字节，耗时 159ms"
     },
     {
       "id": "site_data_sync",
@@ -34,9 +34,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-22，快照 76 分钟前生成",
+      "detail": "sale_day=2026-11-22，快照 136 分钟前生成",
       "sale_day": "2026-11-22",
-      "generated_age_min": 75.8,
+      "generated_age_min": 135.8,
       "in_window": false
     },
     {
@@ -44,11 +44,11 @@
       "title": "预测引擎计划点漏跑",
       "status": "ok",
       "severity": "info",
-      "detail": "已核对 0 个计划点，无漏跑；今天 0 次运行",
+      "detail": "已核对 0 个计划点，无漏跑；今天 1 次运行",
       "missed_points": [],
       "checked_points": 0,
-      "runs_today": 0,
-      "last_run_age_min": 70.6,
+      "runs_today": 1,
+      "last_run_age_min": 48.0,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -70,7 +70,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-22 有 15 场开赛 11.0h 仍未结算",
+      "detail": "2026-11-22 有 15 场开赛 12.0h 仍未结算",
       "checked": [
         {
           "day": "2026-11-20",
@@ -88,7 +88,7 @@
           "day": "2026-11-22",
           "matches": 18,
           "pending": 15,
-          "overdue_h": 11.0
+          "overdue_h": 12.0
         }
       ]
     },
@@ -114,7 +114,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1781,
+          "elapsed_ms": 1723,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -124,8 +124,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 69277,
-          "elapsed_ms": 4323,
+          "bytes": 69286,
+          "elapsed_ms": 1522,
           "error": null,
           "cn_only": true,
           "required": false
@@ -136,7 +136,7 @@
           "status": "up",
           "http": 200,
           "bytes": 45885,
-          "elapsed_ms": 270,
+          "elapsed_ms": 241,
           "error": null,
           "cn_only": false,
           "required": false
@@ -146,8 +146,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 113591,
-          "elapsed_ms": 1356,
+          "bytes": 113576,
+          "elapsed_ms": 2126,
           "error": null,
           "cn_only": true,
           "required": false
@@ -165,34 +165,34 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 12 次运行，无失败",
+      "detail": "120 分钟内 8 次运行，无失败",
       "failures": [],
-      "recent_runs": 12
+      "recent_runs": 8
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 13.5 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 13.6 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 13.5
+      "age_days": 13.6
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.486482,
-    "remaining_cny": 9.513518,
-    "calls": 78,
+    "spent_cny": 0.493224,
+    "remaining_cny": 9.506776,
+    "calls": 79,
     "exhausted": false,
-    "used_pct": 4.86
+    "used_pct": 4.93
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45041350609",
+    "run_id": "45046927714",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
