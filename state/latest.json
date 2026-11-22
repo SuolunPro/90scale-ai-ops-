@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T09:15:17Z",
-  "beijing_time": "2026-11-22 17:15:17",
+  "generated_at": "2026-11-22T10:15:18Z",
+  "beijing_time": "2026-11-22 18:15:18",
   "in_sale_window": true,
   "verdict": "WARN",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=warn,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -17,26 +17,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，98019 字节，耗时 53ms"
+      "detail": "HTTP 200，98019 字节，耗时 187ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（245388 字节），Pages 已生效",
-      "prod_bytes": 245388,
-      "prod_sha": "55bb7017b8",
-      "repo_sha": "55bb7017b8"
+      "detail": "生产与仓库一致（245154 字节），Pages 已生效",
+      "prod_bytes": 245154,
+      "prod_sha": "9c53cc6c1d",
+      "repo_sha": "9c53cc6c1d"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-22，快照 74 分钟前生成",
+      "detail": "sale_day=2026-11-22，快照 42 分钟前生成",
       "sale_day": "2026-11-22",
-      "generated_age_min": 73.9,
+      "generated_age_min": 41.7,
       "in_window": true
     },
     {
@@ -44,15 +44,14 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 3 个计划点无运行：15:12、16:12、17:12；最近一次运行 78 分钟前",
+      "detail": "近 180 分钟内 2 个计划点无运行：16:12、18:12；最近一次运行 47 分钟前",
       "missed_points": [
-        "15:12",
         "16:12",
-        "17:12"
+        "18:12"
       ],
       "checked_points": 3,
-      "runs_today": 6,
-      "last_run_age_min": 78.3,
+      "runs_today": 7,
+      "last_run_age_min": 47.3,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -118,7 +117,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 2935,
+          "elapsed_ms": 1306,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,8 +127,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 75113,
-          "elapsed_ms": 4645,
+          "bytes": 76577,
+          "elapsed_ms": 1139,
           "error": null,
           "cn_only": true,
           "required": false
@@ -139,8 +138,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 184668,
-          "elapsed_ms": 257,
+          "bytes": 184924,
+          "elapsed_ms": 415,
           "error": null,
           "cn_only": false,
           "required": false
@@ -151,7 +150,7 @@
           "status": "down",
           "http": 405,
           "bytes": 2657,
-          "elapsed_ms": 1880,
+          "elapsed_ms": 1030,
           "error": "HTTP 405",
           "cn_only": true,
           "required": false
@@ -178,9 +177,9 @@
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 13.2 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 13.3 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 13.2
+      "age_days": 13.3
     }
   ],
   "budget": {
@@ -193,10 +192,10 @@
     "used_pct": 4.81
   },
   "runner": {
-    "host": "ip-10-0-132-244",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45006614073",
+    "run_id": "45011518813",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
