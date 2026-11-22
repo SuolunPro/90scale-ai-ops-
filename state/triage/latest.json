@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-22T01:00:32Z",
+  "at": "2026-11-22T01:45:37Z",
   "verdict": "FAIL",
   "signature": "engine_fresh",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "销售窗口内预测主引擎当日快照缺失（最新 sale_day=2026-11-21，快照已生成约 700 分钟），疑似今日漏跑；独立复核数据滞后 9 天。现有证据只能确认快照未更新，尚缺调度日志、任务退出码与上游数据到达情况，无法确定漏跑的具体原因。",
+    "summary": "预测主引擎当日快照缺失（最新 sale_day=2026-11-21，非今天 2026-11-22），且 09:12 计划点无运行、最近一次运行约 498 分钟前，疑似销售窗口内引擎漏跑；独立复核数据滞后 9 天。当前证据仅能定位到“漏跑”现象，尚缺引擎调度日志/运行退出码与数据源产出状态，无法确认是调度未触发、任务失败还是上游数据未就绪。",
     "root_causes": [
       {
-        "cause": "当日预测主引擎调度任务未触发或执行失败，导致 2026-11-22 快照未生成",
+        "cause": "预测主引擎当日调度未触发或任务失败，导致 2026-11-22 快照未生成",
         "confidence": 0.6,
-        "evidence": "engine_fresh status=fail，in_window=true，sale_day=2026-11-21，generated_age_min=700.7，detail 标注“疑似漏跑”"
+        "evidence": "engine_fresh: status=fail, sale_day=2026-11-21, generated_age_min=745.8, in_window=true；engine_runs: missed_points=[\"09:12\"], last_run_age_min=497.6, runs_today=2"
       },
       {
-        "cause": "上游数据或依赖未就绪，主引擎等待输入而未能产出当日快照",
+        "cause": "上游数据/依赖未就绪导致引擎运行被跳过或提前退出",
         "confidence": 0.25,
-        "evidence": "engine_fresh 仅显示快照日期滞后，未提供上游数据到达时间字段，属推测"
+        "evidence": "engine_runs 显示近 180 分钟 1 个计划点无运行、最近运行 498 分钟前，但巡检未提供引擎退出码或上游数据状态字段"
       },
       {
-        "cause": "独立复核流程长期未更新（滞后 9 天），复核环节可能已中断，与主引擎新鲜度问题可能同源",
+        "cause": "独立复核流程长期未更新，复核链路可能同样存在停滞",
         "confidence": 0.15,
-        "evidence": "independent_review status=warn，latest=2026-11-13，lag_days=9"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=9"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:<engine_port>/health 或读取引擎快照目录清单（只读 ls/stat）确认最新快照文件时间",
-        "purpose": "确认 2026-11-22 快照文件是否确实不存在，排除巡检读取路径错误"
+        "command": "curl -s <只读监控/状态接口> 查询 engine_fresh 与 engine_runs 的原始巡检记录",
+        "purpose": "确认 sale_day 与最近运行时间的原始字段，排除巡检聚合误差"
       },
       {
-        "command": "git log --since='2026-11-20' --oneline（只读查看调度/引擎相关配置变更）",
-        "purpose": "确认近期是否有配置或代码变更导致调度未触发"
+        "command": "git log --since=\"2026-11-21\" --oneline -- <引擎快照/复核输出目录>",
+        "purpose": "查看 2026-11-21 至 2026-11-22 是否有快照或复核文件提交记录，确认漏跑范围"
       },
       {
-        "command": "python -c \"读取调度任务状态/日志文件并打印最近一次运行时间与退出码\"（只读）",
-        "purpose": "确认主引擎任务今日是否被调度、是否报错退出"
+        "command": "python -c \"import json,glob; [print(f) for f in glob.glob('<快照目录>/*')]\"",
+        "purpose": "只读列出快照目录文件，确认最新 sale_day 文件是否确实缺失"
       },
       {
-        "command": "curl -s <上游数据接口>/status（只读）",
-        "purpose": "确认上游数据是否按时到达，排除输入未就绪"
+        "command": "curl -s <只读调度/运行记录接口> 查询 09:12 计划点运行状态与退出码",
+        "purpose": "区分调度未触发与任务执行失败"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查调度平台今日主引擎任务运行记录与日志，确认漏跑原因后手动补跑 2026-11-22 快照；同时排查独立复核流程为何自 2026-11-13 起未更新",
+      "action": "人工核查预测主引擎 2026-11-22 调度记录与运行日志，确认漏跑原因后在销售窗口内手动补跑当日快照，并同步排查独立复核滞后 9 天的原因",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到过期（11-21）的预测结果，影响当日购买决策与网站预测展示的准确性；独立复核滞后降低结果可信度。",
+    "customer_impact": "销售窗口内当日预测快照缺失，会员可能看到基于 2026-11-21 的过期预测结果，影响当日购买决策与网站预测展示的准确性；独立复核滞后降低结果可信度。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.423516,
-    "remaining_cny": 9.576484,
-    "calls": 68,
+    "spent_cny": 0.430046,
+    "remaining_cny": 9.569954,
+    "calls": 69,
     "exhausted": false,
-    "used_pct": 4.24
+    "used_pct": 4.3
   },
   "usage": {
-    "prompt_tokens": 479,
-    "completion_tokens": 592,
-    "total_tokens": 1071,
+    "prompt_tokens": 621,
+    "completion_tokens": 661,
+    "total_tokens": 1282,
     "prompt_tokens_details": {
-      "cached_tokens": 256
+      "cached_tokens": 128
     },
-    "prompt_cache_hit_tokens": 256,
-    "prompt_cache_miss_tokens": 223
+    "prompt_cache_hit_tokens": 128,
+    "prompt_cache_miss_tokens": 493
   },
-  "cost_cny": 0.005694
+  "cost_cny": 0.00653
 }
