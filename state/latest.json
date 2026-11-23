@@ -1,36 +1,43 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-23T19:00:23Z",
-  "beijing_time": "2026-11-24 03:00:23",
+  "generated_at": "2026-11-23T19:15:13Z",
+  "beijing_time": "2026-11-24 03:15:13",
   "in_sale_window": false,
-  "verdict": "OK",
-  "fingerprint": "site_home=ok,site_data_sync=skip,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=skip,sources=skip,site_workflows=skip,legacy_sale_status=ok",
-  "signature": "OK",
-  "failed": [],
-  "warned": [],
+  "verdict": "FAIL",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=warn,legacy_sale_status=ok",
+  "signature": "independent_review",
+  "failed": [
+    "independent_review"
+  ],
+  "warned": [
+    "site_workflows"
+  ],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104640 字节，耗时 165ms"
+      "detail": "HTTP 200，104640 字节，耗时 60ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "仓库 API 不可用，未能比对：HTTP 403"
+      "detail": "生产与仓库一致（130346 字节），Pages 已生效",
+      "prod_bytes": 130346,
+      "prod_sha": "1353d8ea7a",
+      "repo_sha": "1353d8ea7a"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-23，快照 452 分钟前生成",
+      "detail": "sale_day=2026-11-23，快照 467 分钟前生成",
       "sale_day": "2026-11-23",
-      "generated_age_min": 452.4,
+      "generated_age_min": 467.3,
       "in_window": false
     },
     {
@@ -42,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 0,
-      "last_run_age_min": 456.6,
+      "last_run_age_min": 471.5,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -82,16 +89,18 @@
           "day": "2026-11-23",
           "matches": 8,
           "pending": 8,
-          "overdue_h": 1.0
+          "overdue_h": 1.3
         }
       ]
     },
     {
       "id": "independent_review",
       "title": "独立复核数据新鲜度",
-      "status": "skip",
-      "severity": "info",
-      "detail": "目录不可读（HTTP 403）"
+      "status": "fail",
+      "severity": "warn",
+      "detail": "最新复核文件 2026-11-13，已滞后 11 天",
+      "latest": "2026-11-13",
+      "lag_days": 11
     },
     {
       "id": "sources",
@@ -106,7 +115,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 875,
+          "elapsed_ms": 1307,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -116,8 +125,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 66896,
-          "elapsed_ms": 1290,
+          "bytes": 66890,
+          "elapsed_ms": 2477,
           "error": null,
           "cn_only": true,
           "required": false
@@ -128,7 +137,7 @@
           "status": "up",
           "http": 200,
           "bytes": 72389,
-          "elapsed_ms": 253,
+          "elapsed_ms": 199,
           "error": null,
           "cn_only": false,
           "required": false
@@ -139,7 +148,7 @@
           "status": "down",
           "http": 405,
           "bytes": 2657,
-          "elapsed_ms": 902,
+          "elapsed_ms": 1026,
           "error": "HTTP 405",
           "cn_only": true,
           "required": false
@@ -155,18 +164,20 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "skip",
-      "severity": "info",
-      "detail": "Actions API 不可用（HTTP 403）"
+      "status": "warn",
+      "severity": "warn",
+      "detail": "120 分钟内没有任何工作流运行记录，疑似调度停滞",
+      "failures": [],
+      "recent_runs": 0
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 14.6 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 14.7 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 14.6
+      "age_days": 14.7
     }
   ],
   "budget": {
@@ -179,10 +190,10 @@
     "used_pct": 6.32
   },
   "runner": {
-    "host": "ip-10-0-142-211",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45244275092",
+    "run_id": "45246956841",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
