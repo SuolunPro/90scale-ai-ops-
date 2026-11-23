@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-23T21:00:30Z",
-  "verdict": "FAIL",
-  "signature": "independent_review",
+  "at": "2026-11-23T21:30:34Z",
+  "verdict": "WARN",
+  "signature": "settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 11 天（FAIL），且 2026-11-23 有 6 场赛果开赛 3.0h 未结算（WARN）；目前证据不足以判定根因，需补充复核任务调度日志与结算流水状态。",
+    "summary": "仅 settlement 项 WARN：2026-11-23 有 6 场开赛 3.5h 未结算，前两日均无积压；当前证据不足以判定根因（缺赛果源状态、结算任务日志与队列积压明细），需进一步只读排查。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按日产出或调度中断，导致复核文件停在 2026-11-13",
+        "cause": "赛果数据源延迟或未回传，导致结算任务无赛果可核验",
         "confidence": 0.45,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=11, status=fail"
+        "evidence": "checks[settlement].detail: 2026-11-23 有 6 场开赛 3.5h 未结算；2026-11-21/22 pending 均为 0，说明为当日突发而非长期积压"
       },
       {
-        "cause": "2026-11-23 赛果数据源延迟或核验流程卡住，导致 6 场超 3.0h 未结算",
-        "confidence": 0.4,
-        "evidence": "settlement: day=2026-11-23, matches=8, pending=6, overdue_h=3.0"
+        "cause": "结算任务/队列处理滞后（worker 卡住或调度未触发）",
+        "confidence": 0.3,
+        "evidence": "settlement 状态 warn，overdue_h=3.5 且 pending=6，仅 2026-11-23 单日异常"
       },
       {
-        "cause": "复核与结算共用上游数据链路异常（如赛果抓取或入库延迟），两项同时告警",
-        "confidence": 0.25,
-        "evidence": "independent_review 滞后 11 天与 settlement 当日 6 场 pending 同时出现；前两日 2026-11-21/22 pending=0 正常"
+        "cause": "个别场次赛果存在争议或需人工复核，被挂起观察",
+        "confidence": 0.2,
+        "evidence": "detail 标注“观察中”，且 in_sale_window=false，非销售窗口期压力所致"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:<port>/health 或 curl -s http://localhost:<port>/status",
-        "purpose": "确认服务与依赖组件是否在线，排除整体不可用"
-      },
-      {
-        "command": "python -c \"import os,glob;d='<review_dir>';fs=sorted(glob.glob(os.path.join(d,'*')));print(len(fs));print(fs[-5:])\"",
-        "purpose": "只读列出复核文件目录，确认最新文件时间与是否连续缺失"
-      },
-      {
-        "command": "git log --oneline -20 -- <review_or_settlement_path>",
-        "purpose": "查看复核/结算相关代码或数据提交记录，确认近期是否有变更"
+        "command": "curl -s http://localhost:<port>/health/settlement",
+        "purpose": "确认结算服务与依赖（赛果源、队列）健康状态"
       },
       {
         "command": "curl -s http://localhost:<port>/api/settlement/pending?day=2026-11-23",
-        "purpose": "只读查询 2026-11-23 待结算场次明细与卡住环节"
+        "purpose": "列出 6 场未结算场次的 ID、开赛时间与当前结算状态"
+      },
+      {
+        "command": "python -c \"import json;print(json.load(open('/var/log/settlement/settlement-2026-11-23.log'))[-50:])\"",
+        "purpose": "只读查看结算任务日志尾部，定位卡在赛果拉取还是结算写入"
+      },
+      {
+        "command": "git log --oneline -n 10 -- settlement/",
+        "purpose": "确认近期是否有结算相关代码变更与本次异常时间相关"
       }
     ],
     "suggested_fix": {
-      "action": "人工检查独立复核任务的调度与产出目录，确认 2026-11-13 后为何无新文件；同时核查 2026-11-23 的 6 场赛果是否已入库并手动触发一次复核/结算流程（需人工确认后执行）",
+      "action": "先只读确认赛果源回传与结算 worker 状态；若为赛果源延迟则等待回传后由人工触发补结算，若为 worker 卡住则人工评估后重启对应 worker（需审批）",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "复核滞后可能使赛果与结算缺少独立校验，存在结算错误风险；6 场未结算会延迟对应会员的派彩与账务更新，暂未见网站不可用证据。",
-    "escalate": true
+    "customer_impact": "6 场已开赛场次结算延迟，涉及相关会员的派彩/账务更新滞后；不影响网站访问与投注，非销售窗口期，影响面有限",
+    "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.648356,
-    "remaining_cny": 9.351644,
-    "calls": 105,
+    "spent_cny": 0.653828,
+    "remaining_cny": 9.346172,
+    "calls": 106,
     "exhausted": false,
-    "used_pct": 6.48
+    "used_pct": 6.54
   },
   "usage": {
-    "prompt_tokens": 544,
-    "completion_tokens": 611,
-    "total_tokens": 1155,
+    "prompt_tokens": 468,
+    "completion_tokens": 567,
+    "total_tokens": 1035,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 416
+    "prompt_cache_miss_tokens": 340
   },
-  "cost_cny": 0.005976
+  "cost_cny": 0.005472
 }
