@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-23T20:00:39Z",
+  "at": "2026-11-23T21:00:30Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 11 天，且网站仓库工作流 120 分钟内无运行记录，疑似调度停滞；但当前证据不足以区分是调度器故障还是正常空档，需补充工作流调度器状态与复核任务日志。",
+    "summary": "独立复核数据已滞后 11 天（FAIL），且 2026-11-23 有 6 场赛果开赛 3.0h 未结算（WARN）；目前证据不足以判定根因，需补充复核任务调度日志与结算流水状态。",
     "root_causes": [
       {
-        "cause": "独立复核任务调度停滞或未按计划执行，导致复核文件长期未更新",
-        "confidence": 0.55,
+        "cause": "独立复核任务未按日产出或调度中断，导致复核文件停在 2026-11-13",
+        "confidence": 0.45,
         "evidence": "independent_review: latest=2026-11-13, lag_days=11, status=fail"
       },
       {
-        "cause": "网站仓库工作流调度器停滞（无运行记录），可能同时影响复核任务触发",
+        "cause": "2026-11-23 赛果数据源延迟或核验流程卡住，导致 6 场超 3.0h 未结算",
         "confidence": 0.4,
-        "evidence": "site_workflows: recent_runs=0, failures=[], detail=120 分钟内没有任何工作流运行记录"
+        "evidence": "settlement: day=2026-11-23, matches=8, pending=6, overdue_h=3.0"
       },
       {
-        "cause": "复核流程本身处于非销售窗口的正常低频期，滞后属预期",
-        "confidence": 0.2,
-        "evidence": "in_sale_window=false；但 lag_days=11 已超出常规新鲜度阈值，仅凭此字段无法确认"
+        "cause": "复核与结算共用上游数据链路异常（如赛果抓取或入库延迟），两项同时告警",
+        "confidence": 0.25,
+        "evidence": "independent_review 滞后 11 天与 settlement 当日 6 场 pending 同时出现；前两日 2026-11-21/22 pending=0 正常"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:9090/api/v1/workflows/recent?limit=20",
-        "purpose": "确认工作流最近运行记录与最后成功时间，判断是否真停滞"
+        "command": "curl -s http://localhost:<port>/health 或 curl -s http://localhost:<port>/status",
+        "purpose": "确认服务与依赖组件是否在线，排除整体不可用"
       },
       {
-        "command": "curl -s http://localhost:9090/api/v1/scheduler/status",
-        "purpose": "查看调度器是否存活、下次触发时间与上次触发时间"
+        "command": "python -c \"import os,glob;d='<review_dir>';fs=sorted(glob.glob(os.path.join(d,'*')));print(len(fs));print(fs[-5:])\"",
+        "purpose": "只读列出复核文件目录，确认最新文件时间与是否连续缺失"
       },
       {
-        "command": "python -c \"import os,glob,time;fs=sorted(glob.glob('/data/review/*'));print([(f,time.ctime(os.path.getmtime(f))) for f in fs[-5:]])\"",
-        "purpose": "只读列出最新复核文件及修改时间，核实滞后 11 天的具体文件"
+        "command": "git log --oneline -20 -- <review_or_settlement_path>",
+        "purpose": "查看复核/结算相关代码或数据提交记录，确认近期是否有变更"
       },
       {
-        "command": "git -C /srv/site log --since='2026-11-13' --oneline -20",
-        "purpose": "确认复核相关提交是否缺失，佐证复核未产出"
+        "command": "curl -s http://localhost:<port>/api/settlement/pending?day=2026-11-23",
+        "purpose": "只读查询 2026-11-23 待结算场次明细与卡住环节"
       }
     ],
     "suggested_fix": {
-      "action": "人工检查工作流调度器与独立复核任务配置，确认调度是否被暂停或失败；确认后手动触发一次复核任务并核对产出文件时间戳",
+      "action": "人工检查独立复核任务的调度与产出目录，确认 2026-11-13 后为何无新文件；同时核查 2026-11-23 的 6 场赛果是否已入库并手动触发一次复核/结算流程（需人工确认后执行）",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前非销售窗口，暂无直接会员/网站功能影响；若复核长期缺失，后续销售窗口的独立复核保障将失效，存在合规与数据准确性风险",
+    "customer_impact": "复核滞后可能使赛果与结算缺少独立校验，存在结算错误风险；6 场未结算会延迟对应会员的派彩与账务更新，暂未见网站不可用证据。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.64238,
-    "remaining_cny": 9.35762,
-    "calls": 104,
+    "spent_cny": 0.648356,
+    "remaining_cny": 9.351644,
+    "calls": 105,
     "exhausted": false,
-    "used_pct": 6.42
+    "used_pct": 6.48
   },
   "usage": {
-    "prompt_tokens": 449,
-    "completion_tokens": 529,
-    "total_tokens": 978,
+    "prompt_tokens": 544,
+    "completion_tokens": 611,
+    "total_tokens": 1155,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 321
+    "prompt_cache_miss_tokens": 416
   },
-  "cost_cny": 0.00513
+  "cost_cny": 0.005976
 }
