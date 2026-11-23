@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-23T22:45:34Z",
+  "at": "2026-11-23T23:45:33Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 11 天（FAIL），且 2026-11-23 有 6 场开赛 4.8h 未结算（WARN）；目前缺少复核任务调度日志与结算流水明细，根因尚不能确定。",
+    "summary": "独立复核数据已滞后 11 天（FAIL），同时 11-23 有 6 场赛果超 5.8h 未结算、网站工作流 120 分钟无运行记录；三项均缺少日志级证据，根因待确认。",
     "root_causes": [
       {
-        "cause": "独立复核任务未按日产出或调度中断，导致复核文件停在 2026-11-13",
+        "cause": "独立复核流程未按计划产出文件（调度未触发或任务中断）",
         "confidence": 0.55,
-        "evidence": "independent_review: status=fail, latest=2026-11-13, lag_days=11"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=11, status=fail"
       },
       {
-        "cause": "2026-11-23 赛果核验/结算流程积压，6 场超过 4.8h 仍未结算",
+        "cause": "赛果核验/结算链路积压，11-23 场次结果未回填导致无法结算",
         "confidence": 0.45,
-        "evidence": "settlement: status=warn, day=2026-11-23, matches=8, pending=6, overdue_h=4.8"
+        "evidence": "settlement: 2026-11-23 matches=8, pending=6, overdue_h=5.8；11-21/11-22 pending=0"
       },
       {
-        "cause": "复核滞后与结算积压可能同源（上游赛果数据或任务链路异常），但当前证据不足以确认",
-        "confidence": 0.2,
-        "evidence": "两项异常同日巡检出现；checks 中无赛果源或任务调度字段可佐证"
+        "cause": "网站仓库工作流调度停滞（无运行记录，但无失败记录）",
+        "confidence": 0.35,
+        "evidence": "site_workflows: recent_runs=0, failures=[], 120 分钟内无运行"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' http://localhost/health",
-        "purpose": "确认服务进程与健康端点是否正常，排除整体不可用"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <工作流平台只读状态接口URL>",
+        "purpose": "确认工作流调度服务是否可达、是否整体停摆"
       },
       {
-        "command": "git log -n 20 --date=iso --pretty='%h %ad %s' -- <复核文件目录>",
-        "purpose": "查看复核文件最近提交记录，确认 2026-11-13 后是否还有产出"
+        "command": "git -C <网站仓库路径> log --since='2026-11-13' --oneline -- <复核文件目录>",
+        "purpose": "确认复核文件是否真的 11-13 后无提交，排除巡检读取路径错误"
       },
       {
-        "command": "python -c \"import os,glob,time;d='<复核文件目录>';fs=sorted(glob.glob(os.path.join(d,'*')),key=os.path.getmtime)[-5:];[print(time.strftime('%Y-%m-%d %H:%M',time.localtime(os.path.getmtime(f))),f) for f in fs]\"",
-        "purpose": "列出复核目录最新文件及修改时间，核实滞后天数"
-      },
-      {
-        "command": "python -c \"import json;d=json.load(open('<结算流水文件>'));print([m for m in d if m.get('day')=='2026-11-23' and m.get('status')!='settled'])\"",
-        "purpose": "读取 2026-11-23 未结算场次明细，确认 pending 的 6 场具体状态"
+        "command": "python -c \"import json;d=json.load(open('<赛果数据只读导出文件>'));print([m for m in d if m.get('day')=='2026-11-23' and m.get('status')!='settled'])\"",
+        "purpose": "列出 11-23 未结算场次及其赛果状态，判断是缺赛果还是结算任务未跑"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核任务的调度与产出链路，补跑 2026-11-13 之后的复核；同时核对 2026-11-23 未结算 6 场的赛果来源与结算流水，确认后按流程人工补结算。",
+      "action": "人工核查独立复核任务与工作流调度是否被暂停，并补跑 11-23 未结算场次的赛果核验；确认后再决定是否重跑复核",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "复核缺失期间赛果与结算缺少独立校验，存在错结算风险；6 场未结算可能影响相关会员的派彩到账时效与网站结算展示。",
+    "customer_impact": "当前不在销售窗口，暂无实时投注影响；若结算持续积压，会员派彩延迟、账户余额与战绩展示可能滞后，网站内容更新也可能停更。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.666812,
-    "remaining_cny": 9.333188,
-    "calls": 108,
+    "spent_cny": 0.672386,
+    "remaining_cny": 9.327614,
+    "calls": 109,
     "exhausted": false,
-    "used_pct": 6.67
+    "used_pct": 6.72
   },
   "usage": {
-    "prompt_tokens": 544,
-    "completion_tokens": 666,
-    "total_tokens": 1210,
+    "prompt_tokens": 615,
+    "completion_tokens": 543,
+    "total_tokens": 1158,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 416
+    "prompt_cache_miss_tokens": 487
   },
-  "cost_cny": 0.006416
+  "cost_cny": 0.005574
 }
