@@ -1,72 +1,68 @@
 {
-  "at": "2026-11-23T07:15:35Z",
+  "at": "2026-11-23T16:00:36Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 10 天（FAIL），且预测引擎 15:12 计划点漏跑（WARN）；当前处于销售窗口内，需优先确认复核链路是否停摆，但现有证据不足以定位根因。",
+    "summary": "独立复核数据已滞后 11 天（最新 2026-11-13），但当前不在销售窗口，且巡检仅此一项 warn 级 fail，缺复核任务调度日志与复核人排班证据，根因待确认。",
     "root_causes": [
       {
-        "cause": "独立复核生成/发布链路中断（工作流停跑或产出未落盘），导致复核文件停在 2026-11-13",
+        "cause": "独立复核任务未按周期执行（调度未触发或复核人未提交）",
         "confidence": 0.55,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=10, status=fail"
+        "evidence": "checks[id=independent_review].lag_days=11，latest=2026-11-13，status=fail"
       },
       {
-        "cause": "预测引擎调度延迟或单点漏跑（15:12 计划点无运行，最近运行在 45.6 分钟前），可能与复核链路共用调度/依赖",
-        "confidence": 0.35,
-        "evidence": "engine_runs: missed_points=[15:12], last_run_age_min=45.6, checked_points=3, runs_today=19"
+        "cause": "复核流程在非销售窗口被有意暂停，导致文件停止更新",
+        "confidence": 0.3,
+        "evidence": "in_sale_window=false，且仅独立复核一项异常，其余检查无 fail/warn"
       },
       {
-        "cause": "复核相关 workflow 已被标记为 retired 而不再产出（需确认是否误将复核工作流退役）",
-        "confidence": 0.2,
-        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]"
+        "cause": "复核文件产出后未同步到巡检读取路径（路径/同步问题）",
+        "confidence": 0.15,
+        "evidence": "detail 仅显示最新文件日期，无同步或目录状态字段可佐证"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <复核文件或站点只读URL>",
-        "purpose": "确认复核产物地址是否可访问、是否 404/超时"
+        "command": "ls -l --time-style=long-iso <复核文件目录>",
+        "purpose": "确认目录内最新复核文件的实际修改时间与文件数量，排除路径或同步问题"
       },
       {
-        "command": "git log --since='2026-11-10' --oneline -- <复核文件所在目录>",
-        "purpose": "确认 11-13 之后是否还有复核文件提交记录"
+        "command": "git log -5 --date=iso -- <复核文件路径>",
+        "purpose": "查看复核文件的提交历史，判断是未产出还是未提交"
       },
       {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<复核目录>/*'));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
-        "purpose": "列出最新复核文件及修改时间，核实滞后天数"
-      },
-      {
-        "command": "git log --since='2026-11-20' --oneline -- .github/workflows/",
-        "purpose": "确认复核/引擎工作流近期是否有停用或改动"
+        "command": "curl -s <复核任务调度/状态只读接口>",
+        "purpose": "确认复核任务最近一次调度执行时间与结果"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核工作流（含被列为 retired 的 verify-results 相关流程）是否被误停用，并手动触发一次复核产出；同时确认 15:12 引擎计划点漏跑原因后补跑",
-      "risk": "medium",
+      "action": "人工确认独立复核排班与调度状态，补做 2026-11-13 之后的复核并归档复核文件；若为非销售窗口暂停策略，则在巡检规则中标注豁免",
+      "risk": "low",
       "needs_approval": true
     },
-    "customer_impact": "复核滞后 10 天意味着预测结果缺少独立校验，若复核用于对外发布或结算，会员可能看到未复核的预测/结算数据；当前处于销售窗口，影响面偏大。",
-    "escalate": true
+    "customer_impact": "当前不在销售窗口，暂无直接会员或网站影响；若复核长期缺失，后续销售窗口开启时可能缺少复核保障，存在合规与出票准确性风险。",
+    "escalate": false
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.61975,
-    "remaining_cny": 9.38025,
-    "calls": 99,
+    "spent_cny": 0.62394,
+    "remaining_cny": 9.37606,
+    "calls": 100,
     "exhausted": false,
-    "used_pct": 6.2
+    "used_pct": 6.24
   },
   "usage": {
-    "prompt_tokens": 520,
-    "completion_tokens": 603,
-    "total_tokens": 1123,
+    "prompt_tokens": 379,
+    "completion_tokens": 429,
+    "total_tokens": 808,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 392
+    "prompt_cache_miss_tokens": 251
   },
-  "cost_cny": 0.005864
+  "cost_cny": 0.00419
 }
