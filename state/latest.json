@@ -1,12 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-23T04:00:14Z",
-  "beijing_time": "2026-11-23 12:00:14",
+  "generated_at": "2026-11-23T04:15:12Z",
+  "beijing_time": "2026-11-23 12:15:12",
   "in_sale_window": true,
-  "verdict": "WARN",
-  "fingerprint": "site_home=ok,site_data_sync=skip,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=skip,sources=skip,site_workflows=skip,legacy_sale_status=ok",
-  "signature": "engine_runs",
-  "failed": [],
+  "verdict": "FAIL",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review",
+  "failed": [
+    "independent_review"
+  ],
   "warned": [
     "engine_runs"
   ],
@@ -16,23 +18,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104531 字节，耗时 70ms"
+      "detail": "HTTP 200，104531 字节，耗时 77ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "仓库 API 不可用，未能比对：HTTP 403"
+      "detail": "生产与仓库一致（104936 字节），Pages 已生效",
+      "prod_bytes": 104936,
+      "prod_sha": "4b394c8a73",
+      "repo_sha": "4b394c8a73"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-23，快照 10 分钟前生成",
+      "detail": "sale_day=2026-11-23，快照 25 分钟前生成",
       "sale_day": "2026-11-23",
-      "generated_age_min": 9.7,
+      "generated_age_min": 24.7,
       "in_window": true
     },
     {
@@ -40,13 +45,14 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：11:12；最近一次运行 12 分钟前",
+      "detail": "近 180 分钟内 2 个计划点无运行：11:12、12:12；最近一次运行 27 分钟前",
       "missed_points": [
-        "11:12"
+        "11:12",
+        "12:12"
       ],
       "checked_points": 2,
       "runs_today": 7,
-      "last_run_age_min": 12.0,
+      "last_run_age_min": 27.0,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -93,9 +99,11 @@
     {
       "id": "independent_review",
       "title": "独立复核数据新鲜度",
-      "status": "skip",
-      "severity": "info",
-      "detail": "目录不可读（HTTP 403）"
+      "status": "fail",
+      "severity": "warn",
+      "detail": "最新复核文件 2026-11-13，已滞后 10 天",
+      "latest": "2026-11-13",
+      "lag_days": 10
     },
     {
       "id": "sources",
@@ -110,7 +118,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1022,
+          "elapsed_ms": 3509,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -121,7 +129,7 @@
           "status": "up",
           "http": 200,
           "bytes": 69387,
-          "elapsed_ms": 2183,
+          "elapsed_ms": 1958,
           "error": null,
           "cn_only": true,
           "required": false
@@ -131,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 46925,
-          "elapsed_ms": 137,
+          "bytes": 47231,
+          "elapsed_ms": 220,
           "error": null,
           "cn_only": false,
           "required": false
@@ -142,8 +150,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 283451,
-          "elapsed_ms": 4682,
+          "bytes": 283459,
+          "elapsed_ms": 2087,
           "error": null,
           "cn_only": true,
           "required": false
@@ -159,9 +167,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "Actions API 不可用（HTTP 403）"
+      "detail": "120 分钟内 5 次运行，无失败",
+      "failures": [],
+      "recent_runs": 5
     },
     {
       "id": "legacy_sale_status",
@@ -176,17 +186,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.58312,
-    "remaining_cny": 9.41688,
-    "calls": 93,
+    "spent_cny": 0.588952,
+    "remaining_cny": 9.411048,
+    "calls": 94,
     "exhausted": false,
-    "used_pct": 5.83
+    "used_pct": 5.89
   },
   "runner": {
-    "host": "ip-10-0-142-84",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45109194313",
+    "run_id": "45110688393",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
