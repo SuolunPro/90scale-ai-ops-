@@ -1,68 +1,72 @@
 {
-  "at": "2026-11-23T06:45:36Z",
-  "verdict": "WARN",
-  "signature": "engine_runs",
+  "at": "2026-11-23T07:15:35Z",
+  "verdict": "FAIL",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎在近180分钟内漏跑1个计划点（12:12），但最近一次运行仅15.7分钟前、今日已跑19次，属单点漏跑；仅凭巡检JSON无法确认漏跑原因（缺调度器/工作流运行日志与失败记录）。",
+    "summary": "独立复核数据已滞后 10 天（FAIL），且预测引擎 15:12 计划点漏跑（WARN）；当前处于销售窗口内，需优先确认复核链路是否停摆，但现有证据不足以定位根因。",
     "root_causes": [
       {
-        "cause": "该计划点触发时调度器或工作流瞬时失败/跳过（如GitHub Actions排队、超时、并发限制）",
-        "confidence": 0.45,
-        "evidence": "engine_runs: missed_points=[12:12], checked_points=3, runs_today=19, last_run_age_min=15.7；无failed项，仅warn"
+        "cause": "独立复核生成/发布链路中断（工作流停跑或产出未落盘），导致复核文件停在 2026-11-13",
+        "confidence": 0.55,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=10, status=fail"
       },
       {
-        "cause": "12:12计划点对应的定时表达式或时区配置偏差导致该点未触发",
-        "confidence": 0.25,
-        "evidence": "missed_points仅单点12:12，其余计划点正常；retired_workflows_ignored含engine4-settlement/verify-results/result-backfill，说明存在工作流变更历史"
+        "cause": "预测引擎调度延迟或单点漏跑（15:12 计划点无运行，最近运行在 45.6 分钟前），可能与复核链路共用调度/依赖",
+        "confidence": 0.35,
+        "evidence": "engine_runs: missed_points=[15:12], last_run_age_min=45.6, checked_points=3, runs_today=19"
       },
       {
-        "cause": "上游数据或依赖未就绪导致该次运行被跳过（非调度问题）",
-        "confidence": 0.15,
-        "evidence": "巡检JSON未提供依赖/数据就绪类检查项，证据不足"
+        "cause": "复核相关 workflow 已被标记为 retired 而不再产出（需确认是否误将复核工作流退役）",
+        "confidence": 0.2,
+        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/workflows/<engine-workflow>.yml/runs?per_page=30'",
-        "purpose": "只读查看该工作流在12:12前后的运行记录与结论，确认是否触发、失败或被跳过"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <复核文件或站点只读URL>",
+        "purpose": "确认复核产物地址是否可访问、是否 404/超时"
       },
       {
-        "command": "git log --since='2026-11-23 00:00' --oneline -- .github/workflows/",
-        "purpose": "只读确认当日是否有工作流/cron配置变更影响12:12计划点"
+        "command": "git log --since='2026-11-10' --oneline -- <复核文件所在目录>",
+        "purpose": "确认 11-13 之后是否还有复核文件提交记录"
       },
       {
-        "command": "python -c \"import json,sys;d=json.load(open('inspection.json'));print(d['checks'])\"",
-        "purpose": "只读复核巡检原始字段，确认漏跑点与最近运行时间口径"
+        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<复核目录>/*'));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
+        "purpose": "列出最新复核文件及修改时间，核实滞后天数"
+      },
+      {
+        "command": "git log --since='2026-11-20' --oneline -- .github/workflows/",
+        "purpose": "确认复核/引擎工作流近期是否有停用或改动"
       }
     ],
     "suggested_fix": {
-      "action": "人工登录调度平台核对12:12计划点的触发与失败日志；若为瞬时失败，评估是否需要手动补跑该计划点（补跑属写操作，需另行审批）",
+      "action": "人工核查独立复核工作流（含被列为 retired 的 verify-results 相关流程）是否被误停用，并手动触发一次复核产出；同时确认 15:12 引擎计划点漏跑原因后补跑",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "单点漏跑可能使该时段预测结果缺失或延迟，影响对应时段会员侧展示/推荐的新鲜度；今日其余19次运行正常，整体影响有限。",
-    "escalate": false
+    "customer_impact": "复核滞后 10 天意味着预测结果缺少独立校验，若复核用于对外发布或结算，会员可能看到未复核的预测/结算数据；当前处于销售窗口，影响面偏大。",
+    "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.613886,
-    "remaining_cny": 9.386114,
-    "calls": 98,
+    "spent_cny": 0.61975,
+    "remaining_cny": 9.38025,
+    "calls": 99,
     "exhausted": false,
-    "used_pct": 6.14
+    "used_pct": 6.2
   },
   "usage": {
-    "prompt_tokens": 444,
-    "completion_tokens": 551,
-    "total_tokens": 995,
+    "prompt_tokens": 520,
+    "completion_tokens": 603,
+    "total_tokens": 1123,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 316
+    "prompt_cache_miss_tokens": 392
   },
-  "cost_cny": 0.005296
+  "cost_cny": 0.005864
 }
