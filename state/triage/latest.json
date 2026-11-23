@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-23T19:15:30Z",
+  "at": "2026-11-23T20:00:39Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 11 天，且网站仓库工作流在 120 分钟内没有任何运行记录，疑似调度停滞；但当前证据不足以确认根因，还需补充调度器状态与复核任务日志。",
+    "summary": "独立复核数据已滞后 11 天，且网站仓库工作流 120 分钟内无运行记录，疑似调度停滞；但当前证据不足以区分是调度器故障还是正常空档，需补充工作流调度器状态与复核任务日志。",
     "root_causes": [
       {
-        "cause": "复核任务调度停滞，导致复核文件不再更新",
-        "confidence": 0.45,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=11；site_workflows: recent_runs=0, failures=[]"
+        "cause": "独立复核任务调度停滞或未按计划执行，导致复核文件长期未更新",
+        "confidence": 0.55,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=11, status=fail"
       },
       {
-        "cause": "网站仓库工作流调度器或触发机制异常，导致 120 分钟内无任何运行",
-        "confidence": 0.35,
-        "evidence": "site_workflows: recent_runs=0，120 分钟内无运行记录，且 failures 为空（非失败而是未触发）"
+        "cause": "网站仓库工作流调度器停滞（无运行记录），可能同时影响复核任务触发",
+        "confidence": 0.4,
+        "evidence": "site_workflows: recent_runs=0, failures=[], detail=120 分钟内没有任何工作流运行记录"
       },
       {
-        "cause": "复核流程本身被暂停或人工未提交复核文件（非系统故障）",
+        "cause": "复核流程本身处于非销售窗口的正常低频期，滞后属预期",
         "confidence": 0.2,
-        "evidence": "independent_review 仅显示文件滞后，无失败记录；in_sale_window=false"
+        "evidence": "in_sale_window=false；但 lag_days=11 已超出常规新鲜度阈值，仅凭此字段无法确认"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:9090/api/v1/query?query=up",
-        "purpose": "确认巡检/调度相关服务是否在线，排除服务整体宕机"
+        "command": "curl -s http://localhost:9090/api/v1/workflows/recent?limit=20",
+        "purpose": "确认工作流最近运行记录与最后成功时间，判断是否真停滞"
       },
       {
-        "command": "git -C <网站仓库路径> log --since='3 days ago' --oneline",
-        "purpose": "确认仓库近期是否有提交或工作流触发痕迹"
+        "command": "curl -s http://localhost:9090/api/v1/scheduler/status",
+        "purpose": "查看调度器是否存活、下次触发时间与上次触发时间"
       },
       {
-        "command": "python -c \"import os,glob;print(sorted(glob.glob('<复核目录>/*'))[-5:])\"",
-        "purpose": "只读列出最新复核文件，确认滞后是否持续及文件命名规律"
+        "command": "python -c \"import os,glob,time;fs=sorted(glob.glob('/data/review/*'));print([(f,time.ctime(os.path.getmtime(f))) for f in fs[-5:]])\"",
+        "purpose": "只读列出最新复核文件及修改时间，核实滞后 11 天的具体文件"
       },
       {
-        "command": "curl -s <调度器健康检查地址>/health",
-        "purpose": "确认工作流调度器健康状态与最近调度时间"
+        "command": "git -C /srv/site log --since='2026-11-13' --oneline -20",
+        "purpose": "确认复核相关提交是否缺失，佐证复核未产出"
       }
     ],
     "suggested_fix": {
-      "action": "人工检查工作流调度器（cron/CI 触发器）是否被暂停，并确认独立复核任务是否需手动补跑；确认后由值班人员恢复调度并补交复核文件",
+      "action": "人工检查工作流调度器与独立复核任务配置，确认调度是否被暂停或失败；确认后手动触发一次复核任务并核对产出文件时间戳",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前不在售卖窗口，暂无直接会员/网站影响；若调度停滞持续到下次售卖窗口，可能导致复核缺失与工作流未运行，影响上线合规与发布流程",
+    "customer_impact": "当前非销售窗口，暂无直接会员/网站功能影响；若复核长期缺失，后续销售窗口的独立复核保障将失效，存在合规与数据准确性风险",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.63725,
-    "remaining_cny": 9.36275,
-    "calls": 103,
+    "spent_cny": 0.64238,
+    "remaining_cny": 9.35762,
+    "calls": 104,
     "exhausted": false,
-    "used_pct": 6.37
+    "used_pct": 6.42
   },
   "usage": {
     "prompt_tokens": 449,
-    "completion_tokens": 491,
-    "total_tokens": 940,
+    "completion_tokens": 529,
+    "total_tokens": 978,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 321
   },
-  "cost_cny": 0.004826
+  "cost_cny": 0.00513
 }
