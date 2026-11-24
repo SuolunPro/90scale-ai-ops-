@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T19:00:15Z",
-  "beijing_time": "2026-11-25 03:00:15",
+  "generated_at": "2026-11-24T20:00:14Z",
+  "beijing_time": "2026-11-25 04:00:14",
   "in_sale_window": false,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=warn,legacy_sale_status=ok",
@@ -19,7 +19,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104695 字节，耗时 67ms"
+      "detail": "HTTP 200，104695 字节，耗时 341ms"
     },
     {
       "id": "site_data_sync",
@@ -36,9 +36,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-24，快照 301 分钟前生成",
+      "detail": "sale_day=2026-11-24，快照 361 分钟前生成",
       "sale_day": "2026-11-24",
-      "generated_age_min": 301.0,
+      "generated_age_min": 361.0,
       "in_window": false
     },
     {
@@ -50,7 +50,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 0,
-      "last_run_age_min": 305.0,
+      "last_run_age_min": 365.0,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -72,7 +72,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-24 有 8 场开赛 11.3h 仍未结算",
+      "detail": "2026-11-24 有 8 场开赛 12.3h 仍未结算",
       "checked": [
         {
           "day": "2026-11-22",
@@ -90,7 +90,7 @@
           "day": "2026-11-24",
           "matches": 11,
           "pending": 8,
-          "overdue_h": 11.3
+          "overdue_h": 12.3
         }
       ]
     },
@@ -115,8 +115,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1697,
+          "bytes": 7352,
+          "elapsed_ms": 1581,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -126,8 +126,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 73469,
-          "elapsed_ms": 1794,
+          "bytes": 73477,
+          "elapsed_ms": 1649,
           "error": null,
           "cn_only": true,
           "required": false
@@ -138,7 +138,7 @@
           "status": "up",
           "http": 200,
           "bytes": 65165,
-          "elapsed_ms": 178,
+          "elapsed_ms": 255,
           "error": null,
           "cn_only": false,
           "required": false
@@ -149,7 +149,7 @@
           "status": "up",
           "http": 200,
           "bytes": 130511,
-          "elapsed_ms": 1243,
+          "elapsed_ms": 1342,
           "error": null,
           "cn_only": true,
           "required": false
@@ -176,25 +176,25 @@
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 15.6 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 15.7 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 15.6
+      "age_days": 15.7
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.786206,
-    "remaining_cny": 9.213794,
-    "calls": 126,
+    "spent_cny": 0.792976,
+    "remaining_cny": 9.207024,
+    "calls": 127,
     "exhausted": false,
-    "used_pct": 7.86
+    "used_pct": 7.93
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45465519236",
+    "run_id": "45476116674",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
