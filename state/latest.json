@@ -1,25 +1,20 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T02:00:14Z",
-  "beijing_time": "2026-11-24 10:00:14",
-  "in_sale_window": true,
+  "generated_at": "2026-11-24T02:52:20Z",
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review,settlement",
   "failed": [
     "settlement",
     "independent_review"
   ],
-  "warned": [
-    "engine_runs"
-  ],
+  "warned": [],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104640 字节，耗时 185ms"
+      "detail": "HTTP 200，104640 字节，耗时 317ms"
     },
     {
       "id": "site_data_sync",
@@ -36,28 +31,17 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-24，快照 7 分钟前生成",
+      "detail": "sale_day=2026-11-24，快照 60 分钟前生成",
       "sale_day": "2026-11-24",
-      "generated_age_min": 7.4,
+      "generated_age_min": 59.5,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：09:12；最近一次运行 15 分钟前",
-      "missed_points": [
-        "09:12"
-      ],
-      "checked_points": 1,
-      "runs_today": 3,
-      "last_run_age_min": 14.7,
-      "retired_workflows_ignored": [
-        "engine4-settlement.yml",
-        "engine4-verify-results.yml",
-        "engine4-result-backfill.yml"
-      ]
+      "status": "skip",
+      "severity": "info",
+      "detail": "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录"
     },
     {
       "id": "pool_coverage",
@@ -74,7 +58,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-23 有 6 场开赛 8.0h 仍未结算",
+      "detail": "2026-11-23 有 6 场开赛 8.9h 仍未结算",
       "checked": [
         {
           "day": "2026-11-21",
@@ -92,7 +76,7 @@
           "day": "2026-11-23",
           "matches": 8,
           "pending": 6,
-          "overdue_h": 8.0
+          "overdue_h": 8.9
         }
       ]
     },
@@ -118,7 +102,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 3255,
+          "elapsed_ms": 1493,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,8 +112,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 66954,
-          "elapsed_ms": 1827,
+          "bytes": 67511,
+          "elapsed_ms": 2119,
           "error": null,
           "cn_only": true,
           "required": false
@@ -139,8 +123,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 72932,
-          "elapsed_ms": 378,
+          "bytes": 73092,
+          "elapsed_ms": 277,
           "error": null,
           "cn_only": false,
           "required": false
@@ -150,8 +134,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 112768,
-          "elapsed_ms": 1149,
+          "bytes": 112783,
+          "elapsed_ms": 1174,
           "error": null,
           "cn_only": true,
           "required": false
@@ -178,25 +162,12 @@
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 14.9 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 15.0 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 14.9
+      "age_days": 15.0
     }
   ],
   "budget": {
-    "month": "2026-11",
-    "cap_cny": 10.0,
-    "spent_cny": 0.693108,
-    "remaining_cny": 9.306892,
-    "calls": 112,
-    "exhausted": false,
-    "used_pct": 6.93
-  },
-  "runner": {
-    "host": "runnervm0hi8g",
-    "python": "3.12.16",
-    "ci": true,
-    "run_id": "45309126989",
-    "repo": "SuolunPro/90scale-ai-ops-"
+    "spent_cny": null
   }
 }
