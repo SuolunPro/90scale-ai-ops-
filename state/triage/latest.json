@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-24T03:45:36Z",
+  "at": "2026-11-24T04:00:33Z",
   "verdict": "FAIL",
-  "signature": "settlement",
+  "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "结算链路疑似中断：2026-11-23 有 6 场开赛 9.8h 未结算，且预测引擎近 180 分钟漏跑 09:12、11:12 两个计划点（最近运行 120 分钟前）；现有证据不足以区分是调度器停摆还是结算任务自身失败，需补充运行日志与工作流状态。",
+    "summary": "结算链路疑似中断：2026-11-23 有 6 场开赛 10 小时仍未结算，同时预测引擎漏跑 09:12、11:12 两个计划点，独立复核数据已滞后 11 天；但缺少结算任务日志与引擎运行日志，根因尚不能确定。",
     "root_causes": [
       {
-        "cause": "预测/结算调度链路停摆，计划点未触发导致结算任务未执行",
-        "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[09:12,11:12], last_run_age_min=119.7, runs_today=3；settlement: 2026-11-23 pending=6, overdue_h=9.8"
+        "cause": "结算/赛果核验任务未执行或执行失败，导致 2026-11-23 的 6 场比赛长期挂起未结算",
+        "confidence": 0.6,
+        "evidence": "settlement 状态 fail：2026-11-23 matches=8、pending=6、overdue_h=10.0；而 11-21、11-22 的 pending 均为 0"
       },
       {
-        "cause": "结算/赛果核验任务本身执行失败（如赛果源缺失或核验报错），与调度无关",
-        "confidence": 0.3,
-        "evidence": "settlement 为 FAIL/critical，仅 2026-11-23 出现 pending=6，而 11-21、11-22 pending 均为 0，说明此前链路可用"
+        "cause": "预测引擎计划点调度漏跑（09:12、11:12 无运行记录），可能与结算链路共用调度或工作流被停用有关",
+        "confidence": 0.45,
+        "evidence": "engine_runs 状态 warn：missed_points=[09:12,11:12]，runs_today=4，last_run_age_min=14.5，retired_workflows_ignored 含 engine4-settlement.yml、engine4-verify-results.yml、engine4-result-backfill.yml"
       },
       {
-        "cause": "相关 workflow 被标记为 retired 后未迁移，结算依赖的旧工作流不再运行",
-        "confidence": 0.15,
-        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]"
+        "cause": "独立复核流程停更，复核文件自 2026-11-13 起未再产出",
+        "confidence": 0.4,
+        "evidence": "independent_review 状态 fail：latest=2026-11-13，lag_days=11"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:<port>/health",
-        "purpose": "确认服务进程是否存活、端口是否可响应"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' http://localhost:8080/health",
+        "purpose": "确认服务进程与健康端点是否存活，排除整体宕机"
       },
       {
-        "command": "git log --oneline -20 -- .github/workflows/",
-        "purpose": "查看 workflow 文件近期变更，确认 retired 工作流是否被替换或误删"
+        "command": "git log --since='2026-11-22' --oneline -- '*settlement*' '*engine4*'",
+        "purpose": "查看结算与引擎相关文件近期是否有变更或工作流停用提交"
       },
       {
-        "command": "python -c \"import json,glob;[print(f) for f in glob.glob('logs/*settlement*')]\"",
-        "purpose": "只读列出结算相关日志文件，定位可查看的运行记录"
+        "command": "python -c \"import json,glob;[print(p) for p in glob.glob('**/*review*',recursive=True)][:20]\"",
+        "purpose": "只读列出复核文件路径，确认最新复核产物的位置与时间"
       },
       {
-        "command": "curl -s http://127.0.0.1:<port>/api/settlement/pending",
-        "purpose": "只读查询当前待结算场次列表，核对 6 场是否仍挂起"
+        "command": "curl -s http://localhost:8080/api/settlement/pending",
+        "purpose": "只读查询当前待结算比赛列表，核对 6 场挂起记录的实际状态"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查调度器与结算任务运行日志，确认 09:12/11:12 计划点未触发的原因；若为调度停摆则恢复调度，若为结算任务报错则按日志修复后对 2026-11-23 的 6 场待结算场次执行补结算（需人工确认赛果数据完整）",
-      "risk": "high",
+      "action": "人工核查 engine4-settlement.yml 与 engine4-verify-results.yml 是否被误停用或调度失败，恢复调度后对 2026-11-23 的 6 场挂起比赛执行补结算，并补跑独立复核",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "2026-11-23 的 6 场比赛未结算，涉及这些场次的会员积分/派彩结果延迟，可能引发会员查询与客诉；预测引擎漏跑导致最新预测结果缺失，影响网站展示的预测内容时效性。",
+    "customer_impact": "2026-11-23 的 6 场比赛赛果未结算，相关会员的积分/派彩与战绩展示会延迟或缺失；预测引擎漏跑两个计划点可能造成对应时段预测缺失，影响网站预测内容的完整性。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.713674,
-    "remaining_cny": 9.286326,
-    "calls": 115,
+    "spent_cny": 0.72042,
+    "remaining_cny": 9.27958,
+    "calls": 116,
     "exhausted": false,
-    "used_pct": 7.14
+    "used_pct": 7.2
   },
   "usage": {
-    "prompt_tokens": 611,
-    "completion_tokens": 665,
-    "total_tokens": 1276,
+    "prompt_tokens": 689,
+    "completion_tokens": 671,
+    "total_tokens": 1360,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 483
+    "prompt_cache_miss_tokens": 561
   },
-  "cost_cny": 0.006542
+  "cost_cny": 0.006746
 }
