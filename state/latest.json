@@ -1,20 +1,25 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T02:52:20Z",
+  "generated_at": "2026-11-24T03:00:16Z",
+  "beijing_time": "2026-11-24 11:00:16",
+  "in_sale_window": true,
   "verdict": "FAIL",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review,settlement",
   "failed": [
     "settlement",
     "independent_review"
   ],
-  "warned": [],
+  "warned": [
+    "engine_runs"
+  ],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104640 字节，耗时 317ms"
+      "detail": "HTTP 200，104640 字节，耗时 76ms"
     },
     {
       "id": "site_data_sync",
@@ -31,17 +36,28 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-24，快照 60 分钟前生成",
+      "detail": "sale_day=2026-11-24，快照 68 分钟前生成",
       "sale_day": "2026-11-24",
-      "generated_age_min": 59.5,
+      "generated_age_min": 67.5,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "skip",
-      "severity": "info",
-      "detail": "未配置 ENGINE4_READ_TOKEN Secret，无法读取私人引擎运行记录"
+      "status": "warn",
+      "severity": "warn",
+      "detail": "近 180 分钟内 1 个计划点无运行：09:12；最近一次运行 75 分钟前",
+      "missed_points": [
+        "09:12"
+      ],
+      "checked_points": 1,
+      "runs_today": 3,
+      "last_run_age_min": 74.7,
+      "retired_workflows_ignored": [
+        "engine4-settlement.yml",
+        "engine4-verify-results.yml",
+        "engine4-result-backfill.yml"
+      ]
     },
     {
       "id": "pool_coverage",
@@ -58,7 +74,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-23 有 6 场开赛 8.9h 仍未结算",
+      "detail": "2026-11-23 有 6 场开赛 9.0h 仍未结算",
       "checked": [
         {
           "day": "2026-11-21",
@@ -76,7 +92,7 @@
           "day": "2026-11-23",
           "matches": 8,
           "pending": 6,
-          "overdue_h": 8.9
+          "overdue_h": 9.0
         }
       ]
     },
@@ -101,8 +117,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1493,
+          "bytes": 7352,
+          "elapsed_ms": 1684,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -113,7 +129,7 @@
           "status": "up",
           "http": 200,
           "bytes": 67511,
-          "elapsed_ms": 2119,
+          "elapsed_ms": 1487,
           "error": null,
           "cn_only": true,
           "required": false
@@ -124,7 +140,7 @@
           "status": "up",
           "http": 200,
           "bytes": 73092,
-          "elapsed_ms": 277,
+          "elapsed_ms": 297,
           "error": null,
           "cn_only": false,
           "required": false
@@ -135,7 +151,7 @@
           "status": "up",
           "http": 200,
           "bytes": 112783,
-          "elapsed_ms": 1174,
+          "elapsed_ms": 1806,
           "error": null,
           "cn_only": true,
           "required": false
@@ -168,6 +184,19 @@
     }
   ],
   "budget": {
-    "spent_cny": null
+    "month": "2026-11",
+    "cap_cny": 10.0,
+    "spent_cny": 0.699804,
+    "remaining_cny": 9.300196,
+    "calls": 113,
+    "exhausted": false,
+    "used_pct": 7.0
+  },
+  "runner": {
+    "host": "runnervm0hi8g",
+    "python": "3.12.16",
+    "ci": true,
+    "run_id": "45316386052",
+    "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
