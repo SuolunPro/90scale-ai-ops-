@@ -1,16 +1,17 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-24T01:00:22Z",
-  "beijing_time": "2026-11-24 09:00:22",
+  "generated_at": "2026-11-24T01:15:13Z",
+  "beijing_time": "2026-11-24 09:15:13",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=ok,pool_coverage=ok,settlement=warn,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=warn,pool_coverage=ok,settlement=warn,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review",
   "failed": [
     "independent_review"
   ],
   "warned": [
     "engine_fresh",
+    "engine_runs",
     "settlement"
   ],
   "checks": [
@@ -19,7 +20,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104640 字节，耗时 54ms"
+      "detail": "HTTP 200，104640 字节，耗时 172ms"
     },
     {
       "id": "site_data_sync",
@@ -36,21 +37,23 @@
       "title": "预测主引擎当日快照",
       "status": "warn",
       "severity": "warn",
-      "detail": "最新快照已 223 分钟未更新（阈值 180 分钟）",
+      "detail": "最新快照已 238 分钟未更新（阈值 180 分钟）",
       "sale_day": "2026-11-24",
-      "generated_age_min": 223.1,
+      "generated_age_min": 237.9,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "ok",
-      "severity": "info",
-      "detail": "已核对 0 个计划点，无漏跑；今天 2 次运行",
-      "missed_points": [],
-      "checked_points": 0,
+      "status": "warn",
+      "severity": "warn",
+      "detail": "近 180 分钟内 1 个计划点无运行：09:12；最近一次运行 193 分钟前",
+      "missed_points": [
+        "09:12"
+      ],
+      "checked_points": 1,
       "runs_today": 2,
-      "last_run_age_min": 178.6,
+      "last_run_age_min": 193.4,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -72,7 +75,7 @@
       "title": "赛果核验与结算",
       "status": "warn",
       "severity": "warn",
-      "detail": "2026-11-23 有 6 场开赛 7.0h 未结算（观察中）",
+      "detail": "2026-11-23 有 6 场开赛 7.3h 未结算（观察中）",
       "checked": [
         {
           "day": "2026-11-21",
@@ -90,7 +93,7 @@
           "day": "2026-11-23",
           "matches": 8,
           "pending": 6,
-          "overdue_h": 7.0
+          "overdue_h": 7.3
         }
       ]
     },
@@ -116,7 +119,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 2326,
+          "elapsed_ms": 4435,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -126,8 +129,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 66956,
-          "elapsed_ms": 2203,
+          "bytes": 66958,
+          "elapsed_ms": 2200,
           "error": null,
           "cn_only": true,
           "required": false
@@ -137,8 +140,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 74178,
-          "elapsed_ms": 16,
+          "bytes": 72737,
+          "elapsed_ms": 418,
           "error": null,
           "cn_only": false,
           "required": false
@@ -149,7 +152,7 @@
           "status": "up",
           "http": 200,
           "bytes": 112756,
-          "elapsed_ms": 1146,
+          "elapsed_ms": 1136,
           "error": null,
           "cn_only": true,
           "required": false
@@ -191,10 +194,10 @@
     "used_pct": 6.86
   },
   "runner": {
-    "host": "ip-10-0-131-64",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45301643137",
+    "run_id": "45303615875",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
