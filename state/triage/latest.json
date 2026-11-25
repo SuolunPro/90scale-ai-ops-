@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-25T17:30:32Z",
+  "at": "2026-11-25T17:45:32Z",
   "verdict": "FAIL",
-  "signature": "independent_review,site_workflows",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "11-25 的 11 场比赛开赛 7.5 小时后仍未结算，独立复核数据已滞后 13 天，engine4-live-rehearsal 工作流在 120 分钟内连续失败 2 次；这三项可能同源，也可能彼此独立，目前缺少工作流失败日志和结算任务日志，无法确定根因。",
+    "summary": "独立复核数据已滞后 13 天（最新 2026-11-13），且 2026-11-25 有 11 场开赛 7.8h 未结算；当前证据只能定位到“复核文件未更新”和“结算积压”，尚缺复核任务调度日志、结算任务日志与赛果源可用性数据，无法确认根因。",
     "root_causes": [
       {
-        "cause": "结算流程或赛果核验任务停滞，导致 11-25 全部 11 场比赛积压未结算",
+        "cause": "独立复核任务未按日产出/调度中断，导致复核文件停在 2026-11-13",
         "confidence": 0.45,
-        "evidence": "checks[settlement].checked[day=2026-11-25]: matches=11, pending=11, overdue_h=7.5；前两日 pending=0"
+        "evidence": "independent_review: status=fail, latest=2026-11-13, lag_days=13"
       },
       {
-        "cause": "engine4-live-rehearsal 工作流连续失败，可能阻塞引擎侧数据产出或结算触发",
-        "confidence": 0.35,
-        "evidence": "checks[site_workflows].failures: 同一 workflow 在 2026-11-25T15:38:51Z 与 15:39:20Z 两次失败，recent_runs=4"
+        "cause": "赛果核验/结算流程积压，2026-11-25 全部 11 场未结算且已超时 7.8h",
+        "confidence": 0.4,
+        "evidence": "settlement: status=warn, 2026-11-25 matches=11, pending=11, overdue_h=7.8；前两日 2026-11-23/24 pending=0"
       },
       {
-        "cause": "独立复核流程中断或未按时产出，复核文件停留在 2026-11-13",
-        "confidence": 0.3,
-        "evidence": "checks[independent_review]: latest=2026-11-13, lag_days=13"
+        "cause": "赛果数据源或核验依赖异常，导致结算与复核同时受阻（两者可能共享上游数据）",
+        "confidence": 0.2,
+        "evidence": "settlement 11 场 pending 与 independent_review 滞后 13 天同时出现，但巡检 JSON 未提供赛果源状态字段"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45647607239",
-        "purpose": "只读获取失败工作流的运行状态与结论，确认失败环节"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <赛果源只读健康检查地址>",
+        "purpose": "确认赛果上游数据源是否可访问及响应耗时"
       },
       {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45647607239/jobs",
-        "purpose": "查看失败的具体 job 与步骤，判断是否与结算或引擎数据相关"
+        "command": "python -c \"import os,glob,time;fs=sorted(glob.glob('<复核文件目录>/*'));print([(f,time.strftime('%Y-%m-%d %H:%M',time.localtime(os.path.getmtime(f)))) for f in fs[-5:]])\"",
+        "purpose": "只读列出最新复核文件及其修改时间，确认是否真的停在 2026-11-13"
       },
       {
-        "command": "git log --since=2026-11-13 --oneline -- '*review*'",
-        "purpose": "确认独立复核文件自 11-13 后是否有提交，判断是流程未跑还是未提交"
+        "command": "git log --since=2026-11-10 --oneline -- <复核/结算相关代码或配置路径>",
+        "purpose": "确认近期是否有复核或结算相关代码/配置变更"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('settlement_state.json'));print([m for m in d if m.get('day')=='2026-11-25'])\"",
-        "purpose": "只读查看 11-25 待结算场次的赛果与结算状态字段，定位卡在哪一步"
+        "command": "curl -s <结算任务只读状态接口>",
+        "purpose": "查看 2026-11-25 未结算场次的卡单状态与错误信息"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查 engine4-live-rehearsal 工作流失败日志与 11-25 结算任务日志，确认赛果是否已入库；若为工作流故障导致结算触发中断，修复后按既有流程补结算，并补跑独立复核",
+      "action": "人工核查独立复核任务调度与赛果源可用性，确认 2026-11-25 的 11 场赛果是否已到位；在确认上游数据正常后，由值班人员按既定流程手动触发复核与结算补跑（不在本诊断中执行任何写操作）。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "11-25 的 11 场比赛未结算，相关会员的派彩与账务展示会延迟；独立复核滞后 13 天，削弱结果可信度与合规留痕；网站本身未见不可用证据。",
+    "customer_impact": "复核滞后 13 天意味着近期开奖结果缺少独立二次校验；11 场未结算将延迟对应场次的派奖与会员账户结算，可能引发会员对开奖/派奖时效的投诉，暂未见资金错误证据。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.912828,
-    "remaining_cny": 9.087172,
-    "calls": 146,
+    "spent_cny": 0.919444,
+    "remaining_cny": 9.080556,
+    "calls": 147,
     "exhausted": false,
-    "used_pct": 9.13
+    "used_pct": 9.19
   },
   "usage": {
-    "prompt_tokens": 759,
-    "completion_tokens": 674,
-    "total_tokens": 1433,
+    "prompt_tokens": 544,
+    "completion_tokens": 691,
+    "total_tokens": 1235,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 631
+    "prompt_cache_miss_tokens": 416
   },
-  "cost_cny": 0.00691
+  "cost_cny": 0.006616
 }
