@@ -1,22 +1,24 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-25T00:45:12Z",
-  "beijing_time": "2026-11-25 08:45:12",
-  "in_sale_window": false,
+  "generated_at": "2026-11-25T01:00:13Z",
+  "beijing_time": "2026-11-25 09:00:13",
+  "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review",
   "failed": [
     "independent_review"
   ],
-  "warned": [],
+  "warned": [
+    "engine_fresh"
+  ],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104695 字节，耗时 152ms"
+      "detail": "HTTP 200，104695 字节，耗时 171ms"
     },
     {
       "id": "site_data_sync",
@@ -31,12 +33,12 @@
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
-      "status": "ok",
-      "severity": "info",
-      "detail": "sale_day=2026-11-25，快照 244 分钟前生成",
+      "status": "warn",
+      "severity": "warn",
+      "detail": "最新快照已 259 分钟未更新（阈值 180 分钟）",
       "sale_day": "2026-11-25",
-      "generated_age_min": 244.3,
-      "in_window": false
+      "generated_age_min": 259.4,
+      "in_window": true
     },
     {
       "id": "engine_runs",
@@ -47,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 2,
-      "last_run_age_min": 97.8,
+      "last_run_age_min": 112.8,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -113,7 +115,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 2554,
+          "elapsed_ms": 1905,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -124,7 +126,7 @@
           "status": "up",
           "http": 200,
           "bytes": 73557,
-          "elapsed_ms": 1591,
+          "elapsed_ms": 1371,
           "error": null,
           "cn_only": true,
           "required": false
@@ -135,7 +137,7 @@
           "status": "up",
           "http": 200,
           "bytes": 66582,
-          "elapsed_ms": 297,
+          "elapsed_ms": 239,
           "error": null,
           "cn_only": false,
           "required": false
@@ -146,7 +148,7 @@
           "status": "up",
           "http": 200,
           "bytes": 130508,
-          "elapsed_ms": 1371,
+          "elapsed_ms": 1216,
           "error": null,
           "cn_only": true,
           "required": false
@@ -191,7 +193,7 @@
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45520508275",
+    "run_id": "45522420108",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
