@@ -1,68 +1,68 @@
 {
-  "at": "2026-11-25T06:15:31Z",
+  "at": "2026-11-25T07:15:28Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 12 天（FAIL），且售期内 14:12 计划点漏跑、最近运行距今 48 分钟；现有证据只能定位到调度/复核链路停滞，尚缺漏跑原因日志与复核任务执行记录。",
+    "summary": "独立复核数据已滞后 12 天（FAIL），且售期内预测引擎 15:12 计划点漏跑（WARN）；现有证据只能定位到“复核文件未更新”和“计划点无运行记录”，尚缺复核任务运行日志与引擎调度日志来确认根因。",
     "root_causes": [
       {
-        "cause": "独立复核任务长期未产出新文件（复核流水线停摆或未调度）",
+        "cause": "独立复核任务未按计划产出新文件（任务未运行或运行失败）",
         "confidence": 0.6,
         "evidence": "independent_review: latest=2026-11-13, lag_days=12, status=fail"
       },
       {
-        "cause": "预测引擎计划点调度漏跑（14:12 计划点无运行记录）",
+        "cause": "预测引擎 15:12 计划点调度漏跑（调度延迟或工作流未触发）",
         "confidence": 0.5,
-        "evidence": "engine_runs: missed_points=[14:12], last_run_age_min=48.2, checked_points=3, runs_today=6"
+        "evidence": "engine_runs: missed_points=[\"15:12\"], last_run_age_min=50.4, checked_points=3, runs_today=7"
       },
       {
-        "cause": "部分引擎工作流已退役，调度配置与实际运行工作流不一致导致计划点覆盖缺失",
-        "confidence": 0.3,
-        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]"
+        "cause": "复核与引擎依赖的上游数据/工作流异常，导致复核文件无法生成",
+        "confidence": 0.25,
+        "evidence": "engine_runs 与 independent_review 同时异常；retired_workflows_ignored 含 engine4-verify-results.yml 等已退役工作流，仅说明被忽略，不能证明因果"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <复核文件所在只读地址>",
-        "purpose": "确认复核文件端点是否可访问、是否仍返回旧文件"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <复核文件只读访问地址>",
+        "purpose": "确认最新复核文件是否可访问、是否仍停留在 2026-11-13"
       },
       {
-        "command": "git log --since='2026-11-10' --oneline -- <复核数据目录>",
-        "purpose": "确认复核文件最后一次提交时间与提交者，判断是未生成还是未提交"
+        "command": "git log --since='2026-11-13' --name-only -- <复核文件目录>",
+        "purpose": "查看复核文件目录近 12 天是否有提交记录，判断是未生成还是未提交"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<巡检JSON路径>'));print(d['checks'])\"",
-        "purpose": "复核巡检原始字段，确认漏跑点与滞后天数无解析偏差"
+        "command": "python -c \"import json;d=json.load(open('<巡检结果文件>'));print(d.get('checks'))\"",
+        "purpose": "只读复核巡检原始字段，确认 lag_days 与 missed_points 的计算口径"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核任务与引擎调度配置（含已退役工作流的替代关系），确认 14:12 计划点漏跑原因后手动补跑复核与缺失计划点",
+      "action": "人工检查独立复核任务与预测引擎 15:12 计划点的调度配置及最近运行日志，确认任务是否被禁用、失败或延迟，并在确认原因后手动触发一次复核任务补产数据",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "售期内预测结果可能未按时更新，独立复核缺失使结果可信度无法验证，会员可能看到滞后或未经复核的预测内容。",
+    "customer_impact": "独立复核数据滞后 12 天，售期内预测结果缺少独立复核背书，会员可能看到未经复核的预测；15:12 计划点漏跑可能导致该时段预测/结果更新延迟，影响网站展示的时效性。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.874924,
-    "remaining_cny": 9.125076,
-    "calls": 140,
+    "spent_cny": 0.880364,
+    "remaining_cny": 9.119636,
+    "calls": 141,
     "exhausted": false,
-    "used_pct": 8.75
+    "used_pct": 8.8
   },
   "usage": {
     "prompt_tokens": 520,
-    "completion_tokens": 489,
-    "total_tokens": 1009,
+    "completion_tokens": 550,
+    "total_tokens": 1070,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 392
   },
-  "cost_cny": 0.004952
+  "cost_cny": 0.00544
 }
