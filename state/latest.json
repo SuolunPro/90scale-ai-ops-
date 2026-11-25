@@ -1,57 +1,53 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-25T06:00:16Z",
-  "beijing_time": "2026-11-25 14:00:16",
+  "generated_at": "2026-11-25T06:30:14Z",
+  "beijing_time": "2026-11-25 14:30:14",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "independent_review",
   "failed": [
     "independent_review"
   ],
-  "warned": [
-    "engine_runs"
-  ],
+  "warned": [],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104695 字节，耗时 141ms"
+      "detail": "HTTP 200，104695 字节，耗时 140ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（134131 字节），Pages 已生效",
-      "prod_bytes": 134131,
-      "prod_sha": "ddf337821c",
-      "repo_sha": "ddf337821c"
+      "detail": "生产与仓库一致（134163 字节），Pages 已生效",
+      "prod_bytes": 134163,
+      "prod_sha": "4ac7290f88",
+      "repo_sha": "4ac7290f88"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-25，快照 28 分钟前生成",
+      "detail": "sale_day=2026-11-25，快照 1 分钟前生成",
       "sale_day": "2026-11-25",
-      "generated_age_min": 28.5,
+      "generated_age_min": 1.3,
       "in_window": true
     },
     {
       "id": "engine_runs",
       "title": "预测引擎计划点漏跑",
-      "status": "warn",
-      "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：11:12；最近一次运行 33 分钟前",
-      "missed_points": [
-        "11:12"
-      ],
+      "status": "ok",
+      "severity": "info",
+      "detail": "已核对 3 个计划点，无漏跑；今天 7 次运行",
+      "missed_points": [],
       "checked_points": 3,
-      "runs_today": 6,
-      "last_run_age_min": 33.3,
+      "runs_today": 7,
+      "last_run_age_min": 5.4,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -116,8 +112,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1457,
+          "bytes": 7352,
+          "elapsed_ms": 2088,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,7 +124,7 @@
           "status": "up",
           "http": 200,
           "bytes": 73983,
-          "elapsed_ms": 1475,
+          "elapsed_ms": 1800,
           "error": null,
           "cn_only": true,
           "required": false
@@ -138,8 +134,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 65878,
-          "elapsed_ms": 248,
+          "bytes": 65899,
+          "elapsed_ms": 231,
           "error": null,
           "cn_only": false,
           "required": false
@@ -150,7 +146,7 @@
           "status": "up",
           "http": 200,
           "bytes": 324669,
-          "elapsed_ms": 2196,
+          "elapsed_ms": 1514,
           "error": null,
           "cn_only": true,
           "required": false
@@ -185,17 +181,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.869972,
-    "remaining_cny": 9.130028,
-    "calls": 139,
+    "spent_cny": 0.874924,
+    "remaining_cny": 9.125076,
+    "calls": 140,
     "exhausted": false,
-    "used_pct": 8.7
+    "used_pct": 8.75
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45557406280",
+    "run_id": "45561056738",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
