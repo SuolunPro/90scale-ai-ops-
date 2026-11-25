@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-25T02:15:28Z",
+  "at": "2026-11-25T03:15:31Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 12 天（最新 2026-11-13），但巡检仅提供文件日期，缺少复核任务调度日志与失败原因，根因暂无法确定。",
+    "summary": "独立复核数据已滞后 12 天（FAIL），且预测引擎在 11:12 的计划点漏跑、最近一次运行在 113 分钟前；当前处于售窗期，需优先确认复核链路是否停摆，但现有证据不足以定位具体根因。",
     "root_causes": [
       {
-        "cause": "独立复核任务调度未执行或执行失败（定时任务中断/报错）",
+        "cause": "独立复核任务（workflow/调度）停摆或未产出新文件，导致复核数据 12 天未更新",
+        "confidence": 0.55,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=12, status=fail"
+      },
+      {
+        "cause": "预测引擎计划点调度异常（cron/触发缺失或任务失败），造成 11:12 计划点无运行、最近运行距今 112.6 分钟",
         "confidence": 0.45,
-        "evidence": "checks[id=independent_review].latest=2026-11-13, lag_days=12，巡检期间 in_sale_window=true 仍无新文件"
+        "evidence": "engine_runs: missed_points=[11:12], last_run_age_min=112.6, runs_today=3, checked_points=2"
       },
       {
-        "cause": "复核产出文件写入路径或命名规则变更，导致巡检读取到旧文件",
-        "confidence": 0.3,
-        "evidence": "detail 仅比对“最新复核文件”日期，未提供目录列表或写入日志"
-      },
-      {
-        "cause": "复核流程依赖的上游数据未就绪，复核被阻塞",
+        "cause": "复核与引擎共用同一调度/仓库链路，单点故障同时影响两者（如 Actions 配额、分支保护或密钥过期）",
         "confidence": 0.25,
-        "evidence": "巡检 JSON 未包含上游数据新鲜度检查项，无相关证据"
+        "evidence": "independent_review 滞后 12 天与 engine_runs 漏跑同时出现，且 retired_workflows_ignored 显示存在已退役 workflow 配置"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://127.0.0.1:<port>/health 或读取巡检服务自身状态接口（只读）",
-        "purpose": "确认巡检服务与复核调度组件是否在线"
+        "command": "curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/<owner>/<repo>/actions/workflows\"",
+        "purpose": "只读列出当前启用的 workflow 及其状态，确认复核与引擎相关 workflow 是否存在/被禁用"
       },
       {
-        "command": "python -c \"import os,glob;d='<复核目录>';fs=sorted(glob.glob(os.path.join(d,'*')),key=os.path.getmtime)[-10:];print([(f,os.path.getmtime(f)) for f in fs])\"",
-        "purpose": "只读列出复核目录最近文件及修改时间，确认是否真的无新产出还是路径/命名变化"
+        "command": "curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\"",
+        "purpose": "只读查看最近运行记录与结论，确认 11:12 计划点及复核任务是否触发、是否失败"
       },
       {
-        "command": "git log --oneline -20 -- <复核相关脚本或配置路径>",
-        "purpose": "确认近期是否有复核脚本/配置变更导致产出中断"
+        "command": "git log --since=2026-11-13 --name-only --pretty=format:'%h %ad %s' --date=iso -- <复核数据目录>",
+        "purpose": "只读确认复核文件最后一次提交时间与后续是否有产出，验证 12 天滞后是否真实"
       },
       {
-        "command": "curl -s <调度系统只读查询接口>/jobs/<复核任务ID>/history",
-        "purpose": "查看复核任务最近执行记录与失败信息"
+        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<复核数据目录>/*'));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
+        "purpose": "只读检查复核文件的实际修改时间，排除文件存在但内容未更新的情况"
       }
     ],
     "suggested_fix": {
-      "action": "由值班人员确认复核任务调度状态与产出目录，定位中断原因后人工触发一次复核流程（不在本助手执行）",
+      "action": "人工登录 CI/调度平台核对复核与引擎 workflow 的启用状态与最近运行日志，确认 11:12 漏跑原因并手动触发一次复核任务补齐数据（需人工执行，不在本助手权限内）",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "复核滞后期间，若复核用于销售窗口内的结果校验，可能存在未经独立复核的数据对外展示的风险；当前无直接会员侧报错证据。",
+    "customer_impact": "售窗期内复核数据滞后 12 天，预测结果缺少独立复核背书，若复核用于对外发布或风控校验，会员可能看到未经复核的预测；引擎漏跑可能导致 11:12 计划点的预测未按时更新。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.843896,
-    "remaining_cny": 9.156104,
-    "calls": 135,
+    "spent_cny": 0.850504,
+    "remaining_cny": 9.149496,
+    "calls": 136,
     "exhausted": false,
-    "used_pct": 8.44
+    "used_pct": 8.51
   },
   "usage": {
-    "prompt_tokens": 379,
-    "completion_tokens": 506,
-    "total_tokens": 885,
+    "prompt_tokens": 520,
+    "completion_tokens": 696,
+    "total_tokens": 1216,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 251
+    "prompt_cache_miss_tokens": 392
   },
-  "cost_cny": 0.004806
+  "cost_cny": 0.006608
 }
