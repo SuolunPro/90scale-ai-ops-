@@ -1,72 +1,76 @@
 {
-  "at": "2026-11-25T10:00:34Z",
+  "at": "2026-11-25T16:00:41Z",
   "verdict": "FAIL",
-  "signature": "independent_review",
+  "signature": "independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 12 天（最新 2026-11-13），且 17:12 计划点漏跑；但缺少复核任务自身的运行日志与调度配置证据，根因尚不能确定。",
+    "summary": "结算积压（11 场超期 6 小时未结算）与独立复核数据滞后 13 天同时出现，且 engine4-live-rehearsal 工作流在 2 分钟内连续失败 2 次；目前缺少工作流失败日志和复核文件缺失原因的证据，根因置信度偏低。",
     "root_causes": [
       {
-        "cause": "独立复核任务（生成复核文件的 workflow/脚本）已停止调度或持续失败，导致复核文件不再更新",
-        "confidence": 0.6,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=12；同时 engine_runs 显示 17:12 计划点无运行，说明调度侧存在漏跑现象"
+        "cause": "结算流程或赛果核验任务停滞，导致 2026-11-25 全部 11 场比赛超期未结算",
+        "confidence": 0.55,
+        "evidence": "checks[settlement].checked[day=2026-11-25]: matches=11, pending=11, overdue_h=6.0；前两日 pending=0"
       },
       {
-        "cause": "复核文件生成依赖的上游数据（预测结果/结算数据）缺失或延迟，复核任务空跑未产出新文件",
-        "confidence": 0.3,
-        "evidence": "engine_runs: missed_points=[17:12], last_run_age_min=6.1, runs_today=12；retired_workflows_ignored 含 engine4-verify-results.yml、engine4-result-backfill.yml，说明结果校验/回填链路已退役，可能影响复核输入"
+        "cause": "独立复核数据生成或同步链路中断，复核文件自 2026-11-13 起未更新",
+        "confidence": 0.5,
+        "evidence": "checks[independent_review]: latest=2026-11-13, lag_days=13"
       },
       {
-        "cause": "17:12 漏跑属单点偶发（如调度抖动或运行超时），与复核滞后非同一根因",
-        "confidence": 0.25,
-        "evidence": "engine_runs 仅 1 个漏跑点，checked_points=3，最近一次运行仅 6 分钟前，整体仍在运行"
+        "cause": "engine4-live-rehearsal 工作流本身失败（可能由代码、配置或依赖问题引起），与结算或复核滞后可能同源",
+        "confidence": 0.35,
+        "evidence": "checks[site_workflows].failures: 2 次失败，时间 2026-11-25T15:38:51Z 与 15:39:20Z，recent_runs=10"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['updated_at']) for w in d.get('workflows',[])]\"",
-        "purpose": "确认独立复核相关 workflow 是否存在且处于 active 状态（只读查询调度配置）"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45647607239/jobs",
+        "purpose": "读取失败工作流的 job 与步骤日志摘要，确认失败环节"
       },
       {
-        "command": "curl -s \"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=30\" | python -c \"import sys,json;d=json.load(sys.stdin);[print(r['name'],r['created_at'],r['conclusion']) for r in d.get('workflow_runs',[])]\"",
-        "purpose": "查看近 30 次运行记录，定位复核任务最后一次成功/失败时间与失败原因"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45647518282/jobs",
+        "purpose": "对比第二次失败是否同一环节，判断是否可复现"
       },
       {
-        "command": "git log --since=2026-11-10 --name-only --pretty=format:'%h %ad %s' --date=iso -- '*review*' '*verify*'",
-        "purpose": "确认复核文件与相关脚本在 11-13 之后是否有提交变更，排除代码改动导致产出中断"
+        "command": "git -C <repo> log --since=2026-11-12 --until=2026-11-14 --oneline -- '*review*'",
+        "purpose": "查看复核文件最后一次更新对应的提交，定位生成链路"
       },
       {
-        "command": "python -c \"import os,glob,datetime;fs=sorted(glob.glob('**/*review*',recursive=True),key=os.path.getmtime)[-5:];[print(f,datetime.datetime.fromtimestamp(os.path.getmtime(f))) for f in fs]\"",
-        "purpose": "核对本地复核文件的实际修改时间与巡检 latest 字段是否一致，确认滞后范围"
+        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<review_dir>/*'));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
+        "purpose": "只读列出最新复核文件及其时间戳，确认滞后是否持续"
+      },
+      {
+        "command": "curl -s <结算服务只读健康/队列接口>",
+        "purpose": "确认 11 场 pending 是否仍在队列中、是否有报错计数"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核 workflow 的调度状态与最近失败日志，确认是调度停摆还是上游数据缺失；恢复调度或修复失败原因后手动触发一次复核任务，并补跑 17:12 漏跑的计划点",
+      "action": "人工介入：先查看 engine4-live-rehearsal 失败日志定位原因；同时由值班人员核对 2026-11-25 的 11 场赛果并手动触发结算流程，并检查独立复核文件的生成任务是否停摆。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "复核数据滞后 12 天意味着预测结果缺少独立校验，若预测存在偏差可能无法及时发现，影响会员看到的预测准确性与网站数据可信度；当前未见直接不可用，但处于销售窗口期内风险放大。",
+    "customer_impact": "11 场比赛超期未结算，会员的派彩与账户余额更新延迟；复核数据滞后 13 天，降低结算结果的独立校验保障，若结算出错难以及时发现。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.898,
-    "remaining_cny": 9.102,
-    "calls": 144,
+    "spent_cny": 0.905182,
+    "remaining_cny": 9.094818,
+    "calls": 145,
     "exhausted": false,
-    "used_pct": 8.98
+    "used_pct": 9.05
   },
   "usage": {
-    "prompt_tokens": 520,
-    "completion_tokens": 793,
-    "total_tokens": 1313,
+    "prompt_tokens": 759,
+    "completion_tokens": 708,
+    "total_tokens": 1467,
     "prompt_tokens_details": {
-      "cached_tokens": 256
+      "cached_tokens": 128
     },
-    "prompt_cache_hit_tokens": 256,
-    "prompt_cache_miss_tokens": 264
+    "prompt_cache_hit_tokens": 128,
+    "prompt_cache_miss_tokens": 631
   },
-  "cost_cny": 0.007384
+  "cost_cny": 0.007182
 }
