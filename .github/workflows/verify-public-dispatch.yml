@@ -1,0 +1,17 @@
+name: Verify watchdog destination authorization
+on:
+  push:
+    branches: [verify/watchdog-public-dispatch-20261126]
+    paths: ['.github/workflows/verify-public-dispatch.yml']
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check authorization using a nonexistent destination ref
+        env:
+          TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          code=$(curl -sS -o /tmp/result -w '%{http_code}' -H "Authorization: Bearer $TOKEN" -H 'Accept: application/vnd.github+json' -X POST https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/workflows/public-refresh-audit.yml/dispatches -d '{"ref":"verify/absent-public-dispatch-permission-check-20261126"}')
+          echo "Destination returned HTTP $code"
+          test "$code" = 422 && jq -e '.message | contains("No ref found")' /tmp/result
