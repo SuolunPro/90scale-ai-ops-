@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-26T06:00:31Z",
+  "at": "2026-11-26T07:00:33Z",
   "verdict": "FAIL",
   "signature": "independent_review,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎近 180 分钟漏跑 2 个计划点，独立复核数据已滞后 13 天，网站构建工作流在 120 分钟内失败 1 次；但缺少漏跑原因、复核停滞原因和构建失败日志，根因置信度偏低。",
+    "summary": "预测引擎近 180 分钟漏跑 2 个计划点（12:12、14:12），独立复核数据滞后 13 天，网站构建工作流 1 次失败；但缺少工作流日志与复核文件内容，根因只能低置信推断。",
     "root_causes": [
       {
-        "cause": "独立复核流程已停摆或未产出新文件，导致复核数据滞后 13 天",
-        "confidence": 0.55,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=13, status=fail"
-      },
-      {
-        "cause": "预测引擎计划调度不稳定，近 180 分钟内 11:12、12:12 两个计划点未触发，但最近一次运行仅 1.6 分钟前，说明引擎本身仍在运行",
+        "cause": "预测引擎调度未触发或工作流被禁用/跳过，导致 12:12、14:12 计划点无运行",
         "confidence": 0.45,
-        "evidence": "engine_runs: missed_points=[11:12,12:12], checked_points=3, runs_today=17, last_run_age_min=1.6"
+        "evidence": "engine_runs: missed_points=[12:12,14:12], last_run_age_min=61.7, runs_today=17, checked_points=3"
       },
       {
-        "cause": "网站仓库构建工作流失败，可能由上游预测产物缺失或校验不通过引发",
+        "cause": "独立复核流程长期未执行或产出未提交，复核文件停留在 2026-11-13",
+        "confidence": 0.4,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=13"
+      },
+      {
+        "cause": "网站仓库构建工作流失败，可能由数据/依赖或构建脚本问题引起",
         "confidence": 0.35,
         "evidence": "site_workflows: failures=[Build verified website predictions @ 2026-11-26T05:45:56Z], recent_runs=30"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45763712955/jobs",
-        "purpose": "读取失败构建的 job 与步骤日志摘要，确认失败发生在构建、校验还是部署阶段"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45763712955",
+        "purpose": "只读查看失败构建的结论与触发信息"
       },
       {
-        "command": "git log --since=2026-11-10 --oneline -- '*review*'",
-        "purpose": "确认独立复核文件自 2026-11-13 后是否有提交或产出记录"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45763712955/jobs",
+        "purpose": "定位失败的具体 job 与步骤"
+      },
+      {
+        "command": "git log -5 --format='%h %ad %s' --date=iso -- <复核文件路径>",
+        "purpose": "确认独立复核文件最后提交时间与提交者"
       },
       {
         "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/workflows",
-        "purpose": "核对引擎与复核相关 workflow 的启用状态，排查是否被禁用或改名"
-      },
-      {
-        "command": "python -c \"import json,urllib.request;d=json.load(urllib.request.urlopen('https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs?per_page=30'));print([(r['name'],r['conclusion'],r['created_at']) for r in d['workflow_runs']])\"",
-        "purpose": "只读拉取近 30 次运行结论，判断构建失败是偶发还是连续"
+        "purpose": "确认引擎相关 workflow 是否处于 active 状态"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核 workflow 是否被禁用或报错，并查看失败构建 run 45763712955 的日志；确认漏跑的两个计划点是否因调度延迟或并发限制被跳过，必要时手动触发一次复核与构建",
+      "action": "人工核查引擎调度配置与 workflow 启用状态，补跑缺失计划点；检查独立复核流程为何 13 天未产出；查看失败构建日志后修复并重跑",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "网站预测页可能展示过期或未更新的复核结果，会员看到的预测可信度下降；若构建持续失败，网站预测内容可能停留在旧版本。",
+    "customer_impact": "预测结果可能未按时更新，网站预测页面可能展示过期或构建失败版本，影响会员查看最新预测。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.015242,
-    "remaining_cny": 8.984758,
-    "calls": 162,
+    "spent_cny": 1.020888,
+    "remaining_cny": 8.979112,
+    "calls": 163,
     "exhausted": false,
-    "used_pct": 10.15
+    "used_pct": 10.21
   },
   "usage": {
     "prompt_tokens": 659,
-    "completion_tokens": 668,
-    "total_tokens": 1327,
+    "completion_tokens": 541,
+    "total_tokens": 1200,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 531
   },
-  "cost_cny": 0.006662
+  "cost_cny": 0.005646
 }
