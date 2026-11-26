@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-26T13:00:14Z",
-  "beijing_time": "2026-11-26 21:00:14",
+  "generated_at": "2026-11-26T14:00:11Z",
+  "beijing_time": "2026-11-26 22:00:11",
   "in_sale_window": true,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104817 字节，耗时 209ms"
+      "detail": "HTTP 200，104817 字节，耗时 271ms"
     },
     {
       "id": "site_data_sync",
@@ -35,9 +35,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-26，快照 64 分钟前生成",
+      "detail": "sale_day=2026-11-26，快照 124 分钟前生成",
       "sale_day": "2026-11-26",
-      "generated_age_min": 63.8,
+      "generated_age_min": 123.8,
       "in_window": true
     },
     {
@@ -45,18 +45,18 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 6 个计划点无运行：18:12、18:42、19:12、19:42、20:12、20:42；最近一次运行 360 分钟前",
+      "detail": "近 180 分钟内 6 个计划点无运行：19:12、19:42、20:12、20:42、21:12、21:42；最近一次运行 420 分钟前",
       "missed_points": [
-        "18:12",
-        "18:42",
         "19:12",
         "19:42",
         "20:12",
-        "20:42"
+        "20:42",
+        "21:12",
+        "21:42"
       ],
       "checked_points": 6,
       "runs_today": 18,
-      "last_run_age_min": 359.7,
+      "last_run_age_min": 419.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -122,7 +122,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1791,
+          "elapsed_ms": 1496,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -132,8 +132,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 116320,
-          "elapsed_ms": 1990,
+          "bytes": 116321,
+          "elapsed_ms": 2121,
           "error": null,
           "cn_only": true,
           "required": false
@@ -143,8 +143,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 41448,
-          "elapsed_ms": 330,
+          "bytes": 41995,
+          "elapsed_ms": 276,
           "error": null,
           "cn_only": false,
           "required": false
@@ -154,8 +154,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 352906,
-          "elapsed_ms": 1634,
+          "bytes": 353099,
+          "elapsed_ms": 2626,
           "error": null,
           "cn_only": true,
           "required": false
@@ -173,9 +173,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 7 次运行，无失败",
+      "detail": "120 分钟内 6 次运行，无失败",
       "failures": [],
-      "recent_runs": 7
+      "recent_runs": 6
     },
     {
       "id": "legacy_sale_status",
@@ -197,10 +197,10 @@
     "used_pct": 10.41
   },
   "runner": {
-    "host": "runnervm3lb7s",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45824886631",
+    "run_id": "45834596330",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
