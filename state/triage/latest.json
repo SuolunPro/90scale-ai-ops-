@@ -1,76 +1,68 @@
 {
-  "at": "2026-11-26T01:30:45Z",
+  "at": "2026-11-26T02:00:28Z",
   "verdict": "FAIL",
-  "signature": "independent_review,settlement",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-25 有 9 场比赛在开赛 15.5 小时后仍未结算，且独立复核数据已滞后 13 天；现有证据只能定位到结算与复核链路异常，尚缺结算任务日志、赛果源可用性和复核任务调度记录来确认根因。",
+    "summary": "独立复核数据已滞后 13 天（最新 2026-11-13），且当前处于销售窗口内；仅凭巡检 JSON 无法判断是复核任务未运行、文件未产出还是路径/命名变更，需补充复核任务日志与目录清单证据。",
     "root_causes": [
       {
-        "cause": "赛果数据源或结算任务在 2026-11-25 中断，导致当日 9 场比赛长期挂起未结算",
-        "confidence": 0.55,
-        "evidence": "settlement=fail，2026-11-25 matches=11、pending=9、overdue_h=15.5，而 11-23、11-24 pending 均为 0"
+        "cause": "独立复核任务未按计划执行（调度未触发或执行失败），导致复核文件停止产出",
+        "confidence": 0.45,
+        "evidence": "checks[id=independent_review].status=fail, latest=2026-11-13, lag_days=13, in_sale_window=true"
       },
       {
-        "cause": "独立复核任务调度或产出链路停摆，复核文件自 2026-11-13 起未更新",
-        "confidence": 0.5,
-        "evidence": "independent_review=fail，latest=2026-11-13，lag_days=13"
-      },
-      {
-        "cause": "结算与复核共用上游数据或任务依赖，同一上游异常同时影响两项检查",
+        "cause": "复核文件产出路径或命名规则变更，巡检读取到的是旧文件",
         "confidence": 0.3,
-        "evidence": "两项检查同时 fail，且均表现为数据未更新；但巡检未提供任务依赖或上游状态字段"
+        "evidence": "detail=最新复核文件 2026-11-13，已滞后 13 天；巡检仅比对单一 latest 字段，无目录清单佐证"
+      },
+      {
+        "cause": "复核流程依赖的上游数据延迟，复核无法生成新结果",
+        "confidence": 0.25,
+        "evidence": "lag_days=13 且 in_sale_window=true；巡检 JSON 未包含上游数据新鲜度检查项，证据不足"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s http://localhost:<settlement_service_port>/health",
-        "purpose": "确认结算服务进程与依赖是否存活（端口以实际部署为准，只读）"
+        "command": "curl -s -m 5 http://127.0.0.1:<巡检服务端口>/health",
+        "purpose": "确认巡检服务本身存活，排除巡检采集侧异常导致的误报"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('/var/log/settlement/pending_2026-11-25.json'));print(len(d))\"",
-        "purpose": "只读统计 2026-11-25 待结算比赛清单与卡住环节"
+        "command": "python -c \"import os,glob;d='<复核文件目录>';print(sorted(glob.glob(os.path.join(d,'*')))[-20:])\"",
+        "purpose": "只读列出复核目录最近文件，确认是否真的只有 2026-11-13 及更早文件，排除路径/命名变更"
       },
       {
-        "command": "curl -s 'http://localhost:<result_source_port>/results?date=2026-11-25'",
-        "purpose": "确认赛果源对 2026-11-25 是否返回数据"
-      },
-      {
-        "command": "ls -l /data/independent_review/ | tail -20",
-        "purpose": "查看复核文件目录最新产出时间，确认是否停在 2026-11-13"
-      },
-      {
-        "command": "git log --oneline -10 --since=2026-11-12 -- '*review*'",
-        "purpose": "只读查看复核相关代码或配置近期是否有变更"
+        "command": "git log --oneline -n 20 -- <复核相关配置或脚本路径>",
+        "purpose": "只读查看复核任务配置/脚本近期是否有变更，验证路径或调度改动假设"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查 2026-11-25 赛果源可用性与结算任务日志，确认卡点后按既有流程补跑结算；同时检查独立复核任务调度与产出目录，恢复复核文件生成。",
+      "action": "人工登录复核任务所在环境，只读核查调度状态与最近执行日志，确认任务是否停跑；若为调度中断，由值班人员按既定流程手动触发一次复核任务并核对产出文件日期，不改动算法与历史数据。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "9 场比赛未结算将导致相关会员的派彩与账务延迟，可能引发客诉；独立复核滞后 13 天削弱开奖结果的独立校验，存在合规与信任风险。",
+    "customer_impact": "复核数据滞后 13 天且处于销售窗口内，若复核用于销售期数据校验，可能导致异常订单/会员数据缺少二次校验，存在漏检风险；当前无直接网站不可用证据。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.985894,
-    "remaining_cny": 9.014106,
-    "calls": 157,
+    "spent_cny": 0.990988,
+    "remaining_cny": 9.009012,
+    "calls": 158,
     "exhausted": false,
-    "used_pct": 9.86
+    "used_pct": 9.91
   },
   "usage": {
-    "prompt_tokens": 539,
-    "completion_tokens": 621,
-    "total_tokens": 1160,
+    "prompt_tokens": 379,
+    "completion_tokens": 542,
+    "total_tokens": 921,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 411
+    "prompt_cache_miss_tokens": 251
   },
-  "cost_cny": 0.006046
+  "cost_cny": 0.005094
 }
