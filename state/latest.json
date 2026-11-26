@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-26T03:15:11Z",
-  "beijing_time": "2026-11-26 11:15:11",
+  "generated_at": "2026-11-26T04:15:11Z",
+  "beijing_time": "2026-11-26 12:15:11",
   "in_sale_window": true,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,26 +18,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104764 字节，耗时 143ms"
+      "detail": "HTTP 200，104764 字节，耗时 78ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（89806 字节），Pages 已生效",
-      "prod_bytes": 89806,
-      "prod_sha": "4c3edf9fc8",
-      "repo_sha": "4c3edf9fc8"
+      "detail": "生产与仓库一致（115056 字节），Pages 已生效",
+      "prod_bytes": 115056,
+      "prod_sha": "0ebbc90259",
+      "repo_sha": "0ebbc90259"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-26，快照 115 分钟前生成",
+      "detail": "sale_day=2026-11-26，快照 30 分钟前生成",
       "sale_day": "2026-11-26",
-      "generated_age_min": 114.8,
+      "generated_age_min": 29.9,
       "in_window": true
     },
     {
@@ -45,13 +45,14 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：11:12；最近一次运行 117 分钟前",
+      "detail": "近 180 分钟内 2 个计划点无运行：11:12、12:12；最近一次运行 32 分钟前",
       "missed_points": [
-        "11:12"
+        "11:12",
+        "12:12"
       ],
       "checked_points": 2,
-      "runs_today": 3,
-      "last_run_age_min": 117.3,
+      "runs_today": 4,
+      "last_run_age_min": 32.0,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -63,9 +64,9 @@
       "title": "当日赛事池完整性",
       "status": "ok",
       "severity": "info",
-      "detail": "6 场，均含预测",
-      "matches": 6,
-      "metrics_total": 6,
+      "detail": "7 场，均含预测",
+      "matches": 7,
+      "metrics_total": 7,
       "missing_prediction": 0
     },
     {
@@ -109,7 +110,7 @@
       "title": "采集链路可用性",
       "status": "skip",
       "severity": "info",
-      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像、澳客竞彩 正常",
+      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像 正常",
       "probes": [
         {
           "id": "sporttery",
@@ -117,7 +118,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 3098,
+          "elapsed_ms": 1724,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,7 +129,7 @@
           "status": "up",
           "http": 200,
           "bytes": 76088,
-          "elapsed_ms": 1071,
+          "elapsed_ms": 1870,
           "error": null,
           "cn_only": true,
           "required": false
@@ -138,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 39478,
-          "elapsed_ms": 268,
+          "bytes": 39455,
+          "elapsed_ms": 272,
           "error": null,
           "cn_only": false,
           "required": false
@@ -147,11 +148,11 @@
         {
           "id": "okooo",
           "name": "澳客竞彩",
-          "status": "up",
-          "http": 200,
-          "bytes": 147897,
-          "elapsed_ms": 952,
-          "error": null,
+          "status": "down",
+          "http": 405,
+          "bytes": 2657,
+          "elapsed_ms": 918,
+          "error": "HTTP 405",
           "cn_only": true,
           "required": false
         },
@@ -168,9 +169,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 20 次运行，无失败",
+      "detail": "120 分钟内 4 次运行，无失败",
       "failures": [],
-      "recent_runs": 20
+      "recent_runs": 4
     },
     {
       "id": "legacy_sale_status",
@@ -185,17 +186,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.995554,
-    "remaining_cny": 9.004446,
-    "calls": 159,
+    "spent_cny": 1.002562,
+    "remaining_cny": 8.997438,
+    "calls": 160,
     "exhausted": false,
-    "used_pct": 9.96
+    "used_pct": 10.03
   },
   "runner": {
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45747695811",
+    "run_id": "45754004661",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
