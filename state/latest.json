@@ -1,13 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-26T05:15:18Z",
-  "beijing_time": "2026-11-26 13:15:18",
+  "generated_at": "2026-11-26T06:00:13Z",
+  "beijing_time": "2026-11-26 14:00:13",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "independent_review",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=fail,legacy_sale_status=ok",
+  "signature": "independent_review,site_workflows",
   "failed": [
-    "independent_review"
+    "independent_review",
+    "site_workflows"
   ],
   "warned": [
     "engine_runs"
@@ -18,26 +19,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104764 字节，耗时 64ms"
+      "detail": "HTTP 200，104817 字节，耗时 161ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（116087 字节），Pages 已生效",
-      "prod_bytes": 116087,
-      "prod_sha": "4ff64978af",
-      "repo_sha": "4ff64978af"
+      "detail": "生产与仓库一致（119158 字节），Pages 已生效",
+      "prod_bytes": 119158,
+      "prod_sha": "556a2520f1",
+      "repo_sha": "556a2520f1"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-26，快照 50 分钟前生成",
+      "detail": "sale_day=2026-11-26，快照 5 分钟前生成",
       "sale_day": "2026-11-26",
-      "generated_age_min": 50.3,
+      "generated_age_min": 5.4,
       "in_window": true
     },
     {
@@ -45,15 +46,14 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 3 个计划点无运行：11:12、12:12、13:12；最近一次运行 92 分钟前",
+      "detail": "近 180 分钟内 2 个计划点无运行：11:12、12:12；最近一次运行 2 分钟前",
       "missed_points": [
         "11:12",
-        "12:12",
-        "13:12"
+        "12:12"
       ],
       "checked_points": 3,
-      "runs_today": 4,
-      "last_run_age_min": 92.1,
+      "runs_today": 17,
+      "last_run_age_min": 1.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -65,9 +65,9 @@
       "title": "当日赛事池完整性",
       "status": "ok",
       "severity": "info",
-      "detail": "7 场，均含预测",
-      "matches": 7,
-      "metrics_total": 7,
+      "detail": "12 场，均含预测",
+      "matches": 12,
+      "metrics_total": 12,
       "missing_prediction": 0
     },
     {
@@ -111,7 +111,7 @@
       "title": "采集链路可用性",
       "status": "skip",
       "severity": "info",
-      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像 正常",
+      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像、澳客竞彩 正常",
       "probes": [
         {
           "id": "sporttery",
@@ -119,7 +119,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 1041,
+          "elapsed_ms": 2573,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,8 +129,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 76164,
-          "elapsed_ms": 1575,
+          "bytes": 76082,
+          "elapsed_ms": 1661,
           "error": null,
           "cn_only": true,
           "required": false
@@ -141,7 +141,7 @@
           "status": "up",
           "http": 200,
           "bytes": 39448,
-          "elapsed_ms": 134,
+          "elapsed_ms": 860,
           "error": null,
           "cn_only": false,
           "required": false
@@ -149,11 +149,11 @@
         {
           "id": "okooo",
           "name": "澳客竞彩",
-          "status": "down",
-          "http": 405,
-          "bytes": 2657,
-          "elapsed_ms": 1971,
-          "error": "HTTP 405",
+          "status": "up",
+          "http": 200,
+          "bytes": 352278,
+          "elapsed_ms": 1569,
+          "error": null,
           "cn_only": true,
           "required": false
         },
@@ -168,11 +168,17 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "ok",
-      "severity": "info",
-      "detail": "120 分钟内 10 次运行，无失败",
-      "failures": [],
-      "recent_runs": 10
+      "status": "fail",
+      "severity": "warn",
+      "detail": "120 分钟内有 1 次失败：Build verified website predictions",
+      "failures": [
+        {
+          "name": "Build verified website predictions",
+          "at": "2026-11-26T05:45:56Z",
+          "url": "https://github.com/SuolunPro/suolunpro.github.io/actions/runs/45763712955"
+        }
+      ],
+      "recent_runs": 30
     },
     {
       "id": "legacy_sale_status",
@@ -194,10 +200,10 @@
     "used_pct": 10.09
   },
   "runner": {
-    "host": "ip-10-0-128-123",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45760351492",
+    "run_id": "45765196619",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
