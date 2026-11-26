@@ -1,12 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-26T03:00:18Z",
-  "beijing_time": "2026-11-26 11:00:18",
+  "generated_at": "2026-11-26T03:06:55Z",
+  "beijing_time": "2026-11-26 11:06:55",
   "in_sale_window": true,
-  "verdict": "OK",
-  "fingerprint": "site_home=ok,site_data_sync=skip,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=skip,sources=skip,site_workflows=skip,legacy_sale_status=ok",
-  "signature": "OK",
-  "failed": [],
+  "verdict": "FAIL",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review",
+  "failed": [
+    "independent_review"
+  ],
   "warned": [],
   "checks": [
     {
@@ -14,23 +16,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104764 字节，耗时 159ms"
+      "detail": "HTTP 200，104764 字节，耗时 166ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "仓库 API 不可用，未能比对：HTTP 403"
+      "detail": "生产与仓库一致（89806 字节），Pages 已生效",
+      "prod_bytes": 89806,
+      "prod_sha": "4c3edf9fc8",
+      "repo_sha": "4c3edf9fc8"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-26，快照 100 分钟前生成",
+      "detail": "sale_day=2026-11-26，快照 107 分钟前生成",
       "sale_day": "2026-11-26",
-      "generated_age_min": 99.9,
+      "generated_age_min": 106.6,
       "in_window": true
     },
     {
@@ -42,7 +47,7 @@
       "missed_points": [],
       "checked_points": 1,
       "runs_today": 3,
-      "last_run_age_min": 102.4,
+      "last_run_age_min": 109.0,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -89,24 +94,26 @@
     {
       "id": "independent_review",
       "title": "独立复核数据新鲜度",
-      "status": "skip",
-      "severity": "info",
-      "detail": "目录不可读（HTTP 403）"
+      "status": "fail",
+      "severity": "warn",
+      "detail": "最新复核文件 2026-11-13，已滞后 13 天",
+      "latest": "2026-11-13",
+      "lag_days": 13
     },
     {
       "id": "sources",
       "title": "采集链路可用性",
       "status": "skip",
       "severity": "info",
-      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像、澳客竞彩 正常",
+      "detail": "境外 runner 访问中国站点被拒（预期，不计入异常）：体彩官方接口；同网络下 球来了镜像 正常",
       "probes": [
         {
           "id": "sporttery",
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 1882,
+          "bytes": 7352,
+          "elapsed_ms": 1356,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -117,7 +124,7 @@
           "status": "up",
           "http": 200,
           "bytes": 76088,
-          "elapsed_ms": 2444,
+          "elapsed_ms": 1520,
           "error": null,
           "cn_only": true,
           "required": false
@@ -128,7 +135,7 @@
           "status": "up",
           "http": 200,
           "bytes": 39313,
-          "elapsed_ms": 221,
+          "elapsed_ms": 60,
           "error": null,
           "cn_only": false,
           "required": false
@@ -136,11 +143,11 @@
         {
           "id": "okooo",
           "name": "澳客竞彩",
-          "status": "up",
-          "http": 200,
-          "bytes": 121206,
-          "elapsed_ms": 1199,
-          "error": null,
+          "status": "down",
+          "http": 405,
+          "bytes": 4681,
+          "elapsed_ms": 878,
+          "error": "HTTP 405",
           "cn_only": true,
           "required": false
         },
@@ -155,9 +162,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "skip",
+      "status": "ok",
       "severity": "info",
-      "detail": "Actions API 不可用（HTTP 403）"
+      "detail": "120 分钟内 21 次运行，无失败",
+      "failures": [],
+      "recent_runs": 21
     },
     {
       "id": "legacy_sale_status",
@@ -179,10 +188,10 @@
     "used_pct": 9.91
   },
   "runner": {
-    "host": "ip-10-0-128-174",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45746061724",
+    "run_id": "45746800461",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
