@@ -1,62 +1,62 @@
 {
-  "at": "2026-11-25T23:30:25Z",
+  "at": "2026-11-26T00:15:30Z",
   "verdict": "FAIL",
   "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-25 有 9 场比赛在开赛 13.5 小时后仍未结算，且独立复核数据已滞后 13 天；当前证据只能定位到结算流程停滞，尚缺赛果源可用性、结算任务日志与复核任务调度记录来确认根因。",
+    "summary": "2026-11-25 有 9 场比赛在开赛 14.3 小时后仍未结算，且独立复核数据已滞后 13 天；当前证据只能定位到结算链路停滞和复核数据未更新，尚缺结算任务日志、赛果源可用性和复核文件生成任务的证据。",
     "root_causes": [
       {
-        "cause": "赛果数据源或核验环节异常，导致 11-25 批次赛果未入库/未通过核验，结算无法推进",
-        "confidence": 0.55,
-        "evidence": "checks[settlement].detail=2026-11-25 有 9 场开赛 13.5h 仍未结算；11-23、11-24 pending 均为 0，仅 11-25 集中积压"
+        "cause": "赛果核验或结算任务在 2026-11-25 批次停滞（任务未运行、卡住或赛果源未回传）",
+        "confidence": 0.6,
+        "evidence": "checks[settlement].status=fail，2026-11-25 matches=11、pending=9、overdue_h=14.3；而 2026-11-23/24 pending=0，说明是当日批次性停滞而非长期积压"
       },
       {
-        "cause": "结算任务本身停滞（调度未触发、任务卡死或异常退出），而非赛果缺失",
-        "confidence": 0.3,
-        "evidence": "settlement 检查 status=fail、severity=critical，overdue_h=13.5 且 pending=9；巡检未提供任务运行状态字段，无法区分"
+        "cause": "独立复核文件生成或同步链路中断，导致复核数据 13 天未更新",
+        "confidence": 0.5,
+        "evidence": "checks[independent_review].status=fail，latest=2026-11-13，lag_days=13"
       },
       {
-        "cause": "独立复核流程中断，复核文件生成任务停摆，与结算积压可能同源（同一批任务/依赖）",
+        "cause": "结算与复核共用上游数据源或调度组件异常，两项同时失效",
         "confidence": 0.25,
-        "evidence": "checks[independent_review].latest=2026-11-13，lag_days=13，status=fail"
+        "evidence": "settlement 与 independent_review 同次巡检同时 fail，但巡检 JSON 未提供两者依赖关系的字段，属推测"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <赛果源只读健康检查地址>",
-        "purpose": "确认赛果数据源接口是否可访问、是否返回正常状态码"
+        "command": "curl -s http://localhost:<结算服务只读端口>/health 或 curl -s http://localhost:<结算服务只读端口>/status",
+        "purpose": "确认结算服务进程与任务调度是否存活、当前队列积压情况"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<结算任务状态只读导出文件>'));print([x for x in d if x.get('day')=='2026-11-25'])\"",
-        "purpose": "只读查看 11-25 结算任务的状态与最后更新时间，判断是未触发还是卡死"
+        "command": "python -c \"import json;d=json.load(open('<结算任务只读日志或状态文件路径>'));print(d)\"",
+        "purpose": "只读查看 2026-11-25 批次结算任务的状态与最后处理时间，确认卡在哪一步"
       },
       {
-        "command": "git log --oneline -20 -- <结算/复核相关配置或脚本目录>",
-        "purpose": "确认 11-13 至 11-25 之间是否有配置或脚本变更引入中断"
+        "command": "curl -s '<赛果源只读查询接口>'",
+        "purpose": "确认 2026-11-25 的 9 场赛果是否已由上游回传，区分赛果缺失与结算逻辑停滞"
       },
       {
-        "command": "curl -s <复核文件目录只读列表接口> | python -c \"import sys,json;print(json.load(sys.stdin))\"",
-        "purpose": "确认复核文件最新生成时间与生成任务是否仍在运行"
+        "command": "ls -l <独立复核文件目录> 并 python 读取最新复核文件头部元数据",
+        "purpose": "确认复核文件最后生成时间与生成任务是否仍在运行，定位 13 天滞后的断点"
       }
     ],
     "suggested_fix": {
-      "action": "人工介入：先只读确认赛果源与结算任务状态，定位是赛果缺失还是任务停滞；确认后由值班人员按既有流程补跑 11-25 结算并恢复复核文件生成，禁止直接改历史结算数据",
+      "action": "先由人工只读确认 2026-11-25 的 9 场赛果是否已到位：若赛果缺失，联系赛果源方补数；若赛果已到位，则排查并人工重启结算任务（需审批）。同时检查独立复核文件生成任务并补跑缺失日期的复核数据。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "11-25 的 9 场比赛涉及的用户派彩/结算延迟，会员可能看到未结算注单并产生客诉；独立复核滞后 13 天削弱结果可信度与合规留痕，暂未见网站不可用证据。",
+    "customer_impact": "9 场比赛超过 14 小时未结算，涉及这些场次的会员派彩和账户余额更新会延迟，可能引发会员投诉；独立复核数据滞后 13 天，削弱结算结果的独立校验能力，若结算出错难以及时发现。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 0.965786,
-    "remaining_cny": 9.034214,
-    "calls": 154,
+    "spent_cny": 0.972184,
+    "remaining_cny": 9.027816,
+    "calls": 155,
     "exhausted": false,
-    "used_pct": 9.66
+    "used_pct": 9.72
   },
   "usage": {
     "prompt_tokens": 539,
