@@ -1,0 +1,28 @@
+name: Isolated public writer routing check
+on:
+  push:
+    branches: [verify/watchdog-public-target-20261126]
+    paths: ['.github/workflows/verify-watchdog-routing.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify watchdog reads the public writer and can address it
+        env:
+          TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
+        run: |
+          python -m py_compile ops/watchdog.py
+          PYTHONPATH=.:ops python - <<'PY'
+          from ops import watchdog as w
+          import json, os
+          config=json.load(open("config/ops.json"))
+          ctx=w.gather(config,os.environ["TOKEN"],".",w.C.now_utc())
+          assert not ctx["runs_error"]
+          PY
+          code=$(curl -sS -o /tmp/result -w '%{http_code}' -H "Authorization: Bearer $TOKEN" -H 'Accept: application/vnd.github+json' -X POST https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/workflows/build-engine4.yml/dispatches -d '{"ref":"verify/absent-public-dispatch-permission-check-20261126"}')
+          test "$code" = 422 && jq -e '.message | contains("No ref found")' /tmp/result
