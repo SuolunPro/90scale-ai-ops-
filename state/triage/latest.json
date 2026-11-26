@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-26T20:01:12Z",
+  "at": "2026-11-26T20:30:38Z",
   "verdict": "FAIL",
-  "signature": "independent_review,settlement",
+  "signature": "settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-26 有 7 场比赛在开赛 10 小时后仍未结算（critical），且独立复核数据已滞后 14 天；当前证据只能定位到结算链路停滞，尚缺赛果源可用性、结算任务日志与复核任务调度记录来确认根因。",
+    "summary": "2026-11-26 有 7 场比赛在开赛 10.5 小时后仍未结算，而前两日 pending 均为 0，说明结算链路在 11-26 出现异常；但巡检只给出 pending 数量与超时时长，缺少赛果抓取、核验、结算任务日志与具体场次状态，根因只能低置信度推测。",
     "root_causes": [
       {
-        "cause": "赛果数据源或赛果核验环节异常，导致 2026-11-26 批次无法进入结算",
+        "cause": "赛果数据源抓取或核验环节中断，导致 11-26 场次赛果未入库、无法进入结算",
         "confidence": 0.45,
-        "evidence": "checks[settlement].checked 中 2026-11-24/25 均 pending=0，仅 2026-11-26 出现 matches=12、pending=7、overdue_h=10.0，说明是单日批次性停滞而非长期积压"
+        "evidence": "checks[settlement].detail: 2026-11-26 有 7 场开赛 10.5h 仍未结算；11-24/11-25 pending 均为 0，说明是当日新增异常而非长期积压"
       },
       {
-        "cause": "结算任务调度或执行中断（任务未触发/中途失败），使已核验场次未落结算",
+        "cause": "结算任务（定时任务/队列）在 11-26 未正常执行或执行中断，赛果已到但未触发结算",
         "confidence": 0.35,
-        "evidence": "settlement 状态 fail、severity critical，detail 为“开赛 10.0h 仍未结算”，且前两日 pending=0 表明结算链路此前正常"
+        "evidence": "checks[settlement].status=fail, severity=critical, overdue_h=10.5；仅 11-26 单日 7/12 场 pending，前两日 0 pending"
       },
       {
-        "cause": "独立复核流程停摆（复核任务未运行或产出未落盘），与结算停滞可能同源",
-        "confidence": 0.3,
-        "evidence": "independent_review.latest=2026-11-13、lag_days=14，滞后起点早于 2026-11-26 结算异常，二者时间不重合，暂不能确认为同一根因"
+        "cause": "个别场次赛果存在争议或数据不一致，被核验规则挂起等待人工处理",
+        "confidence": 0.2,
+        "evidence": "checks[settlement].detail 仅说明未结算场次数与超时时长，未提供挂起原因字段，无法区分是抓取失败还是核验挂起"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' <赛果源只读健康检查地址>",
-        "purpose": "确认赛果数据源当前是否可访问、响应是否正常"
+        "command": "curl -s 'http://localhost:<settlement_service_port>/health' 或 curl -s 'http://localhost:<settlement_service_port>/api/settlement/pending?day=2026-11-26'",
+        "purpose": "确认结算服务存活，并拉取 11-26 待结算场次列表与各自状态/挂起原因"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<结算任务日志只读路径>'));print([x for x in d if str(x.get('day','')).startswith('2026-11-26')][:20])\"",
-        "purpose": "读取 2026-11-26 结算任务日志，确认任务是否触发、在哪一步失败"
+        "command": "curl -s 'http://localhost:<result_fetch_service_port>/api/results?day=2026-11-26'",
+        "purpose": "确认 11-26 赛果是否已抓取入库，区分是赛果缺失还是结算未触发"
       },
       {
-        "command": "git log --oneline -n 20 -- <结算/复核相关配置或代码路径>",
-        "purpose": "确认 2026-11-13 至 2026-11-26 期间是否有结算或复核相关变更"
+        "command": "python -c \"import json,sys; d=json.load(open('/var/log/settlement/settlement-2026-11-26.log')); print(d)\" 或只读查看结算任务日志文件",
+        "purpose": "查看 11-26 结算任务执行记录与报错，定位中断点"
       },
       {
-        "command": "python -c \"import os,glob;fs=sorted(glob.glob('<复核文件目录>/*'));print(fs[-5:])\"",
-        "purpose": "列出最新复核文件，确认复核产出是否真的停止以及最后一份文件时间"
+        "command": "git log --oneline -20 --since='2026-11-25'",
+        "purpose": "确认 11-25 至 11-26 是否有结算/核验相关代码或配置变更，排除发布引入的回归"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查 2026-11-26 未结算的 7 场赛果是否已入库并核验通过；若赛果缺失则联系赛果源方，若赛果已到则排查结算任务日志中的失败点并人工补跑结算；同时确认独立复核任务调度状态并补做 2026-11-13 之后的复核。",
+      "action": "先只读拉取 11-26 待结算场次的赛果与结算任务日志，确认是赛果缺失还是结算任务未触发；若为任务中断，由值班人员在确认赛果数据完整后人工重跑当日结算任务，重跑前先备份结算相关数据并核对已结算场次避免重复结算",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "7 场比赛未结算将导致对应注单派彩延迟，会员账户余额与可提现额度不准确，可能引发客诉；独立复核滞后 14 天意味着结算结果缺少二次校验，存在错派风险。",
+    "customer_impact": "7 场比赛已开赛超 10.5 小时仍未结算，涉及这些场次的会员派彩延迟、账户余额与可提现额度不更新，可能引发会员投诉与客服工单；网站其他功能不受影响。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.074566,
-    "remaining_cny": 8.925434,
-    "calls": 171,
+    "spent_cny": 1.081552,
+    "remaining_cny": 8.918448,
+    "calls": 172,
     "exhausted": false,
-    "used_pct": 10.75
+    "used_pct": 10.82
   },
   "usage": {
-    "prompt_tokens": 539,
-    "completion_tokens": 737,
-    "total_tokens": 1276,
+    "prompt_tokens": 461,
+    "completion_tokens": 758,
+    "total_tokens": 1219,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 411
+    "prompt_cache_miss_tokens": 333
   },
-  "cost_cny": 0.006974
+  "cost_cny": 0.006986
 }
