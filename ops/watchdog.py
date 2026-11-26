@@ -128,14 +128,8 @@ def resolve_pending(root: str, cfg: dict, token: str, now) -> dict | None:
     pending = C.load_json(path)
     if not isinstance(pending, dict) or not pending.get("run_id"):
         return None
-    repo = cfg["engine_repo"]
-    wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
-    code, doc = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs/{pending['run_id']}", token)
-    if code != 200:
-        # 某些情况下 workflow 维度的 run 端点会 404，退回仓库维度
-        code2, doc2 = _api(f"https://api.github.com/repos/{repo}/actions/runs/{pending['run_id']}", token)
-        if code2 == 200:
-            code, doc = code2, doc2
+    repo = pending.get("repository", cfg["engine_repo"])
+    code, doc = _api(f"https://api.github.com/repos/{repo}/actions/runs/{pending['run_id']}", token)
     if code != 200:
         return {"pending": True, "run_id": pending["run_id"], "http": code,
                 "error": str(doc.get("error"))[:200]}
@@ -163,8 +157,8 @@ def resolve_pending(root: str, cfg: dict, token: str, now) -> dict | None:
 
 
 def gather(cfg: dict, token: str, root: str, now) -> dict:
-    repo = cfg["engine_repo"]
-    wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
+    repo = cfg["site_repo"]
+    wf = "build-engine4.yml"
     code, doc = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs?per_page=30", token)
     runs = doc.get("workflow_runs", []) if code == 200 else []
     state = C.load_json(os.path.join(root, "state", "latest.json")) or {}
@@ -276,8 +270,8 @@ def main(argv=None) -> int:
         print("SKIPPED: 未满足补跑条件：" + "；".join(decision["blocked_by"]))
         return 0
 
-    repo = cfg["engine_repo"]
-    wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
+    repo = cfg["site_repo"]
+    wf = "build-engine4.yml"
     code, body = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/dispatches",
                       token, "POST", {"ref": "main"})
     ok = code in (201, 204)
@@ -288,12 +282,16 @@ def main(argv=None) -> int:
     if ok:
         import time
         time.sleep(8)
-        rc, docs = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs?per_page=3", token)
+        rc, docs = _api(f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs?event=workflow_dispatch&branch=main&per_page=3", token)
         if rc == 200 and docs.get("workflow_runs"):
-            newest = docs["workflow_runs"][0]
+            candidates = [r for r in docs["workflow_runs"] if C.parse_ts(r.get("created_at")) and C.parse_ts(r["created_at"]) >= now.replace(microsecond=0)]
+            newest = candidates[0] if len(candidates) == 1 else {}
+        else:
+            newest = {}
+        if newest.get("id"):
             record["run_id"] = newest["id"]
             C.dump_json(os.path.join(args.root, PENDING), {
-                "run_id": newest["id"], "reason": "missed_schedule_points",
+                "repository": repo, "run_id": newest["id"], "reason": "missed_schedule_points",
                 "missed_points": ctx["missed"], "at": C.iso(now)})
     append_history(args.root, record)
     from ops import ghcommit
