@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-26T07:45:57Z",
+  "at": "2026-11-26T08:00:34Z",
   "verdict": "FAIL",
-  "signature": "independent_review,site_workflows",
+  "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎近180分钟漏跑2个计划点（14:12、15:12），独立复核数据滞后13天，网站构建工作流在120分钟内失败1次；当前处于销售窗口内，需优先确认引擎漏跑是否影响出单，并补齐复核数据。",
+    "summary": "预测引擎近 180 分钟内漏跑 14:12、15:12 两个计划点（最近一次运行约 60 分钟前），且独立复核数据已滞后 13 天；当前处于销售窗口内，需优先确认引擎调度是否中断，但现有证据不足以判定漏跑根因（缺调度器/工作流运行日志与失败原因）。",
     "root_causes": [
       {
-        "cause": "预测引擎调度未触发或工作流被禁用/跳过，导致14:12、15:12两个计划点无运行记录",
+        "cause": "预测引擎定时调度中断或工作流执行失败，导致计划点漏跑",
         "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[14:12,15:12], checked_points=3, last_run_age_min=44.7, runs_today=18；retired_workflows_ignored 仅排除结算/校验/回填三个已退役工作流，说明计划点本身应运行"
+        "evidence": "engine_runs: missed_points=[14:12,15:12], checked_points=3, last_run_age_min=59.7, runs_today=18"
       },
       {
-        "cause": "独立复核流程停摆或产出未提交，复核文件自2026-11-13后未更新",
+        "cause": "独立复核流程长期未产出新文件（复核任务停摆或未接入调度）",
         "confidence": 0.5,
         "evidence": "independent_review: latest=2026-11-13, lag_days=13, status=fail"
       },
       {
-        "cause": "网站仓库构建工作流失败，可能由数据/依赖或构建脚本问题引起，与引擎产出异常相关",
-        "confidence": 0.35,
-        "evidence": "site_workflows: failures=[Build verified website predictions @ 2026-11-26T05:45:56Z], recent_runs=30"
+        "cause": "漏跑与复核滞后同源于上游数据/依赖不可用，导致引擎与复核均未正常执行",
+        "confidence": 0.25,
+        "evidence": "engine_runs 与 independent_review 同时异常，但巡检未提供依赖或数据源状态字段"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45763712955'",
-        "purpose": "读取失败构建运行的结论与失败步骤，确认是构建脚本、依赖还是数据校验失败"
+        "command": "curl -s https://api.github.com/repos/{owner}/{repo}/actions/workflows/engine4-*.yml/runs?per_page=20",
+        "purpose": "只读查看引擎相关 workflow 近期运行记录与结论，确认 14:12、15:12 计划点是否触发及失败原因"
       },
       {
-        "command": "curl -s 'https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/45763712955/jobs'",
-        "purpose": "定位失败的具体 job 与 step 日志入口，判断是否与预测数据缺失相关"
+        "command": "curl -s https://api.github.com/repos/{owner}/{repo}/actions/runs?per_page=30",
+        "purpose": "只读查看全仓库近期运行，判断是否为调度整体中断还是单工作流失败"
       },
       {
-        "command": "git log --since='2026-11-13' --oneline -- '*review*'",
-        "purpose": "确认独立复核文件自11-13后是否有提交，判断是流程未跑还是产出未入库"
+        "command": "git log --since='2026-11-10' --name-only --pretty=format:'%h %ad %s' --date=iso -- '*review*'",
+        "purpose": "只读检查独立复核相关文件最近提交，确认复核产出是否真的停止在 2026-11-13"
       },
       {
-        "command": "curl -s 'https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/workflows'",
-        "purpose": "只读查看引擎相关 workflow 的 state，确认是否存在被禁用（disabled）的工作流"
+        "command": "python -c \"import json,urllib.request;print(json.load(urllib.request.urlopen('https://api.github.com/repos/{owner}/{repo}/actions/workflows')))\"",
+        "purpose": "只读列出工作流清单，确认 engine4-settlement/verify-results/result-backfill 等已退役工作流是否仍被调度或误判"
       }
     ],
     "suggested_fix": {
-      "action": "人工确认预测引擎调度配置与最近运行日志，排查14:12/15:12漏跑原因；补跑独立复核流程并提交复核文件；查看失败构建日志后修复构建问题并重跑该工作流",
+      "action": "人工核查引擎调度配置与最近 workflow 运行日志，确认 14:12、15:12 漏跑原因并手动补跑对应计划点；同时排查独立复核任务停摆原因并补生成复核文件，恢复后再复核当日预测结果",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内引擎漏跑可能导致最新预测未按时更新，网站展示的预测结果可能滞后；独立复核滞后13天意味着近期预测缺少独立校验，准确性风险上升；构建失败可能导致网站预测页面未更新或构建产物缺失。",
+    "customer_impact": "销售窗口内预测结果可能缺失最近两个计划点，会员看到的预测/结算数据可能延迟或不完整；独立复核缺失 13 天意味着近期结果缺少二次校验，存在错误结果未被发现的风险。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.027478,
-    "remaining_cny": 8.972522,
-    "calls": 164,
+    "spent_cny": 1.03384,
+    "remaining_cny": 8.96616,
+    "calls": 165,
     "exhausted": false,
-    "used_pct": 10.27
+    "used_pct": 10.34
   },
   "usage": {
-    "prompt_tokens": 659,
-    "completion_tokens": 659,
-    "total_tokens": 1318,
+    "prompt_tokens": 529,
+    "completion_tokens": 663,
+    "total_tokens": 1192,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 531
+    "prompt_cache_miss_tokens": 401
   },
-  "cost_cny": 0.00659
+  "cost_cny": 0.006362
 }
