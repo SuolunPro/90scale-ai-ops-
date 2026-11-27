@@ -1,30 +1,30 @@
 {
-  "at": "2026-11-27T01:00:29Z",
+  "at": "2026-11-27T02:00:27Z",
   "verdict": "FAIL",
-  "signature": "engine_fresh,independent_review,settlement",
+  "signature": "engine_runs,independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "raw": "{\"summary\":\"预测主引擎当日快照已 324 分钟未更新（超过 300 分钟阈值），同时 11-26 有 7 场赛果超时 15 小时未结算、独立复核数据滞后 14 天；三项 fail 同时出现，指向引擎停摆与结算链路阻塞，但缺少引擎进程/日志与结算任务日志证据，根因置信度有限。\",\"root_causes\":[{\"cause\":\"预测主引擎停摆或快照生成任务中断，导致当日快照停止更新\",\"confidence\":0.55,\"evidence\":\"checks[id=engine_fresh].status=fail, generated_age_min=324.0, 阈值 300 分钟, in_window=true, detail=疑似引擎停摆\"},{\"cause\":\"赛果核验/结算任务未跑完或卡住，导致 11-26 的 7 场开赛 15 小时仍未结算\",\"confidence\":0.5,\"evidence\":\"checks[id=settlement].checked[day=2026-11-26].pending=7, overdue_h=15.0；而 11-24、11-25 pending=0，说明是 11-26 起新出现的阻塞\"},{\"cause\":\"独立复核流程长期未执行（可能依赖上游数据或人工排期），复核文件滞后 14 天\",\"confidence\":0.35,\"evidence\":\"checks[id=independent_review].latest=2026-11-13, lag_days=14, severity=warn\"}],\"diagnose_steps\":[{\"command\":\"curl -s -o /dev/null -w '%{http_code} %{time_total}\\\\n' http://127.0.0.1:<engine_port>/health\",\"purpose\":\"确认预测主引擎服务是否存活、响应是否正常（只读健康检查）\"},{\"command\":\"python -c \\\"import os,time; p='<snapshot_dir>'; fs=sorted(os.listdir(p))[-5:]; [print(f, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in fs]\\\"\",\"purpose\":\"列出最近快照文件及其修改时间，确认停更起点与是否持续产出\"},{\"command\":\"curl -s http://127.0.0.1:<settlement_port>/api/settlement/pending?day=2026-11-26\",\"purpose\":\"只读查询 11-26 待结算场次明细，确认 7 场是否卡在同一环节\"},{\"command\":\"git log --since='2026-11-20' --oneline -- <engine_repo_path>\",\"purpose\":\"查看近期是否有代码/配置变更与停摆时间点吻合\"},{\"command\":\"python -c \\\"import os,time; p='<review_dir>'; fs=sorted(os.listdir(p))[-3:]; [print(f, time.strftime('%Y-%m-%d', time.localtime(os.path.getmtime(os.path.join(p,f))))) for f in fs]\\\"\",\"purpose\":\"确认独立复核文件最新产出时间与滞后原因\"}],\"suggested_fix\":{\"action\":\"人工介入：先确认预测主引擎进程与快照生成任务状态并恢复产出；再核查 11-26 结算任务日志，对 7 场待结算场次补跑核验结算；同时补做独立复核并排查其 14 天未执行的原因。所有操作由值班工程师在变更审批后执行。\",\"risk\":\"high\",\"needs_approval\":true},\"customer_impact\":\"当日预测快照停更 5 小时以上，会员端可能看到过期预测或无法刷新推荐；11-26 的 7 场未"
+    "raw": "{\"summary\":\"预测引擎今日 0 次运行（最近一次运行距今约 19 小时，漏跑 09:12 计划点），并伴随 2026-11-26 有 7 场赛果超期 16 小时未结算、独立复核数据滞后 14 天；三者可能同源（引擎/结算流水线停摆），但缺少引擎日志与工作流运行记录，根因置信度有限。\",\"root_causes\":[{\"cause\":\"预测引擎调度/工作流停摆，导致计划点漏跑且下游结算未触发\",\"confidence\":0.55,\"evidence\":\"engine_runs: runs_today=0, missed_points=[\\\"09:12\\\"], last_run_age_min=1139.6；settlement: 2026-11-26 pending=7, overdue_h=16.0\"},{\"cause\":\"赛果核验/结算环节独立故障（结果抓取或核验未完成），与引擎漏跑叠加\",\"confidence\":0.3,\"evidence\":\"settlement 仅 2026-11-26 出现 pending=7，前两日 pending=0，说明结算链路在 11-26 后中断而非长期失效\"},{\"cause\":\"独立复核流程长期未更新（人工/定时复核任务停更）\",\"confidence\":0.25,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=14\"}],\"diagnose_steps\":[{\"command\":\"curl -s https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['updated_at']) for w in d.get('workflows',[])]\\\"\",\"purpose\":\"确认引擎与结算相关 workflow 是否被禁用或状态异常（只读）\"},{\"command\":\"curl -s \\\"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\\\" | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['name'],r['status'],r['conclusion'],r['created_at']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"查看最近运行记录，定位 09:12 计划点是否触发及失败原因\"},{\"command\":\"git log --since=\\\"2026-11-25\\\" --oneline -- .github/workflows\",\"purpose\":\"确认近期是否有 workflow 配置变更导致调度失效\"},{\"command\":\"python -c \\\"import json;d=json.load(open('settlement_state.json'));print([m for m in d.get('matches',[]) if m.get('status')=='pending'][:10])\\\"\",\"purpose\":\"只读查看 11-26 未结算场次的赛果/核验状态，判断是缺赛果还是核验未过\"},{\"command\":\"ls -la review/ && git log -1 --format=%ci -- review/\",\"purpose\":\"确认独立复核文件最后更新时间与停更原因\"}],\"suggested_fix\":{\"action\":\"人工核查引擎调度配置与最近 workflow 运行日志，确认 09:12 计划点未触发的原因；对 2026-11-26 的 7 场未结算比赛补跑只读核验确认赛果是否已入库，再按既有流程人工触发结算；恢复独立复核定时任务并补做滞后复核。\",\"risk\":\"medium\",\"needs_approval\":true},\"customer_impact\":\"今日预测结果未生成，会员在售窗口内看不到最新预测；11-26 有 7 场赛果未结算，影响会员战绩/积分展示与结算准确性；复核滞后 14 "
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.115132,
-    "remaining_cny": 8.884868,
-    "calls": 177,
+    "spent_cny": 1.122866,
+    "remaining_cny": 8.877134,
+    "calls": 178,
     "exhausted": false,
-    "used_pct": 11.15
+    "used_pct": 11.23
   },
   "usage": {
-    "prompt_tokens": 632,
+    "prompt_tokens": 667,
     "completion_tokens": 800,
-    "total_tokens": 1432,
+    "total_tokens": 1467,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 504
+    "prompt_cache_miss_tokens": 539
   },
-  "cost_cny": 0.007664
+  "cost_cny": 0.007734
 }
