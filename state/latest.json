@@ -1,12 +1,13 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T00:45:11Z",
-  "beijing_time": "2026-11-27 08:45:11",
-  "in_sale_window": false,
+  "generated_at": "2026-11-27T01:00:11Z",
+  "beijing_time": "2026-11-27 09:00:11",
+  "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "independent_review,settlement",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=fail,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "engine_fresh,independent_review,settlement",
   "failed": [
+    "engine_fresh",
     "settlement",
     "independent_review"
   ],
@@ -17,7 +18,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104817 字节，耗时 123ms"
+      "detail": "HTTP 200，104817 字节，耗时 150ms"
     },
     {
       "id": "site_data_sync",
@@ -32,12 +33,12 @@
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
-      "status": "ok",
-      "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 309 分钟前生成",
+      "status": "fail",
+      "severity": "critical",
+      "detail": "最新快照已 324 分钟未更新（阈值 300 分钟），疑似引擎停摆",
       "sale_day": "2026-11-27",
-      "generated_age_min": 309.0,
-      "in_window": false
+      "generated_age_min": 324.0,
+      "in_window": true
     },
     {
       "id": "engine_runs",
@@ -48,7 +49,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 0,
-      "last_run_age_min": 1064.6,
+      "last_run_age_min": 1079.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -70,7 +71,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-26 有 7 场开赛 14.8h 仍未结算",
+      "detail": "2026-11-26 有 7 场开赛 15.0h 仍未结算",
       "checked": [
         {
           "day": "2026-11-24",
@@ -88,7 +89,7 @@
           "day": "2026-11-26",
           "matches": 12,
           "pending": 7,
-          "overdue_h": 14.8
+          "overdue_h": 15.0
         }
       ]
     },
@@ -114,7 +115,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 2295,
+          "elapsed_ms": 1900,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -125,7 +126,7 @@
           "status": "up",
           "http": 200,
           "bytes": 98381,
-          "elapsed_ms": 1479,
+          "elapsed_ms": 1892,
           "error": null,
           "cn_only": true,
           "required": false
@@ -136,7 +137,7 @@
           "status": "up",
           "http": 200,
           "bytes": 80084,
-          "elapsed_ms": 504,
+          "elapsed_ms": 407,
           "error": null,
           "cn_only": false,
           "required": false
@@ -147,7 +148,7 @@
           "status": "up",
           "http": 200,
           "bytes": 140163,
-          "elapsed_ms": 1251,
+          "elapsed_ms": 1346,
           "error": null,
           "cn_only": true,
           "required": false
@@ -192,7 +193,7 @@
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45918552727",
+    "run_id": "45919998131",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
