@@ -1,14 +1,12 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T09:45:12Z",
-  "beijing_time": "2026-11-27 17:45:12",
+  "generated_at": "2026-11-27T10:00:21Z",
+  "beijing_time": "2026-11-27 18:00:21",
   "in_sale_window": true,
-  "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
-  "signature": "independent_review",
-  "failed": [
-    "independent_review"
-  ],
+  "verdict": "WARN",
+  "fingerprint": "site_home=ok,site_data_sync=skip,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=skip,sources=skip,site_workflows=skip,legacy_sale_status=ok",
+  "signature": "engine_runs",
+  "failed": [],
   "warned": [
     "engine_runs"
   ],
@@ -18,26 +16,23 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104872 字节，耗时 156ms"
+      "detail": "HTTP 200，104898 字节，耗时 416ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "ok",
+      "status": "skip",
       "severity": "info",
-      "detail": "生产与仓库一致（169004 字节），Pages 已生效",
-      "prod_bytes": 169004,
-      "prod_sha": "39db016999",
-      "repo_sha": "39db016999"
+      "detail": "仓库 API 不可用，未能比对：HTTP 403"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 72 分钟前生成",
+      "detail": "sale_day=2026-11-27，快照 16 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 72.4,
+      "generated_age_min": 15.5,
       "in_window": true
     },
     {
@@ -45,7 +40,7 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 3 个计划点无运行：15:12、16:12、17:12；最近一次运行 0 分钟前",
+      "detail": "近 180 分钟内 3 个计划点无运行：15:12、16:12、17:12；最近一次运行 16 分钟前",
       "missed_points": [
         "15:12",
         "16:12",
@@ -53,7 +48,7 @@
       ],
       "checked_points": 3,
       "runs_today": 1,
-      "last_run_age_min": 0.5,
+      "last_run_age_min": 15.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -100,11 +95,9 @@
     {
       "id": "independent_review",
       "title": "独立复核数据新鲜度",
-      "status": "fail",
-      "severity": "warn",
-      "detail": "最新复核文件 2026-11-13，已滞后 14 天",
-      "latest": "2026-11-13",
-      "lag_days": 14
+      "status": "skip",
+      "severity": "info",
+      "detail": "目录不可读（HTTP 403）"
     },
     {
       "id": "sources",
@@ -119,7 +112,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1868,
+          "elapsed_ms": 849,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,8 +122,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 99623,
-          "elapsed_ms": 1735,
+          "bytes": 99624,
+          "elapsed_ms": 3983,
           "error": null,
           "cn_only": true,
           "required": false
@@ -141,7 +134,7 @@
           "status": "up",
           "http": 200,
           "bytes": 80520,
-          "elapsed_ms": 236,
+          "elapsed_ms": 233,
           "error": null,
           "cn_only": false,
           "required": false
@@ -152,7 +145,7 @@
           "status": "up",
           "http": 200,
           "bytes": 501697,
-          "elapsed_ms": 1757,
+          "elapsed_ms": 1347,
           "error": null,
           "cn_only": true,
           "required": false
@@ -168,11 +161,9 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "ok",
+      "status": "skip",
       "severity": "info",
-      "detail": "120 分钟内 18 次运行，无失败",
-      "failures": [],
-      "recent_runs": 18
+      "detail": "Actions API 不可用（HTTP 403）"
     },
     {
       "id": "legacy_sale_status",
@@ -187,17 +178,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.1779,
-    "remaining_cny": 8.8221,
-    "calls": 186,
+    "spent_cny": 1.18524,
+    "remaining_cny": 8.81476,
+    "calls": 187,
     "exhausted": false,
-    "used_pct": 11.78
+    "used_pct": 11.85
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "ip-10-0-133-179",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45976309817",
+    "run_id": "45978359673",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
