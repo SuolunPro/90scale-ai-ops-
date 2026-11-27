@@ -1,14 +1,13 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T11:15:13Z",
-  "beijing_time": "2026-11-27 19:15:13",
+  "generated_at": "2026-11-27T11:45:11Z",
+  "beijing_time": "2026-11-27 19:45:11",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=fail,legacy_sale_status=ok",
-  "signature": "independent_review,site_workflows",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review",
   "failed": [
-    "independent_review",
-    "site_workflows"
+    "independent_review"
   ],
   "warned": [
     "engine_runs"
@@ -19,26 +18,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104898 字节，耗时 128ms"
+      "detail": "HTTP 200，104898 字节，耗时 189ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（172754 字节），Pages 已生效",
-      "prod_bytes": 172754,
-      "prod_sha": "3769d945dd",
-      "repo_sha": "3769d945dd"
+      "detail": "生产与仓库一致（173519 字节），Pages 已生效",
+      "prod_bytes": 173519,
+      "prod_sha": "bbb3bca333",
+      "repo_sha": "bbb3bca333"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 17 分钟前生成",
+      "detail": "sale_day=2026-11-27，快照 18 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 16.9,
+      "generated_age_min": 18.2,
       "in_window": true
     },
     {
@@ -46,16 +45,17 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 4 个计划点无运行：17:12、18:12、18:42、19:12；最近一次运行 90 分钟前",
+      "detail": "近 180 分钟内 5 个计划点无运行：17:12、18:12、18:42、19:12、19:42；最近一次运行 120 分钟前",
       "missed_points": [
         "17:12",
         "18:12",
         "18:42",
-        "19:12"
+        "19:12",
+        "19:42"
       ],
-      "checked_points": 4,
+      "checked_points": 5,
       "runs_today": 1,
-      "last_run_age_min": 90.5,
+      "last_run_age_min": 120.5,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -121,7 +121,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 1894,
+          "elapsed_ms": 3029,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -132,7 +132,7 @@
           "status": "up",
           "http": 200,
           "bytes": 99644,
-          "elapsed_ms": 1539,
+          "elapsed_ms": 1823,
           "error": null,
           "cn_only": true,
           "required": false
@@ -142,8 +142,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 81296,
-          "elapsed_ms": 272,
+          "bytes": 82324,
+          "elapsed_ms": 300,
           "error": null,
           "cn_only": false,
           "required": false
@@ -154,7 +154,7 @@
           "status": "up",
           "http": 200,
           "bytes": 502297,
-          "elapsed_ms": 4061,
+          "elapsed_ms": 2685,
           "error": null,
           "cn_only": true,
           "required": false
@@ -170,17 +170,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "fail",
-      "severity": "warn",
-      "detail": "120 分钟内有 1 次失败：Build verified website predictions",
-      "failures": [
-        {
-          "name": "Build verified website predictions",
-          "at": "2026-11-27T09:44:52Z",
-          "url": "https://github.com/SuolunPro/suolunpro.github.io/actions/runs/45976275455"
-        }
-      ],
-      "recent_runs": 27
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 23 次运行，无失败",
+      "failures": [],
+      "recent_runs": 23
     },
     {
       "id": "legacy_sale_status",
@@ -202,10 +196,10 @@
     "used_pct": 11.85
   },
   "runner": {
-    "host": "runnervm3lb7s",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45988914408",
+    "run_id": "45993010315",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
