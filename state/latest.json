@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T11:45:11Z",
-  "beijing_time": "2026-11-27 19:45:11",
+  "generated_at": "2026-11-27T12:45:14Z",
+  "beijing_time": "2026-11-27 20:45:14",
   "in_sale_window": true,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,17 +18,17 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104898 字节，耗时 189ms"
+      "detail": "HTTP 200，104898 字节，耗时 168ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（173519 字节），Pages 已生效",
-      "prod_bytes": 173519,
-      "prod_sha": "bbb3bca333",
-      "repo_sha": "bbb3bca333"
+      "detail": "生产与仓库一致（172499 字节），Pages 已生效",
+      "prod_bytes": 172499,
+      "prod_sha": "12f4499219",
+      "repo_sha": "12f4499219"
     },
     {
       "id": "engine_fresh",
@@ -37,7 +37,7 @@
       "severity": "info",
       "detail": "sale_day=2026-11-27，快照 18 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 18.2,
+      "generated_age_min": 17.5,
       "in_window": true
     },
     {
@@ -45,17 +45,18 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 5 个计划点无运行：17:12、18:12、18:42、19:12、19:42；最近一次运行 120 分钟前",
+      "detail": "近 180 分钟内 6 个计划点无运行：18:12、18:42、19:12、19:42、20:12、20:42；最近一次运行 180 分钟前",
       "missed_points": [
-        "17:12",
         "18:12",
         "18:42",
         "19:12",
-        "19:42"
+        "19:42",
+        "20:12",
+        "20:42"
       ],
-      "checked_points": 5,
+      "checked_points": 6,
       "runs_today": 1,
-      "last_run_age_min": 120.5,
+      "last_run_age_min": 180.5,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -121,7 +122,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 3029,
+          "elapsed_ms": 1366,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -131,8 +132,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 99644,
-          "elapsed_ms": 1823,
+          "bytes": 99646,
+          "elapsed_ms": 1505,
           "error": null,
           "cn_only": true,
           "required": false
@@ -142,8 +143,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 82324,
-          "elapsed_ms": 300,
+          "bytes": 84051,
+          "elapsed_ms": 349,
           "error": null,
           "cn_only": false,
           "required": false
@@ -153,8 +154,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 502297,
-          "elapsed_ms": 2685,
+          "bytes": 502310,
+          "elapsed_ms": 1585,
           "error": null,
           "cn_only": true,
           "required": false
@@ -172,18 +173,18 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 23 次运行，无失败",
+      "detail": "120 分钟内 15 次运行，无失败",
       "failures": [],
-      "recent_runs": 23
+      "recent_runs": 15
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 18.3 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 18.4 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 18.3
+      "age_days": 18.4
     }
   ],
   "budget": {
@@ -199,7 +200,7 @@
     "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45993010315",
+    "run_id": "46001262348",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
