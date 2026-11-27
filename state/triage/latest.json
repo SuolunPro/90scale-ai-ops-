@@ -1,72 +1,76 @@
 {
-  "at": "2026-11-27T09:45:30Z",
+  "at": "2026-11-27T16:00:31Z",
   "verdict": "FAIL",
   "signature": "independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "独立复核数据已滞后 14 天（FAIL），且预测引擎在 15:12、16:12、17:12 三个计划点漏跑（WARN）；但最近一次运行仅 0.5 分钟前，说明引擎可能刚恢复，漏跑原因尚缺证据（需确认工作流调度日志与复核任务是否被停用）。",
+    "summary": "独立复核数据已滞后15天（最新2026-11-13），且2026-11-27有10场开赛7.3h未结算；因缺少复核任务调度日志与结算上游赛果源状态，根因置信度有限。",
     "root_causes": [
       {
-        "cause": "独立复核任务（工作流/定时任务）已停止产出，复核文件停留在 2026-11-13",
-        "confidence": 0.6,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=14, status=fail"
-      },
-      {
-        "cause": "预测引擎调度中断约 3 小时（15:12–17:12 连续 3 个计划点无运行），随后在巡检前 0.5 分钟才恢复运行",
+        "cause": "独立复核任务停止产出或调度中断，导致复核文件不再更新",
         "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[15:12,16:12,17:12], runs_today=1, last_run_age_min=0.5"
+        "evidence": "independent_review: latest=2026-11-13, lag_days=15, status=fail"
       },
       {
-        "cause": "调度配置或工作流被调整/停用（巡检已忽略 3 个已退役工作流，可能存在同类配置变更影响复核与引擎调度）",
-        "confidence": 0.25,
-        "evidence": "retired_workflows_ignored=[engine4-settlement.yml, engine4-verify-results.yml, engine4-result-backfill.yml]；engine_runs 与 independent_review 同时异常"
+        "cause": "赛果核验上游数据源延迟或缺失，导致2026-11-27批量场次无法结算",
+        "confidence": 0.5,
+        "evidence": "settlement: day=2026-11-27, matches=11, pending=10, overdue_h=7.3"
+      },
+      {
+        "cause": "复核与结算共用依赖（如赛果采集/文件同步链路）异常，两项同时受影响",
+        "confidence": 0.3,
+        "evidence": "independent_review 滞后15天与 settlement 10场未结算同时出现，且前两日 pending=0"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://api.github.com/repos/<owner>/<repo>/actions/workflows",
-        "purpose": "只读确认仓库 Actions 工作流列表接口可达，为后续查询调度状态做准备"
+        "command": "curl -s -o /dev/null -w '%{http_code} %{time_total}\\n' http://127.0.0.1:<复核服务端口>/health",
+        "purpose": "确认独立复核服务是否存活可访问"
       },
       {
-        "command": "curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/workflows/<workflow_id>/runs?per_page=20'",
-        "purpose": "只读查看引擎与复核工作流近期运行记录，确认 15:12–17:12 漏跑是失败、跳过还是未触发"
+        "command": "python -c \"import os,glob,time;fs=sorted(glob.glob('/<复核文件目录>/*'))[-5:];[print(f,time.strftime('%Y-%m-%d %H:%M',time.localtime(os.path.getmtime(f)))) for f in fs]\"",
+        "purpose": "列出最新复核文件及修改时间，确认是否自2026-11-13后无新文件"
       },
       {
-        "command": "git log --since='2026-11-12' --name-status -- .github/workflows/",
-        "purpose": "只读检查 11-13 前后工作流文件是否有改动/删除，定位复核停更与调度变更的时间关联"
+        "command": "git log --since=2026-11-10 --oneline -- <复核/结算相关目录>",
+        "purpose": "查看近期是否有相关代码或配置变更引入中断"
       },
       {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('**/*review*',recursive=True),key=os.path.getmtime);print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
-        "purpose": "只读列出最新复核文件及其修改时间，核实 lag_days=14 与文件实际落盘情况"
+        "command": "curl -s 'http://127.0.0.1:<结算服务端口>/settlement/pending?day=2026-11-27'",
+        "purpose": "只读查询2026-11-27未结算场次清单及卡住环节"
+      },
+      {
+        "command": "curl -s 'http://127.0.0.1:<赛果源接口>/results?day=2026-11-27' | head -c 500",
+        "purpose": "确认上游赛果数据是否已到达，区分源延迟与结算逻辑问题"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查独立复核工作流是否被停用或调度表达式被改（对照 11-13 前后的 workflow 变更），确认后手动触发一次复核任务补齐 2026-11-13 之后的数据；同时核查引擎 15:12–17:12 漏跑的调度日志，确认 17:45 前的恢复运行是否已覆盖漏跑计划点",
+      "action": "人工核查独立复核任务调度与文件产出链路，并核对2026-11-27赛果源到达情况；确认后由值班人员手动触发一次复核与结算补跑（需审批，不在本助手执行范围）",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "当前处于销售窗口内：复核数据滞后 14 天意味着预测结果缺少独立校验，若引擎输出存在偏差将无法被及时发现，可能影响会员看到的预测准确性与站点公信力；引擎漏跑 3 个计划点可能导致部分时段预测未更新，但最近一次运行已恢复，影响范围有限。",
+    "customer_impact": "当前不在售彩窗口，暂无实时投注影响；若结算持续积压，2026-11-27相关场次会员派奖与账务展示将延迟，复核滞后可能影响开奖结果独立校验的可信度。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.18524,
-    "remaining_cny": 8.81476,
-    "calls": 187,
+    "spent_cny": 1.191712,
+    "remaining_cny": 8.808288,
+    "calls": 188,
     "exhausted": false,
-    "used_pct": 11.85
+    "used_pct": 11.92
   },
   "usage": {
-    "prompt_tokens": 538,
-    "completion_tokens": 783,
-    "total_tokens": 1321,
+    "prompt_tokens": 544,
+    "completion_tokens": 673,
+    "total_tokens": 1217,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 410
+    "prompt_cache_miss_tokens": 416
   },
-  "cost_cny": 0.00734
+  "cost_cny": 0.006472
 }
