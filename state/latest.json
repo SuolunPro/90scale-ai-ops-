@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T13:30:14Z",
-  "beijing_time": "2026-11-27 21:30:14",
+  "generated_at": "2026-11-27T14:30:20Z",
+  "beijing_time": "2026-11-27 22:30:20",
   "in_sale_window": true,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -18,26 +18,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104898 字节，耗时 166ms"
+      "detail": "HTTP 200，104898 字节，耗时 48ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（174510 字节），Pages 已生效",
-      "prod_bytes": 174510,
-      "prod_sha": "fa2cb05bbf",
-      "repo_sha": "fa2cb05bbf"
+      "detail": "生产与仓库一致（174530 字节），Pages 已生效",
+      "prod_bytes": 174530,
+      "prod_sha": "5c9ef62b35",
+      "repo_sha": "5c9ef62b35"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 2 分钟前生成",
+      "detail": "sale_day=2026-11-27，快照 32 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 2.3,
+      "generated_age_min": 31.8,
       "in_window": true
     },
     {
@@ -45,18 +45,18 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 6 个计划点无运行：18:42、19:12、19:42、20:12、20:42、21:12；最近一次运行 226 分钟前",
+      "detail": "近 180 分钟内 6 个计划点无运行：19:42、20:12、20:42、21:12、21:42、22:12；最近一次运行 286 分钟前",
       "missed_points": [
-        "18:42",
-        "19:12",
         "19:42",
         "20:12",
         "20:42",
-        "21:12"
+        "21:12",
+        "21:42",
+        "22:12"
       ],
       "checked_points": 6,
       "runs_today": 1,
-      "last_run_age_min": 225.5,
+      "last_run_age_min": 285.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -122,7 +122,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 1698,
+          "elapsed_ms": 1068,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -133,7 +133,7 @@
           "status": "up",
           "http": 200,
           "bytes": 99646,
-          "elapsed_ms": 1466,
+          "elapsed_ms": 1628,
           "error": null,
           "cn_only": true,
           "required": false
@@ -143,8 +143,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 86068,
-          "elapsed_ms": 90,
+          "bytes": 87133,
+          "elapsed_ms": 769,
           "error": null,
           "cn_only": false,
           "required": false
@@ -154,8 +154,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 502310,
-          "elapsed_ms": 2329,
+          "bytes": 499759,
+          "elapsed_ms": 1750,
           "error": null,
           "cn_only": true,
           "required": false
@@ -173,18 +173,18 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 12 次运行，无失败",
+      "detail": "120 分钟内 22 次运行，无失败",
       "failures": [],
-      "recent_runs": 12
+      "recent_runs": 22
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 18.4 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 18.5 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 18.4
+      "age_days": 18.5
     }
   ],
   "budget": {
@@ -197,10 +197,10 @@
     "used_pct": 11.85
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "ip-10-0-142-11",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "46007629294",
+    "run_id": "46016483364",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
