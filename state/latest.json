@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T04:30:12Z",
-  "beijing_time": "2026-11-27 12:30:12",
+  "generated_at": "2026-11-27T05:30:10Z",
+  "beijing_time": "2026-11-27 13:30:10",
   "in_sale_window": true,
   "verdict": "FAIL",
   "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=fail,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
@@ -17,26 +17,26 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104817 字节，耗时 153ms"
+      "detail": "HTTP 200，104817 字节，耗时 92ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
       "status": "ok",
       "severity": "info",
-      "detail": "生产与仓库一致（171420 字节），Pages 已生效",
-      "prod_bytes": 171420,
-      "prod_sha": "07929b3d05",
-      "repo_sha": "07929b3d05"
+      "detail": "生产与仓库一致（170895 字节），Pages 已生效",
+      "prod_bytes": 170895,
+      "prod_sha": "5e76555a89",
+      "repo_sha": "5e76555a89"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 60 分钟前生成",
+      "detail": "sale_day=2026-11-27，快照 39 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 59.5,
+      "generated_age_min": 38.7,
       "in_window": true
     },
     {
@@ -47,11 +47,12 @@
       "detail": "北京时间 10 点后引擎今天仍无任何运行记录",
       "missed_points": [
         "11:12",
-        "12:12"
+        "12:12",
+        "13:12"
       ],
-      "checked_points": 2,
+      "checked_points": 3,
       "runs_today": 0,
-      "last_run_age_min": 1289.6,
+      "last_run_age_min": 1349.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -116,8 +117,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7352,
-          "elapsed_ms": 2752,
+          "bytes": 7351,
+          "elapsed_ms": 2257,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -128,7 +129,7 @@
           "status": "up",
           "http": 200,
           "bytes": 99610,
-          "elapsed_ms": 1621,
+          "elapsed_ms": 2066,
           "error": null,
           "cn_only": true,
           "required": false
@@ -138,8 +139,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 79896,
-          "elapsed_ms": 301,
+          "bytes": 79868,
+          "elapsed_ms": 217,
           "error": null,
           "cn_only": false,
           "required": false
@@ -149,8 +150,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 501683,
-          "elapsed_ms": 1746,
+          "bytes": 501677,
+          "elapsed_ms": 1735,
           "error": null,
           "cn_only": true,
           "required": false
@@ -168,34 +169,34 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 6 次运行，无失败",
+      "detail": "120 分钟内 10 次运行，无失败",
       "failures": [],
-      "recent_runs": 6
+      "recent_runs": 10
     },
     {
       "id": "legacy_sale_status",
       "title": "旧版销售日状态文件",
       "status": "ok",
       "severity": "info",
-      "detail": "最后一次更新 18.0 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
+      "detail": "最后一次更新 18.1 天前，状态 UNCONFIRMED；首页未引用，仅作记录",
       "sale_status": "UNCONFIRMED",
-      "age_days": 18.0
+      "age_days": 18.1
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.136584,
-    "remaining_cny": 8.863416,
-    "calls": 180,
+    "spent_cny": 1.144008,
+    "remaining_cny": 8.855992,
+    "calls": 181,
     "exhausted": false,
-    "used_pct": 11.37
+    "used_pct": 11.44
   },
   "runner": {
-    "host": "runnervm3lb7s",
+    "host": "runnervm0hi8g",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45940296154",
+    "run_id": "45946160670",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
