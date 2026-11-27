@@ -1,30 +1,72 @@
 {
-  "at": "2026-11-27T05:30:28Z",
+  "at": "2026-11-27T06:30:31Z",
   "verdict": "FAIL",
   "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "raw": "{\"summary\":\"预测引擎今日 0 次运行、最近一次运行距今约 1349.6 分钟，且 11:12、12:12、13:12 三个计划点全部漏跑；独立复核数据滞后 14 天。现有证据只能确认“没有运行记录”，无法区分是调度未触发、工作流被禁用，还是引擎启动即失败，需补充调度与运行日志证据。\",\"root_causes\":[{\"cause\":\"预测引擎调度未触发或工作流被禁用/停用，导致计划点整体漏跑\",\"confidence\":0.45,\"evidence\":\"engine_runs: runs_today=0, missed_points=[11:12,12:12,13:12], last_run_age_min=1349.6；retired_workflows_ignored 仅列出 settlement/verify/backfill 三个已退役工作流，说明巡检已排除这些干扰项，但未提供调度器状态\"},{\"cause\":\"引擎工作流被触发但启动即失败（依赖/环境/权限问题），未产生可识别的运行记录\",\"confidence\":0.3,\"evidence\":\"engine_runs: runs_today=0 且 last_run_age_min≈22.5 小时，说明自昨日后再无成功记录；巡检未包含失败运行计数或错误日志字段\"},{\"cause\":\"独立复核流程与引擎共用上游数据/调度链路，上游中断同时导致复核文件停止更新\",\"confidence\":0.25,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=14，与引擎停跑时间窗部分重叠，但缺少复核任务自身的调度记录\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H 'Accept: application/vnd.github+json' https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['path']) for w in d.get('workflows',[])]\\\"\",\"purpose\":\"只读确认引擎相关 workflow 是否存在且 state 为 active，排除被禁用\"},{\"command\":\"curl -s -H 'Accept: application/vnd.github+json' 'https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['name'],r['status'],r['conclusion'],r['created_at']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读查看最近运行记录，确认是未触发还是触发后失败\"},{\"command\":\"curl -s -H 'Accept: application/vnd.github+json' 'https://api.github.com/repos/<owner>/<repo>/actions/workflows/<engine_workflow_id>/runs?per_page=10' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['id'],r['status'],r['conclusion'],r['created_at']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读定位引擎工作流自身的最近运行与结论\"},{\"command\":\"git log --since='2026-11-13' --oneline -- <review_data_path>\",\"purpose\":\"只读确认独立复核文件最后一次提交时间与提交者，判断是流程停更还是数据未提交\"},{\"command\":\"python -c \\\"import json,datetime;print(datetime.datetime.now())\\\"\",\"purpose\":\"只读校准当前时间，复核 last_run_age_min 与 lag_days 的计算基准\"}],\"suggested_fix\":{\"action\":\"先由运维人工核对引擎 workflow 的启用状态与调度配置（"
+    "summary": "预测引擎今日 0 次运行、最近一次运行距今约 1409 分钟，12:12/13:12/14:12 三个计划点全部漏跑，且独立复核数据已滞后 14 天；网站数据不一致仅滞后 0.4 分钟，更像 Pages 部署中，属次要告警。根因证据不足，需补充引擎调度日志与工作流运行记录。",
+    "root_causes": [
+      {
+        "cause": "预测引擎调度/工作流未触发或被禁用，导致今日计划点全部漏跑",
+        "confidence": 0.55,
+        "evidence": "engine_runs: runs_today=0, missed_points=[12:12,13:12,14:12], last_run_age_min=1409.6, checked_points=3"
+      },
+      {
+        "cause": "引擎上游数据或依赖缺失，导致运行前置条件不满足而静默跳过",
+        "confidence": 0.25,
+        "evidence": "engine_runs 无任何运行记录，last_run_age_min≈23.5 小时；巡检未提供调度器/依赖状态字段"
+      },
+      {
+        "cause": "独立复核流程长期未执行，复核文件停留在 2026-11-13",
+        "confidence": 0.2,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=14"
+      }
+    ],
+    "diagnose_steps": [
+      {
+        "command": "curl -s https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['id']) for w in d.get('workflows',[])]\"",
+        "purpose": "确认引擎相关 workflow 是否存在且 state 为 active（只读查询）"
+      },
+      {
+        "command": "curl -s \"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\" | python -c \"import sys,json;d=json.load(sys.stdin);[print(r['name'],r['status'],r['conclusion'],r['created_at']) for r in d.get('workflow_runs',[])]\"",
+        "purpose": "查看今日是否有引擎运行记录及失败/取消状态"
+      },
+      {
+        "command": "git log --since=\"2026-11-27 00:00\" --oneline -- .github/workflows",
+        "purpose": "确认今日是否有工作流配置变更导致调度失效"
+      },
+      {
+        "command": "curl -s https://<prod-site>/ | python -c \"import sys,hashlib;print(hashlib.sha1(sys.stdin.buffer.read()).hexdigest()[:10])\"",
+        "purpose": "复核生产页面内容哈希是否已更新，判断 site_data_sync 是否仅为部署延迟"
+      }
+    ],
+    "suggested_fix": {
+      "action": "人工登录调度平台/仓库 Actions 页面，核查引擎 workflow 的启用状态与今日触发记录，确认漏跑原因后手动触发一次引擎运行并补跑 12:12/13:12/14:12 计划点；同时排查独立复核流程为何 14 天未产出。",
+      "risk": "medium",
+      "needs_approval": true
+    },
+    "customer_impact": "预测结果自今日 10 点后未更新，会员看到的预测数据可能停留在昨日；独立复核缺失使结果可信度下降，但网站本身可访问（生产内容仅滞后 0.4 分钟）。",
+    "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.151442,
-    "remaining_cny": 8.848558,
-    "calls": 182,
+    "spent_cny": 1.15843,
+    "remaining_cny": 8.84157,
+    "calls": 183,
     "exhausted": false,
-    "used_pct": 11.51
+    "used_pct": 11.58
   },
   "usage": {
-    "prompt_tokens": 517,
-    "completion_tokens": 800,
-    "total_tokens": 1317,
+    "prompt_tokens": 626,
+    "completion_tokens": 717,
+    "total_tokens": 1343,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 389
+    "prompt_cache_miss_tokens": 498
   },
-  "cost_cny": 0.007434
+  "cost_cny": 0.006988
 }
