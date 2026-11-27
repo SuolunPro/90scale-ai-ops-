@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-27T07:31:08Z",
+  "at": "2026-11-27T08:30:32Z",
   "verdict": "FAIL",
   "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎今日 0 次运行、最近一次运行距今约 1469.6 分钟（约 24.5 小时），且处于销售窗口内，属关键漏跑；独立复核数据滞后 14 天。现有巡检仅能证明“无运行记录”，尚缺引擎调度/工作流执行日志与失败原因证据，根因置信度偏低。",
+    "summary": "预测引擎今日 0 次运行、最近一次运行距今约 1529.6 分钟，且 14:12/15:12/16:12 三个计划点全部漏跑；独立复核数据滞后 14 天。现有证据只能确认“引擎未运行”和“复核文件陈旧”，尚缺引擎调度日志、工作流运行记录与失败原因，无法确定根因。",
     "root_causes": [
       {
-        "cause": "引擎调度或工作流未触发/被禁用（计划任务未生效）",
-        "confidence": 0.45,
-        "evidence": "engine_runs: runs_today=0, missed_points=[13:12,14:12,15:12], last_run_age_min=1469.6；retired_workflows_ignored 仅列出已退役工作流，说明当前应运行的工作流无执行记录"
+        "cause": "预测引擎调度/工作流未触发或被停用（计划任务失效）",
+        "confidence": 0.55,
+        "evidence": "engine_runs: runs_today=0, missed_points=[14:12,15:12,16:12], last_run_age_min=1529.6, detail=北京时间10点后仍无任何运行记录"
       },
       {
-        "cause": "引擎运行失败并在启动阶段即退出（依赖/数据/凭证异常），未留下成功运行记录",
-        "confidence": 0.3,
-        "evidence": "engine_runs status=fail, runs_today=0；巡检未提供失败日志字段，无法区分未触发与触发后失败"
-      },
-      {
-        "cause": "独立复核流程长期未更新，与引擎漏跑同源（上游数据或流水线中断）",
+        "cause": "引擎运行依赖的上游数据或凭证异常，导致工作流启动即失败且未留下成功记录",
         "confidence": 0.25,
+        "evidence": "engine_runs status=fail severity=critical，runs_today=0；巡检未提供工作流失败日志，属推测"
+      },
+      {
+        "cause": "独立复核流程长期未更新（复核任务停摆或未产出新文件）",
+        "confidence": 0.2,
         "evidence": "independent_review: latest=2026-11-13, lag_days=14"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://api.github.com/repos/<owner>/<repo>/actions/workflows",
-        "purpose": "只读确认仓库工作流列表与状态，核对引擎工作流是否存在/被禁用"
+        "command": "curl -s -H 'Accept: application/vnd.github+json' 'https://api.github.com/repos/<owner>/<repo>/actions/workflows'",
+        "purpose": "只读列出当前工作流，确认预测引擎工作流是否存在、是否被禁用（disabled）"
       },
       {
-        "command": "curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20'",
-        "purpose": "只读查看最近工作流运行记录与结论，确认今日是否有触发及失败原因"
+        "command": "curl -s -H 'Accept: application/vnd.github+json' 'https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20'",
+        "purpose": "只读查看最近运行记录与结论，确认今日是否有触发及失败状态"
       },
       {
-        "command": "git log --since='2026-11-26' --oneline -- .",
-        "purpose": "只读检查近期代码/配置变更是否影响引擎调度或复核流程"
+        "command": "git log --since='2026-11-27 00:00' --oneline -- .",
+        "purpose": "只读确认今日是否有引擎产出提交，佐证 runs_today=0"
       },
       {
-        "command": "python -c \"import json,os;print(os.path.exists('review_latest.json'))\"",
-        "purpose": "只读确认复核产物文件是否存在及路径，辅助判断复核滞后原因"
+        "command": "python -c \"import os,glob,datetime;fs=sorted(glob.glob('**/review*',recursive=True));print([(f,datetime.datetime.fromtimestamp(os.path.getmtime(f)).isoformat()) for f in fs[-5:]])\"",
+        "purpose": "只读检查复核文件最新修改时间，核实 lag_days=14"
       }
     ],
     "suggested_fix": {
-      "action": "人工登录调度平台/仓库 Actions 页面核查引擎工作流是否被禁用或计划表达式错误，并查看最近一次失败运行的日志；确认后在销售窗口内手动触发一次引擎运行并补跑 13:12/14:12/15:12 计划点，同时排查独立复核流水线中断原因",
+      "action": "人工登录 CI/调度平台核对预测引擎工作流的启用状态与最近失败日志，确认触发条件（cron/上游依赖/凭证）后手动触发一次补跑，并同步排查独立复核任务停摆原因",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "销售窗口内预测引擎今日无输出，会员可能看到过期预测结果或缺失当期推荐；独立复核滞后 14 天意味着结果缺少独立校验，准确性风险上升。",
+    "customer_impact": "今日 14:12 起三个计划点无预测产出，会员端预测结果可能停留在旧数据，影响当日预测展示与基于预测的结算/复核流程；独立复核滞后 14 天，结果可信度校验缺失。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.164488,
-    "remaining_cny": 8.835512,
-    "calls": 184,
+    "spent_cny": 1.170818,
+    "remaining_cny": 8.829182,
+    "calls": 185,
     "exhausted": false,
-    "used_pct": 11.64
+    "used_pct": 11.71
   },
   "usage": {
     "prompt_tokens": 517,
-    "completion_tokens": 628,
-    "total_tokens": 1145,
+    "completion_tokens": 662,
+    "total_tokens": 1179,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 389
   },
-  "cost_cny": 0.006058
+  "cost_cny": 0.00633
 }
