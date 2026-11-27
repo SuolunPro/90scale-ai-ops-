@@ -1,72 +1,30 @@
 {
-  "at": "2026-11-27T20:45:26Z",
+  "at": "2026-11-27T21:30:36Z",
   "verdict": "FAIL",
   "signature": "independent_review,settlement,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-27 有 9 场比赛在开赛 12.1 小时后仍未结算，属于关键失败；同时网站仓库工作流在 120 分钟内连续失败 8 次，独立复核数据已滞后 15 天。现有证据只能定位到现象，尚缺结算任务日志、工作流失败日志和复核文件缺失原因，因此根因置信度偏低。",
-    "root_causes": [
-      {
-        "cause": "结算流程或赛果核验任务在 2026-11-27 批次中断或卡住，导致 9 场比赛长期处于 pending 状态",
-        "confidence": 0.55,
-        "evidence": "checks[settlement].status=fail，detail=2026-11-27 有 9 场开赛 12.1h 仍未结算；2026-11-25/26 的 pending 均为 0，说明问题集中在 11-27 批次"
-      },
-      {
-        "cause": "网站仓库的预测构建与预测刷新审计工作流存在共同故障点（如数据源或校验失败），导致短时间内反复失败",
-        "confidence": 0.4,
-        "evidence": "checks[site_workflows].failures 中 8 次失败集中在 2026-11-27T19:25~19:33，且 Build verified website predictions 与 Audit website forecast refresh 交替失败，recent_runs=30"
-      },
-      {
-        "cause": "独立复核流程未按周期产出文件，最新复核文件停留在 2026-11-13",
-        "confidence": 0.35,
-        "evidence": "checks[independent_review].latest=2026-11-13，lag_days=15，status=fail"
-      }
-    ],
-    "diagnose_steps": [
-      {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46057509214",
-        "purpose": "只读查看 Build verified website predictions 失败运行的结论与失败步骤"
-      },
-      {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46057423573",
-        "purpose": "只读查看 Audit website forecast refresh 失败运行的结论，确认两类工作流是否同一根因"
-      },
-      {
-        "command": "git -C <网站仓库路径> log --since=2026-11-26 --oneline",
-        "purpose": "只读查看近期提交，确认是否有变更与工作流集中失败时间吻合"
-      },
-      {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('<复核文件目录>/*'));print(fs[-5:] if fs else 'no files')\"",
-        "purpose": "只读列出最新复核文件，确认 2026-11-13 之后是否确实没有新文件产出"
-      }
-    ],
-    "suggested_fix": {
-      "action": "人工排查 2026-11-27 批次结算任务的执行日志与赛果核验数据源，确认卡住环节后按既有流程补结算；同时查看两个失败工作流的运行日志，定位共同失败步骤；并确认独立复核流程为何自 2026-11-13 起未产出文件。",
-      "risk": "medium",
-      "needs_approval": true
-    },
-    "customer_impact": "9 场比赛超过 12 小时未结算，直接影响相关会员的派彩与账户余额更新；网站预测构建与刷新审计连续失败，可能导致网站预测内容无法更新或展示过期数据；独立复核滞后 15 天，削弱结果可信度与合规复核保障。",
-    "escalate": true
+    "raw": "{\"summary\":\"2026-11-27 有 9 场赛事开赛 12.8h 仍未结算（critical），同时独立复核数据滞后 15 天、网站仓库 2 个工作流失败；结算积压与复核停滞可能同源（上游赛果/数据管道中断），但现有巡检数据不足以确认具体故障点，需补充结算任务日志与工作流失败日志。\",\"root_causes\":[{\"cause\":\"赛果数据获取或结算任务管道中断，导致 11-27 批次整体未结算（前两日均正常，属突发性单日积压）\",\"confidence\":0.55,\"evidence\":\"checks[settlement].checked: 2026-11-25/26 pending=0，2026-11-27 matches=11 pending=9 overdue_h=12.8；detail 明确 9 场开赛 12.8h 未结算\"},{\"cause\":\"上游数据/预测刷新链路异常，同时波及网站工作流与独立复核产出（复核文件停在 2026-11-13）\",\"confidence\":0.3,\"evidence\":\"site_workflows 失败项含 'Audit website forecast refresh' 与 'Build verified website predictions'（2026-11-27T19:32-19:33Z）；independent_review.latest=2026-11-13, lag_days=15\"},{\"cause\":\"独立复核流程本身停摆（人工/定时任务未执行），与结算积压为独立问题\",\"confidence\":0.15,\"evidence\":\"independent_review lag_days=15，但巡检未提供复核任务调度记录，无法区分是流程停摆还是上游无新数据\"}],\"diagnose_steps\":[{\"command\":\"curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46057509214\",\"purpose\":\"读取 'Build verified website predictions' 失败运行的结论与失败步骤，确认是否与赛果/预测数据缺失相关\"},{\"command\":\"curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46057423573\",\"purpose\":\"读取 'Audit website forecast refresh' 失败运行详情，判断是否为同一数据源问题\"},{\"command\":\"curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs?per_page=30\",\"purpose\":\"查看近 30 次运行的成功/失败分布，确认失败是突发还是持续退化\"},{\"command\":\"git log --since=2026-11-12 --until=2026-11-28 --oneline -- <复核文件所在目录>\",\"purpose\":\"确认独立复核文件自 2026-11-13 后是否确实无提交，排除文件路径或读取错误\"},{\"command\":\"python -c \\\"import json;d=json.load(open('settlement_state.json'));print([m for m in d if m.get('day')=='2026-11-27' and m.get('status')=='pending'])\\\"\",\"purpose\":\"只读列出 11-27 未结算场次及其状态字段，定位卡在核验还是结算环节（路径需按实际部署调整）\"}],\"suggested_fix\":{\"action\":\"先只读核对 11-27 未结算场次的赛果来源与结算任务日志，确认是赛果缺失还是结算任务未触发；同时查看两个失败工作流的日志，若与同一数据源相关则一并修复后人工触发一次补结算与复核刷新（补结算涉及资金，须人工审批执行）\",\"risk\":\"high\",\"needs_approval\":true},\"customer_impact\":\"9 场赛事已"
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.229134,
-    "remaining_cny": 8.770866,
-    "calls": 193,
+    "spent_cny": 1.237,
+    "remaining_cny": 8.763,
+    "calls": 194,
     "exhausted": false,
-    "used_pct": 12.29
+    "used_pct": 12.37
   },
   "usage": {
-    "prompt_tokens": 1077,
-    "completion_tokens": 745,
-    "total_tokens": 1822,
+    "prompt_tokens": 733,
+    "completion_tokens": 800,
+    "total_tokens": 1533,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 949
+    "prompt_cache_miss_tokens": 605
   },
-  "cost_cny": 0.008114
+  "cost_cny": 0.007866
 }
