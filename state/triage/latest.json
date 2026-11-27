@@ -1,76 +1,76 @@
 {
-  "at": "2026-11-27T23:15:35Z",
+  "at": "2026-11-27T23:30:29Z",
   "verdict": "FAIL",
-  "signature": "settlement",
+  "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "2026-11-27 有 9 场比赛在开赛 14.6 小时后仍未结算，而 11-25 和 11-26 的 pending 均为 0，说明这是单日突发积压；但巡检数据未包含赛果源状态、结算任务日志和队列深度，因此无法确定根因。",
+    "summary": "2026-11-27 有 9 场赛果开赛 14.8 小时仍未结算，是本次唯一 critical 失败；独立复核数据滞后 15 天、网站工作流 120 分钟无运行记录，均指向调度或流水线停滞，但现有巡检数据不足以定位具体环节。",
     "root_causes": [
       {
-        "cause": "赛果数据源未回传或回传不完整，导致结算任务缺少赛果而无法执行",
-        "confidence": 0.45,
-        "evidence": "settlement 检查 fail：2026-11-27 matches=11、pending=9、overdue_h=14.6；前两日 pending=0，说明结算链路本身此前正常，异常集中在单日赛果获取环节"
+        "cause": "结算流水线或赛果核验任务停滞，导致 2026-11-27 批次整体未结算",
+        "confidence": 0.55,
+        "evidence": "settlement: 2026-11-27 matches=11, pending=9, overdue_h=14.8；而 11-25、11-26 pending 均为 0，说明是当日突发而非长期积压"
       },
       {
-        "cause": "结算任务或队列在 11-27 出现积压或中断（任务未消费、调度未触发）",
-        "confidence": 0.35,
-        "evidence": "9 场同时逾期 14.6h，且 11-25、11-26 均无 pending，符合任务侧单点中断特征；但巡检未提供队列深度与任务日志"
+        "cause": "定时调度器或工作流触发机制停滞，同时影响结算任务与网站仓库工作流",
+        "confidence": 0.4,
+        "evidence": "site_workflows: 120 分钟内 recent_runs=0、failures=[]（无失败记录，更像未触发而非执行失败）；与 settlement 同日出现停滞"
       },
       {
-        "cause": "部分场次赛果存在争议或需人工核验，被挂起未自动结算",
-        "confidence": 0.2,
-        "evidence": "pending=9 占当日 11 场的 82%，若为源数据全断应接近 11 场；剩余 2 场已结算说明链路部分可用，存在按场次挂起的可能"
+        "cause": "独立复核流程长期未产出新文件，属独立于当日结算的持续性滞后",
+        "confidence": 0.3,
+        "evidence": "independent_review: latest=2026-11-13, lag_days=15；滞后起点早于 11-27 结算异常，可能是另一条独立链路问题"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s 'http://localhost:<结算服务端口>/health' 或读取结算服务只读状态接口",
-        "purpose": "确认结算服务/调度进程是否存活、是否处于暂停状态"
+        "command": "curl -s -m 10 http://<结算服务只读健康端点>/health",
+        "purpose": "确认结算服务进程与依赖是否存活，排除服务宕机"
       },
       {
-        "command": "python -c \"读取结算任务队列只读快照，统计 2026-11-27 待处理与失败任务数\"",
-        "purpose": "确认是队列积压还是任务根本未入队"
+        "command": "curl -s -m 10 'http://<结算服务只读API>/settlements?date=2026-11-27&status=pending'",
+        "purpose": "查看 9 场待结算比赛的赛果源状态，判断是缺赛果还是结算任务未执行"
       },
       {
-        "command": "curl -s '<赛果源只读查询接口>&date=2026-11-27'",
-        "purpose": "核对 11-27 的 11 场比赛赛果在源端是否已存在、字段是否完整"
+        "command": "curl -s -m 10 'http://<调度器只读API>/jobs?status=last_run'",
+        "purpose": "确认结算任务与网站工作流的最近触发时间，验证是否调度停滞"
       },
       {
-        "command": "git log --oneline -20 -- <结算相关目录>",
-        "purpose": "确认 11-26 至 11-27 之间是否有结算逻辑或配置变更上线"
+        "command": "git -C <网站仓库路径> log --since='2026-11-27' --oneline -n 20",
+        "purpose": "只读查看仓库近期提交与工作流相关变更，排查是否因配置变更导致工作流不触发"
       },
       {
-        "command": "python -c \"只读解析结算服务日志，筛选 2026-11-27 的 ERROR/WARN 与 pending 相关记录\"",
-        "purpose": "定位具体失败原因（赛果缺失、校验不通过、异常退出）"
+        "command": "python -c \"import os,glob;fs=sorted(glob.glob('<复核文件目录>/*'));print(fs[-5:])\"",
+        "purpose": "只读列出最新复核文件，确认 2026-11-13 后是否确实无新产出"
       }
     ],
     "suggested_fix": {
-      "action": "先由人工核对 11-27 的 9 场赛果在源端是否齐全：若源端缺失则联系赛果提供方补数；若源端齐全则排查结算任务积压原因，确认后由值班人员按既定流程对已具备赛果的场次执行补结算（需人工确认赛果与赔率无误后操作）",
-      "risk": "high",
+      "action": "人工登录调度与结算服务只读排查：先确认调度器是否停止触发，再对 2026-11-27 的 9 场待结算比赛核对赛果源并手动触发一次结算流程；同时检查独立复核产出链路为何自 2026-11-13 起中断。",
+      "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "9 场比赛的会员派彩延迟已超过 14.6 小时，涉及中奖会员资金到账滞后，可能引发客诉；未结算场次对应的注单状态与账户余额展示可能不一致，但历史已结算场次与网站整体访问不受影响。",
+    "customer_impact": "9 场已开赛比赛超过 14.8 小时未结算，涉及这些场次的会员派彩与账户余额更新被延迟，可能引发会员投诉；网站本身访问未显示异常，但工作流停滞若持续可能影响后续内容与数据更新。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.257414,
-    "remaining_cny": 8.742586,
-    "calls": 197,
+    "spent_cny": 1.264464,
+    "remaining_cny": 8.735536,
+    "calls": 198,
     "exhausted": false,
-    "used_pct": 12.57
+    "used_pct": 12.64
   },
   "usage": {
-    "prompt_tokens": 461,
-    "completion_tokens": 741,
-    "total_tokens": 1202,
+    "prompt_tokens": 609,
+    "completion_tokens": 729,
+    "total_tokens": 1338,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 333
+    "prompt_cache_miss_tokens": 481
   },
-  "cost_cny": 0.00685
+  "cost_cny": 0.00705
 }
