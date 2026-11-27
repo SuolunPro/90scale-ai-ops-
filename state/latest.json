@@ -1,42 +1,45 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-27T05:30:10Z",
-  "beijing_time": "2026-11-27 13:30:10",
+  "generated_at": "2026-11-27T06:30:13Z",
+  "beijing_time": "2026-11-27 14:30:13",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=fail,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=warn,engine_fresh=ok,engine_runs=fail,pool_coverage=ok,settlement=ok,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
   "signature": "engine_runs,independent_review",
   "failed": [
     "engine_runs",
     "independent_review"
   ],
-  "warned": [],
+  "warned": [
+    "site_data_sync"
+  ],
   "checks": [
     {
       "id": "site_home",
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，104817 字节，耗时 92ms"
+      "detail": "HTTP 200，104817 字节，耗时 132ms"
     },
     {
       "id": "site_data_sync",
       "title": "网站数据与仓库一致",
-      "status": "ok",
-      "severity": "info",
-      "detail": "生产与仓库一致（170895 字节），Pages 已生效",
-      "prod_bytes": 170895,
-      "prod_sha": "5e76555a89",
-      "repo_sha": "5e76555a89"
+      "status": "warn",
+      "severity": "warn",
+      "detail": "生产与仓库内容不一致，但仓库刚在 0.4 分钟内提交，疑似 Pages 部署中",
+      "lag_min": 0.4,
+      "prod_bytes": 171330,
+      "prod_sha": "79770a04e6",
+      "repo_sha": "d20333875c"
     },
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-27，快照 39 分钟前生成",
+      "detail": "sale_day=2026-11-27，快照 60 分钟前生成",
       "sale_day": "2026-11-27",
-      "generated_age_min": 38.7,
+      "generated_age_min": 59.6,
       "in_window": true
     },
     {
@@ -46,13 +49,13 @@
       "severity": "critical",
       "detail": "北京时间 10 点后引擎今天仍无任何运行记录",
       "missed_points": [
-        "11:12",
         "12:12",
-        "13:12"
+        "13:12",
+        "14:12"
       ],
       "checked_points": 3,
       "runs_today": 0,
-      "last_run_age_min": 1349.6,
+      "last_run_age_min": 1409.6,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -118,7 +121,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7351,
-          "elapsed_ms": 2257,
+          "elapsed_ms": 1825,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,7 +132,7 @@
           "status": "up",
           "http": 200,
           "bytes": 99610,
-          "elapsed_ms": 2066,
+          "elapsed_ms": 1745,
           "error": null,
           "cn_only": true,
           "required": false
@@ -139,8 +142,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 79868,
-          "elapsed_ms": 217,
+          "bytes": 79545,
+          "elapsed_ms": 283,
           "error": null,
           "cn_only": false,
           "required": false
@@ -150,8 +153,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 501677,
-          "elapsed_ms": 1735,
+          "bytes": 501678,
+          "elapsed_ms": 2578,
           "error": null,
           "cn_only": true,
           "required": false
@@ -169,9 +172,9 @@
       "title": "网站仓库工作流健康",
       "status": "ok",
       "severity": "info",
-      "detail": "120 分钟内 10 次运行，无失败",
+      "detail": "120 分钟内 16 次运行，无失败",
       "failures": [],
-      "recent_runs": 10
+      "recent_runs": 16
     },
     {
       "id": "legacy_sale_status",
@@ -186,17 +189,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.144008,
-    "remaining_cny": 8.855992,
-    "calls": 181,
+    "spent_cny": 1.151442,
+    "remaining_cny": 8.848558,
+    "calls": 182,
     "exhausted": false,
-    "used_pct": 11.44
+    "used_pct": 11.51
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "runnervm3lb7s",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "45946160670",
+    "run_id": "45952249104",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
