@@ -1,20 +1,20 @@
 {
-  "at": "2026-11-27T03:30:31Z",
+  "at": "2026-11-27T04:30:29Z",
   "verdict": "FAIL",
   "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "raw": "{\"summary\":\"预测引擎今日 0 次运行、最近一次运行距今约 20.5 小时，且 09:12/11:12 两个计划点均漏跑；独立复核数据滞后 14 天。现有证据只能定位到“引擎未运行”，尚缺调度器/工作流执行日志与引擎进程日志，无法确定根因。\",\"root_causes\":[{\"cause\":\"预测引擎调度未触发或工作流被禁用/暂停（计划任务层面失效）\",\"confidence\":0.55,\"evidence\":\"engine_runs: runs_today=0, missed_points=[09:12,11:12], last_run_age_min=1229.6；retired_workflows_ignored 仅列出已退役工作流，说明检查未把退役项计入，但活跃调度点确实无运行记录\"},{\"cause\":\"引擎任务被触发但启动即失败/异常退出，未留下成功运行记录\",\"confidence\":0.3,\"evidence\":\"engine_runs: runs_today=0 且 last_run_age_min≈1229.6，处于销售窗口内(in_sale_window=true)仍无运行；需工作流运行日志确认是否存在失败运行\"},{\"cause\":\"独立复核流程长期未执行，与引擎停摆同源（同一调度/流水线中断）\",\"confidence\":0.15,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=14，滞后时间远长于本次引擎漏跑，提示复核链路可能更早中断\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H 'Accept: application/vnd.github+json' https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['path']) for w in d.get('workflows',[])]\\\"\",\"purpose\":\"只读确认引擎相关活跃工作流是否存在且 state 为 active（排除被禁用/暂停）\"},{\"command\":\"curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/workflows/<engine_workflow>.yml/runs?per_page=20' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['created_at'],r['status'],r['conclusion'],r['event']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读查看引擎工作流近期运行记录，确认 09:12/11:12 是否有触发及失败结论\"},{\"command\":\"curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=30' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['created_at'],r['name'],r['status'],r['conclusion']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读核对仓库整体调度活动，判断是单工作流问题还是全局调度中断\"},{\"command\":\"git log --since='2026-11-13' --oneline -- <review_data_path>\",\"purpose\":\"只读确认独立复核文件自 2026-11-13 后是否有任何提交，定位复核链路中断时间点\"}],\"suggested_fix\":{\"action\":\"先由人工在只读排查确认调度状态后，手动触发一次引擎工作流并补跑 09:12/11:12 计划点，同时补做一次独立复核；若为工作流被禁用则恢复启用。\",\"risk\":\"medium\",\"needs_approval\":true},\"customer_impact\":\"销售窗口内预测引擎今日无运行，最新预测结果缺失约 "
+    "raw": "{\"summary\":\"预测引擎今日 0 次运行、最近一次运行距今约 21.5 小时，且 11:12/12:12 两个计划点均漏跑；独立复核数据滞后 14 天。当前处于销售窗口内，影响面较大。但巡检数据未包含引擎调度器状态、最近运行日志与失败原因，根因只能给出较低置信度推断。\",\"root_causes\":[{\"cause\":\"引擎调度工作流被停用或触发条件失效（如 cron 被移除、workflow disabled），导致计划点整体不触发\",\"confidence\":0.45,\"evidence\":\"engine_runs: runs_today=0, missed_points=[11:12,12:12], last_run_age_min=1289.6（约 21.5 小时无运行）；retired_workflows_ignored 仅列出 3 个已退役工作流，说明巡检已排除退役项，漏跑并非退役工作流造成\"},{\"cause\":\"引擎运行依赖的上游数据或外部依赖不可用，任务被触发后立即失败或未产生运行记录\",\"confidence\":0.3,\"evidence\":\"engine_runs: runs_today=0 且 last_run_age_min≈1289.6，说明自昨日午后起无成功记录；巡检未提供失败日志字段，无法区分“未触发”与“触发即失败”\"},{\"cause\":\"独立复核流程长期未执行（可能与引擎漏跑同源，或复核任务独立停摆），导致复核文件停留在 2026-11-13\",\"confidence\":0.25,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=14，滞后远超正常节奏；与 engine_runs 同期异常，存在共同调度/依赖故障的可能\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H \\\"Authorization: token $TOKEN\\\" https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \\\"import sys,json; [print(w['name'], w['state'], w['path']) for w in json.load(sys.stdin)['workflows']]\\\"\",\"purpose\":\"只读确认引擎相关 workflow 是否处于 active 状态，排除被 disabled 的可能\"},{\"command\":\"curl -s -H \\\"Authorization: token $TOKEN\\\" \\\"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\\\" | python -c \\\"import sys,json; [print(r['name'], r['status'], r['conclusion'], r['created_at']) for r in json.load(sys.stdin)['workflow_runs']]\\\"\",\"purpose\":\"只读查看最近运行记录与结论，确认是未触发还是触发后失败\"},{\"command\":\"git log --since=\\\"2026-11-26 12:00\\\" --oneline -- .github/workflows/\",\"purpose\":\"只读检查近期是否有 workflow 配置变更（cron 调整、删除触发器等）\"},{\"command\":\"curl -s -H \\\"Authorization: token $TOKEN\\\" \\\"https://api.github.com/repos/<owner>/<repo>/contents/<复核文件目录>\\\" | python -c \\\"import sys,json; [print(i['name'], i['sha'][:8]) for i in json.load(sys.stdin)]\\\"\",\"purpose\":\"只读确认复核文件目录最新提交时间，判断复核任务是否同样停摆\"}],\"suggested_fix\":{\"action\":\"先由人工只读排查确认引擎 workflow 是否被停用或 cron 失效；若为配置问题，由有权限人员在评审后恢复调度配置并手动补跑当日漏掉的 11:12/12:12 计划点，同时补做独立复核。\",\"risk\":\"medium\",\"needs_"
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.136584,
-    "remaining_cny": 8.863416,
-    "calls": 180,
+    "spent_cny": 1.144008,
+    "remaining_cny": 8.855992,
+    "calls": 181,
     "exhausted": false,
-    "used_pct": 11.37
+    "used_pct": 11.44
   },
   "usage": {
     "prompt_tokens": 512,
