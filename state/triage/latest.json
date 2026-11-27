@@ -1,72 +1,30 @@
 {
-  "at": "2026-11-27T02:30:28Z",
+  "at": "2026-11-27T03:30:31Z",
   "verdict": "FAIL",
   "signature": "engine_runs,independent_review",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎今日 0 次运行且 09:12 计划点漏跑（最后运行约 1169.6 分钟前），独立复核数据已滞后 14 天；现有证据只能确认“未运行/未更新”，无法区分调度未触发、工作流失败还是上游数据缺失，需进一步只读排查。",
-    "root_causes": [
-      {
-        "cause": "预测引擎调度未触发或工作流执行失败，导致今日计划点 09:12 漏跑且全天无运行记录",
-        "confidence": 0.6,
-        "evidence": "engine_runs: status=fail, runs_today=0, missed_points=[\"09:12\"], last_run_age_min=1169.6, in_sale_window=true"
-      },
-      {
-        "cause": "引擎依赖的上游数据/前置任务缺失，使引擎无法启动（当前巡检未覆盖上游数据源状态）",
-        "confidence": 0.3,
-        "evidence": "engine_runs 仅显示无运行记录，checks 中无上游数据源或依赖任务检查项"
-      },
-      {
-        "cause": "独立复核流程停更（复核任务未调度或未产出文件），与引擎停跑可能同源",
-        "confidence": 0.5,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=14"
-      }
-    ],
-    "diagnose_steps": [
-      {
-        "command": "curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/<owner>/<repo>/actions/workflows\"",
-        "purpose": "只读列出当前生效的工作流，确认引擎与复核工作流是否存在且处于启用状态（排除已退役工作流干扰）"
-      },
-      {
-        "command": "curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=20\"",
-        "purpose": "只读查看最近运行记录与结论，确认今日是否有失败/取消的运行及失败原因"
-      },
-      {
-        "command": "git log --since=\"2026-11-26\" --oneline -- .",
-        "purpose": "只读查看近期提交，确认是否有配置/代码变更导致引擎或复核任务中断"
-      },
-      {
-        "command": "python -c \"import json,glob,os;fs=sorted(glob.glob('**/review*',recursive=True));print([(f,os.path.getmtime(f)) for f in fs[-5:]])\"",
-        "purpose": "只读定位最新复核文件及其时间戳，确认复核产出是否真的停更"
-      }
-    ],
-    "suggested_fix": {
-      "action": "人工登录调度平台/仓库 Actions 页面核对引擎与复核工作流的启用状态与最近失败日志，确认原因后手动触发一次引擎运行并补跑 09:12 计划点；若为上游数据缺失，先补齐数据再重跑。",
-      "risk": "medium",
-      "needs_approval": true
-    },
-    "customer_impact": "销售窗口内预测结果未更新，会员端展示的预测/推荐可能停留在旧结果，影响会员体验与销售转化；独立复核滞后 14 天意味着近期结果缺少独立校验，准确性风险上升。",
-    "escalate": true
+    "raw": "{\"summary\":\"预测引擎今日 0 次运行、最近一次运行距今约 20.5 小时，且 09:12/11:12 两个计划点均漏跑；独立复核数据滞后 14 天。现有证据只能定位到“引擎未运行”，尚缺调度器/工作流执行日志与引擎进程日志，无法确定根因。\",\"root_causes\":[{\"cause\":\"预测引擎调度未触发或工作流被禁用/暂停（计划任务层面失效）\",\"confidence\":0.55,\"evidence\":\"engine_runs: runs_today=0, missed_points=[09:12,11:12], last_run_age_min=1229.6；retired_workflows_ignored 仅列出已退役工作流，说明检查未把退役项计入，但活跃调度点确实无运行记录\"},{\"cause\":\"引擎任务被触发但启动即失败/异常退出，未留下成功运行记录\",\"confidence\":0.3,\"evidence\":\"engine_runs: runs_today=0 且 last_run_age_min≈1229.6，处于销售窗口内(in_sale_window=true)仍无运行；需工作流运行日志确认是否存在失败运行\"},{\"cause\":\"独立复核流程长期未执行，与引擎停摆同源（同一调度/流水线中断）\",\"confidence\":0.15,\"evidence\":\"independent_review: latest=2026-11-13, lag_days=14，滞后时间远长于本次引擎漏跑，提示复核链路可能更早中断\"}],\"diagnose_steps\":[{\"command\":\"curl -s -H 'Accept: application/vnd.github+json' https://api.github.com/repos/<owner>/<repo>/actions/workflows | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(w['name'],w['state'],w['path']) for w in d.get('workflows',[])]\\\"\",\"purpose\":\"只读确认引擎相关活跃工作流是否存在且 state 为 active（排除被禁用/暂停）\"},{\"command\":\"curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/workflows/<engine_workflow>.yml/runs?per_page=20' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['created_at'],r['status'],r['conclusion'],r['event']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读查看引擎工作流近期运行记录，确认 09:12/11:12 是否有触发及失败结论\"},{\"command\":\"curl -s 'https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=30' | python -c \\\"import sys,json;d=json.load(sys.stdin);[print(r['created_at'],r['name'],r['status'],r['conclusion']) for r in d.get('workflow_runs',[])]\\\"\",\"purpose\":\"只读核对仓库整体调度活动，判断是单工作流问题还是全局调度中断\"},{\"command\":\"git log --since='2026-11-13' --oneline -- <review_data_path>\",\"purpose\":\"只读确认独立复核文件自 2026-11-13 后是否有任何提交，定位复核链路中断时间点\"}],\"suggested_fix\":{\"action\":\"先由人工在只读排查确认调度状态后，手动触发一次引擎工作流并补跑 09:12/11:12 计划点，同时补做一次独立复核；若为工作流被禁用则恢复启用。\",\"risk\":\"medium\",\"needs_approval\":true},\"customer_impact\":\"销售窗口内预测引擎今日无运行，最新预测结果缺失约 "
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.12916,
-    "remaining_cny": 8.87084,
-    "calls": 179,
+    "spent_cny": 1.136584,
+    "remaining_cny": 8.863416,
+    "calls": 180,
     "exhausted": false,
-    "used_pct": 11.29
+    "used_pct": 11.37
   },
   "usage": {
-    "prompt_tokens": 507,
-    "completion_tokens": 660,
-    "total_tokens": 1167,
+    "prompt_tokens": 512,
+    "completion_tokens": 800,
+    "total_tokens": 1312,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 379
+    "prompt_cache_miss_tokens": 384
   },
-  "cost_cny": 0.006294
+  "cost_cny": 0.007424
 }
