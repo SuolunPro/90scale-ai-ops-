@@ -147,15 +147,14 @@ def _api(method: str, path: str, token: str, body=None):
 
 def execute(cfg: dict, plan: dict, token: str, run_id: int = 0) -> dict:
     action = plan.get("action")
-    engine = cfg["engine_repo"]
     site = cfg["site_repo"]
     if action == "none":
         return {"action": action, "ok": True, "skipped": True,
                 "note": "该计划仅要求报告，不执行任何动作"}
     if action == "dispatch_engine4":
-        wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
-        code, _ = _api("POST", f"/repos/{engine}/actions/workflows/{wf}/dispatches", token, {"ref": "main"})
-        return {"action": action, "repo": engine, "http": code, "ok": code in (201, 204)}
+        code, _ = _api("POST", f"/repos/{site}/actions/workflows/build-engine4.yml/dispatches",
+                       token, {"ref": "main"})
+        return {"action": action, "repo": site, "http": code, "ok": code in (201, 204)}
     if action == "dispatch_site_sync":
         code, _ = _api("POST", f"/repos/{site}/actions/workflows/sync-engine4.yml/dispatches", token, {"ref": "main"})
         return {"action": action, "repo": site, "http": code, "ok": code in (201, 204)}
