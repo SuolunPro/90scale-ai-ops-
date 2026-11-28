@@ -10,11 +10,12 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from ops import budget, checks, common, dedupe, handoff, inspector, persist, recovery, task_runner, triage, watchdog  # noqa: E402
+from ops import budget, checks, common, dedupe, handoff, inspector, persist, production, recovery, task_runner, triage, watchdog  # noqa: E402
 
 
 class TestBudget(unittest.TestCase):
@@ -55,10 +56,10 @@ class TestBudget(unittest.TestCase):
 
 class TestCommon(unittest.TestCase):
     def test_verdict_precedence(self):
-        self.assertEqual(common.verdict_of([{"status": "ok"}]), "OK")
+        self.assertEqual(common.verdict_of([{"status": "PASS"}]), "PASS")
         self.assertEqual(common.verdict_of([{"status": "ok"}, {"status": "warn"}]), "WARN")
         self.assertEqual(common.verdict_of([{"status": "warn"}, {"status": "fail"}]), "FAIL")
-        self.assertEqual(common.verdict_of([{"status": "skip"}]), "UNKNOWN")
+        self.assertEqual(common.verdict_of([{"status": "SKIP"}]), "SKIP")
 
     def test_git_blob_sha_known_value(self):
         self.assertEqual(common.git_blob_sha(b"abc"),
@@ -67,14 +68,6 @@ class TestCommon(unittest.TestCase):
     def test_parse_naive_timestamp_is_beijing(self):
         ts = common.parse_ts("2026-11-19 06:30")
         self.assertEqual(common.iso(ts), "2026-11-18T22:30:00Z")
-
-    def test_sale_window_boundaries(self):
-        bj = common.BJ
-        self.assertTrue(common.in_sale_window(dt.datetime(2026, 11, 18, 9, 0, tzinfo=bj)))
-        self.assertTrue(common.in_sale_window(dt.datetime(2026, 11, 18, 22, 45, tzinfo=bj)))
-        self.assertFalse(common.in_sale_window(dt.datetime(2026, 11, 18, 22, 46, tzinfo=bj)))
-        self.assertFalse(common.in_sale_window(dt.datetime(2026, 11, 18, 3, 0, tzinfo=bj)))
-
 
 class TestTriageGuards(unittest.TestCase):
     def test_parse_plain_json(self):
@@ -109,13 +102,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(cfg["budget"]["cap_cny"], 10.0)
         ids = {p["id"] for p in cfg["probes"]}
         self.assertTrue({"sporttery", "qiulaile", "fotmob", "okooo"} <= ids)
-
-    def test_every_check_registered_once(self):
-        ids = [f.__name__ for f in checks.CHECKS]
-        self.assertEqual(len(ids), len(set(ids)))
-        for f in checks.CHECKS:
-            self.assertTrue(callable(f))
-
 
 class TestMarkdown(unittest.TestCase):
     def test_render(self):
@@ -187,52 +173,16 @@ class TestHandoff(unittest.TestCase):
         self.assertIn("任务A", md)
 
 
-class TestSourcesGeoDowngrade(unittest.TestCase):
-    """境外 runner 访问中国站点被拒时，不应误报 FAIL（否则会白烧 AI 预算）。"""
-
-    def setUp(self):
-        self.cfg = {
-            "probes": [
-                {"id": "sporttery", "name": "体彩官方接口", "url": "https://a/{today}",
-                 "required": True, "cn_only": True, "min_bytes": 1},
-                {"id": "qiulaile", "name": "球来了镜像", "url": "https://b/{today}",
-                 "required": False, "cn_only": True, "min_bytes": 1},
-            ],
-            "thresholds": {"probe_timeout_s": 5},
-        }
-        self.ctx = {"cfg": self.cfg, "now": dt.datetime(2026, 11, 18, 6, 0, tzinfo=dt.timezone.utc)}
-        self._orig = checks.http_get
-
-    def tearDown(self):
-        checks.http_get = self._orig
-        os.environ.pop("GITHUB_ACTIONS", None)
-
-    def _stub(self, codes):
-        def fake(url, timeout=20, retries=2, headers=None):
-            code = codes.get("a" if "//a/" in url else "b", 200)
-            body = b"x" * 10 if code == 200 else b""
-            return {"url": url, "status": code, "bytes": len(body), "body": body,
-                    "sha256": "", "elapsed_ms": 1, "error": None if code == 200 else f"HTTP {code}"}
-        checks.http_get = fake
-
-    def test_offshore_runner_downgrades_cn_only_failure_to_skip(self):
-        os.environ["GITHUB_ACTIONS"] = "true"
-        self._stub({"a": 403, "b": 200})
-        res = checks.check_sources(self.ctx)
-        self.assertEqual(res["status"], "skip")
-        self.assertIn("境外 runner", res["detail"])
-
-    def test_all_cn_sources_down_still_fails(self):
-        os.environ["GITHUB_ACTIONS"] = "true"
-        self._stub({"a": 403, "b": 0})
-        res = checks.check_sources(self.ctx)
-        self.assertEqual(res["status"], "fail")
-
-    def test_local_china_runner_fails_on_required(self):
-        os.environ.pop("GITHUB_ACTIONS", None)
-        self._stub({"a": 500, "b": 200})
-        res = checks.check_sources(self.ctx)
-        self.assertEqual(res["status"], "fail")
+class TestSourceEvidence(unittest.TestCase):
+    def test_http_200_does_not_infer_collection(self):
+        now = dt.datetime(2026, 11, 28, 21, 5, tzinfo=common.BJ)
+        cfg = {"probes": [{"id": "okooo", "name": "澳客", "url": "https://example.com"}]}
+        response = {"status": 200, "url": "https://example.com", "bytes": 1000, "elapsed_ms": 1}
+        with patch.object(common, "http_get", return_value=response):
+            self.assertEqual(checks.check_endpoints(cfg, now)["status"], "PASS")
+        self.assertEqual(production.fixture_sources({}, now)["必发指数"], "missing")
+        self.assertEqual(production.fixture_sources({"bifa": {"prematch_verified": True}}, now)
+                         ["必发指数"], "unverified")
 
 
 class TestExecutorGuards(unittest.TestCase):
@@ -451,75 +401,74 @@ class TestDedupe(unittest.TestCase):
         self.assertTrue(ok)
 
 
-class TestWatchdogDecide(unittest.TestCase):
-    NOW = dt.datetime(2026, 11, 19, 2, 0, tzinfo=dt.timezone.utc)
-    CFG = {"enabled": True, "cooldown_min": 90, "max_per_day": 3,
-           "require_no_active_run": True, "block_in_sale_window": True,
-           "manual_override_in_sale": True, "allow_in_sale_when_stale": True}
+class TestProductionEvidence(unittest.TestCase):
+    now = dt.datetime(2026, 11, 28, 21, 45, tzinfo=common.BJ)
 
-    def ctx(self, **kw):
-        base = {"now": self.NOW, "cfg": self.CFG, "missed": ["12:12"], "active_runs": [],
-                "in_sale_window": False, "engine_status": "warn", "fresh_status": "warn",
-                "last_auto_age_min": 200, "today_auto_count": 0}
-        base.update(kw)
-        return base
+    def test_sales_close_and_stale_receipt(self):
+        proof = {"checked_at": "2026-11-28T21:24:00+08:00",
+                 "verified_live": {"1": ["001", "甲", "乙", "2026-11-29 00:15", "2026-11-28T23:00:00+08:00"]}}
+        self.assertEqual(production.sale_state(self.now, proof), "OPEN")
+        self.assertEqual(production.sale_state(self.now.replace(hour=22, minute=25), proof), "UNKNOWN")
+        self.assertEqual(production.sale_state(self.now.replace(hour=23, minute=0), proof), "CLOSED")
+        self.assertEqual(production.sale_state(self.now.replace(day=27, hour=22, minute=0), {}), "CLOSED")
 
-    def test_trigger_when_all_conditions_met(self):
-        d = watchdog.decide(self.ctx())
-        self.assertTrue(d["should_trigger"], d["blocked_by"])
+    def test_abnormal_and_unknown_are_not_overdue(self):
+        match = {"kickoff": "2026-11-26 21:00"}
+        for status, expected in [("PP", "POSTPONED"), ("ABD", "ABANDONED"),
+                                 ("CANCELLED", "CANCELLED"), ("FT", "OVERDUE"),
+                                 ("VOID", "UNKNOWN"), ("", "UNKNOWN")]:
+            with self.subTest(status=status):
+                self.assertEqual(production.settlement_state(dict(match, result_verification={"status": status}),
+                                                              self.now, 8), expected)
+        self.assertEqual(production.settlement_state(dict(match, event_status={"status": "VOID",
+                          "official_confirmed": True}), self.now, 8), "VOID")
 
-    def test_active_run_blocks(self):
-        d = watchdog.decide(self.ctx(active_runs=[{"id": 5}]))
-        self.assertFalse(d["should_trigger"])
-        self.assertTrue(any("运行中" in x for x in d["blocked_by"]))
+    def test_settlement_requires_same_fixture(self):
+        row = {"match_no": "001", "source_id": "123", "kickoff": "2026-11-27 21:00"}
+        evidence = {"independent_verified": True, "ft": "2:0", "qiulaile_id": "456"}
+        self.assertEqual(production.settlement_state(row, self.now, 8, evidence), "UNKNOWN")
+        self.assertEqual(production.settlement_state(row, self.now, 8, dict(evidence, qiulaile_id="123")), "OVERDUE")
 
-    def test_no_missed_blocks(self):
-        d = watchdog.decide(self.ctx(missed=[]))
-        self.assertFalse(d["should_trigger"])
+    def test_inventory_detects_order_duplicate_pending(self):
+        doc = {"sale_day": "2026-11-28", "matches": [{"match_no": n} for n in ("008", "003", "008")]}
+        seen = production.inventory(doc, doc["sale_day"])
+        self.assertFalse(seen["ordered"])
+        self.assertEqual(seen["duplicates"], ["008"])
+        self.assertEqual(seen["pending"], ["008", "003", "008"])
 
-    def test_sale_window_blocks(self):
-        d = watchdog.decide(self.ctx(in_sale_window=True))
-        self.assertFalse(d["should_trigger"])
-        self.assertTrue(any("停售" in x for x in d["blocked_by"]))
+    def test_recovery_requires_matching_published_data(self):
+        proof = {"run_id": 42, "decision": "dispatched", "dispatch_receipt": "accepted",
+                 "slot": "2026-11-28T21:12:00+08:00", "checked_at": "2026-11-28T21:24:00+08:00",
+                 "verified_live": {"1": ["001", "甲", "乙", "2026-11-29 00:15", "2026-11-28T23:00:00+08:00"]}}
+        doc = {"sale_day": "2026-11-28", "generated_at": "2026-11-28T21:21:00+08:00",
+               "matches": [{"match_no": "001", "prediction": {"status": "PREDICTED"}}]}
+        self.assertEqual(production.receipt_recovery([proof], doc, doc, "PASS")[0], "WARN")
+        doc["generated_at"] = "2026-11-28T21:29:00+08:00"
+        self.assertEqual(production.receipt_recovery([proof], doc, doc, "WARN")[0], "WARN")
+        self.assertEqual(production.receipt_recovery([proof], doc, doc, "PASS")[0], "RECOVERED")
+        proof["betfair_repair"] = {"requested": "2026-11-28:001", "accepted": True}
+        self.assertEqual(production.receipt_recovery([proof], doc, doc, "PASS")[0], "WARN")
 
-    def test_manual_override_in_sale(self):
-        d = watchdog.decide(self.ctx(in_sale_window=True, manual=True))
-        self.assertTrue(d["should_trigger"], d["blocked_by"])
-        self.assertTrue(any("sale_window" in x for x in d["overrides"]))
+    def test_legacy_watchdog_and_recovery_cannot_dispatch_private(self):
+        with self.assertRaises(SystemExit):
+            watchdog.main(["--apply"])
+        cfg = {"site_repo": "SuolunPro/90scale-engine"}
+        with patch.object(recovery, "_api") as api:
+            outcome = recovery.execute(cfg, {"action": "dispatch_public_audit"}, "test")
+            self.assertFalse(outcome["ok"])
+            api.assert_not_called()
+        with patch.object(recovery, "_api", return_value=(204, b"")) as api:
+            result = recovery.execute({"site_repo": production.PUBLIC}, {"action": "dispatch_public_audit"}, "test")
+            self.assertEqual(result["verification"], "UNKNOWN")
+            self.assertIn("/suolunpro.github.io/actions/workflows/public-refresh-audit.yml/", api.call_args.args[1])
 
-    def test_manual_cannot_override_active_run(self):
-        d = watchdog.decide(self.ctx(in_sale_window=True, manual=True, active_runs=[{"id": 1}]))
-        self.assertFalse(d["should_trigger"])
-
-    def test_auto_allowed_in_sale_when_stale(self):
-        d = watchdog.decide(self.ctx(in_sale_window=True, fresh_status="fail",
-                                     engine_status="warn"))
-        self.assertTrue(d["should_trigger"], d["blocked_by"])
-        self.assertTrue(any("stale" in x or "过期" in x for x in d["overrides"]))
-
-    def test_auto_blocked_in_sale_when_not_stale(self):
-        d = watchdog.decide(self.ctx(in_sale_window=True, fresh_status="warn",
-                                     engine_status="warn"))
-        self.assertFalse(d["should_trigger"])
-
-    def test_fresh_data_blocks(self):
-        d = watchdog.decide(self.ctx(engine_status="ok", fresh_status="ok"))
-        self.assertFalse(d["should_trigger"])
-        self.assertTrue(any("新鲜" in x for x in d["blocked_by"]))
-
-    def test_cooldown_blocks(self):
-        d = watchdog.decide(self.ctx(last_auto_age_min=10))
-        self.assertFalse(d["should_trigger"])
-        self.assertTrue(any("冷却" in x for x in d["blocked_by"]))
-
-    def test_daily_cap_blocks(self):
-        d = watchdog.decide(self.ctx(today_auto_count=3))
-        self.assertFalse(d["should_trigger"])
-        self.assertTrue(any("上限" in x for x in d["blocked_by"]))
-
-    def test_disabled_blocks(self):
-        d = watchdog.decide(self.ctx(cfg={"enabled": False}))
-        self.assertFalse(d["should_trigger"])
+    def test_deepseek_only_receives_current_anomalies(self):
+        doc = {"production_repo": production.PUBLIC, "verdict": "WARN", "sale_state": "CLOSED",
+               "checks": [{"id": "engine_fresh", "status": "SKIP"},
+                          {"id": "old_review", "status": "RETIRED"},
+                          {"id": "private_audit", "status": "UNKNOWN"},
+                          {"id": "sources", "status": "WARN", "detail": "必发缺失"}]}
+        self.assertEqual([c["id"] for c in triage.diagnostic_payload(doc)["checks"]], ["sources"])
 
 
 if __name__ == "__main__":

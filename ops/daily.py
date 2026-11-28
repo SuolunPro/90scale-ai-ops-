@@ -14,7 +14,7 @@ import sys
 if __package__ in (None, ""):  # allow `python ops/daily.py` from the repo root
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ops import checks, ghcommit  # noqa: E402
+from ops import ghcommit, inspector  # noqa: E402
 from ops import common as C  # noqa: E402
 
 KEEP_LINES = 400
@@ -24,23 +24,30 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config/ops.json")
     ap.add_argument("--root", default=".")
+    ap.add_argument("--summary", default="")
+    ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args(argv)
 
     cfg = C.load_json(os.path.join(args.root, args.config))
     now = C.now_utc()
-    results = checks.run_all(cfg, now=now)
-    verdict = C.verdict_of(results)
-    failed = [c["id"] for c in results if c["status"] == "fail"]
-    warned = [c["id"] for c in results if c["status"] == "warn"]
+    doc = inspector.build_status(cfg, now, args.root)
+    markdown = inspector.build_markdown(doc)
+    status_dir = os.path.join(args.root, "state")
+    os.makedirs(status_dir, exist_ok=True)
+    with open(os.path.join(status_dir, "daily-latest.md"), "w", encoding="utf-8") as report:
+        report.write(markdown)
+    if args.summary:
+        with open(args.summary, "a", encoding="utf-8") as summary:
+            summary.write(markdown)
+    print(markdown)
+    if args.report_only:
+        return 0
 
     line = {
-        "date": now.astimezone(C.BJ).strftime("%Y-%m-%d"),
-        "generated_at": C.iso(now),
-        "verdict": verdict,
-        "failed": failed,
-        "warned": warned,
-        "checks": {c["id"]: c["status"] for c in results},
-        "site_bytes": next((c.get("prod_bytes") for c in results if c["id"] == "site_data_sync"), None),
+        "date": now.astimezone(C.BJ).date().isoformat(),
+        "generated_at": doc["generated_at"], "verdict": doc["verdict"],
+        "failed": doc["failed"], "warned": doc["warned"],
+        "checks": {c["id"]: c["status"] for c in doc["checks"]},
     }
 
     os.makedirs(os.path.join(args.root, "logs"), exist_ok=True)
@@ -54,15 +61,8 @@ def main(argv=None) -> int:
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
 
-    C.dump_json(os.path.join(args.root, "state", "latest.json"),
-                {"schema": 1, "generated_at": line["generated_at"], "verdict": verdict,
-                 "signature": ",".join(sorted(failed)) or ",".join(sorted(warned)) or "OK",
-                 "failed": failed, "warned": warned, "checks": results,
-                 "budget": {"spent_cny": None}})
-
-    print(json.dumps(line, ensure_ascii=False))
-    for note in ghcommit.commit_files(args.root, cfg, ["logs/daily.jsonl", "state/latest.json"],
-                                      f"ops: daily digest {line['date']} {verdict}"):
+    for note in ghcommit.commit_files(args.root, cfg, ["logs/daily.jsonl", "state/daily-latest.md"],
+                                      f"ops: daily digest {line['date']} {line['verdict']}"):
         print(note)
     return 0
 

@@ -66,8 +66,8 @@ def inspect_all(cfg, params, now):
     results = checks.run_all(cfg, now=now)
     verdict = C.verdict_of(results)
     bad = [{"id": c["id"], "status": c["status"], "detail": c["detail"]}
-           for c in results if c["status"] in ("fail", "warn")]
-    return {"ok": verdict != "FAIL",
+           for c in results if c["status"] in ("FAIL", "WARN")]
+    return {"ok": verdict not in ("FAIL", "UNKNOWN"),
             "summary": f"全量巡检判定 {verdict}，异常 {len(bad)} 项",
             "data": {"verdict": verdict, "abnormal": bad,
                      "checks": {c["id"]: c["status"] for c in results}}}
@@ -75,62 +75,9 @@ def inspect_all(cfg, params, now):
 
 @action
 def engine_runs_audit(cfg, params, now):
-    import datetime as dt
-    import urllib.request
-
-    token = os.getenv("ENGINE4_REPAIR_TOKEN") or os.getenv("ENGINE4_READ_TOKEN") or ""
-    if not token:
-        return {"ok": False, "summary": "缺少 ENGINE4_REPAIR_TOKEN / ENGINE4_READ_TOKEN，无法读取私人引擎",
-                "data": {"blocked": "missing_token"}}
-    repo = cfg["engine_repo"]
-    wf = (cfg.get("engine") or {}).get("workflow_file", "engine4.yml")
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs?per_page=40"
-    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token,
-                                               "Accept": "application/vnd.github+json",
-                                               "X-GitHub-Api-Version": "2022-11-28",
-                                               "User-Agent": C.UA})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            doc = json.load(r)
-    except Exception as e:  # noqa: BLE001
-        return {"ok": False, "summary": f"读取引擎运行记录失败：{type(e).__name__}", "data": {"error": str(e)[:200]}}
-
-    runs = []
-    for r in doc.get("workflow_runs") or []:
-        ts = C.parse_ts(r.get("created_at"))
-        if ts:
-            runs.append((ts, r.get("event"), r.get("conclusion"), r.get("id")))
-    runs.sort()
-    bj_now = now.astimezone(C.BJ)
-    today = [x for x in runs if x[0].astimezone(C.BJ).date() == bj_now.date()]
-
-    eng = cfg.get("engine") or {}
-    grace = dt.timedelta(minutes=float(eng.get("grace_min", 20)))
-    lookback = dt.timedelta(minutes=float(params.get("lookback_min", 360)))
-    missed = []
-    for hhmm in eng.get("schedule_bj", []):
-        hh, mm = (int(x) for x in hhmm.split(":"))
-        point = bj_now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        if point > bj_now or (bj_now - point) > lookback:
-            continue
-        if not any(point - dt.timedelta(minutes=2) <= ts <= point + grace for ts, _, _, _ in runs):
-            missed.append(hhmm)
-    last = runs[-1] if runs else None
-    data = {
-        "repo": repo,
-        "today_runs": [{"at": C.iso(t), "event": e, "conclusion": c, "id": i} for t, e, c, i in today],
-        "last_run": {"at": C.iso(last[0]), "event": last[1], "conclusion": last[2]} if last else None,
-        "last_run_age_min": C.age_min(last[0], now) if last else None,
-        "missed_schedule_points": missed,
-        "lookback_min": int(lookback.total_seconds() // 60),
-    }
-    ok = not missed
-    if not runs:
-        ok = False
-    return {"ok": ok,
-            "summary": (f"近 {data['lookback_min']} 分钟漏跑点 {len(missed)} 个；"
-                        f"最近一次运行 {data['last_run_age_min']} 分钟前"),
-            "data": data}
+    result, = checks.run_all(cfg, now=now, only=["engine_runs"])
+    return {"ok": result["status"] not in ("FAIL", "UNKNOWN"),
+            "summary": result["detail"], "data": result}
 
 
 @action
@@ -138,6 +85,8 @@ def workflow_runs(cfg, params, now):
     import urllib.request
 
     repo = _str(params, "repo", cfg["site_repo"])
+    if repo not in (cfg["site_repo"], cfg["ops_repo"]):
+        return {"ok": False, "summary": "请使用公开生产仓库；私人仓库运行仅由额度巡检审计。", "data": {}}
     wf = _str(params, "workflow_file", "")
     n = int(params.get("limit", 10))
     path = (f"/repos/{repo}/actions/workflows/{wf}/runs?per_page={n}" if wf

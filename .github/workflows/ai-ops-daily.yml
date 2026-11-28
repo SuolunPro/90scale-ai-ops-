@@ -2,8 +2,8 @@ name: 九十刻度 AI 运维 · 每日汇总
 
 on:
   schedule:
-    # 00:10 Beijing time (16:10 UTC previous day).
-    - cron: '10 16 * * *'
+    # 23:30 Beijing time, after the last scheduled sales cutoff.
+    - cron: '30 15 * * *'
   workflow_dispatch:
 
 permissions:
@@ -26,12 +26,10 @@ jobs:
       - name: 生成当日运维摘要并写入 logs/daily.jsonl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python ops/daily.py --config config/ops.json | tee daily.out
-          {
-            echo "## 每日运维摘要"
-            echo ''
-            echo '```json'
-            head -c 4000 daily.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+        run: python ops/daily.py --config config/ops.json --summary "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-ops-daily-${{ github.run_id }}
+          path: state/daily-latest.md
+          retention-days: 30

@@ -1,40 +1,18 @@
 {
-  "version": "1.2",
+  "version": "2.0",
   "site": "https://suolunpro.github.io",
   "site_repo": "SuolunPro/suolunpro.github.io",
-  "engine_repo": "SuolunPro/90scale-engine",
   "ops_repo": "SuolunPro/90scale-ai-ops-",
   "thresholds": {
-    "engine_stale_warn_min": 180,
-    "engine_stale_fail_min": 300,
-    "engine_offwindow_warn_h": 30,
-    "engine_offwindow_fail_h": 60,
-    "sync_lag_warn_min": 12,
     "sync_lag_fail_min": 40,
     "settlement_overdue_warn_h": 3,
     "settlement_overdue_fail_h": 8,
-    "review_stale_warn_d": 3,
-    "review_stale_fail_d": 10,
-    "workflow_fail_window_min": 120,
     "probe_timeout_s": 20,
     "site_min_bytes": 50000
   },
   "engine": {
-    "enabled": true,
-    "workflow_file": "engine4.yml",
-    "lookback_min": 180,
-    "grace_min": 20,
-    "schedule_bj": [
-      "09:12", "11:12", "12:12", "13:12", "14:12", "15:12", "16:12", "17:12",
-      "18:12", "18:42", "19:12", "19:42", "20:12", "20:42",
-      "21:12", "21:42", "22:12", "22:42"
-    ],
-    "retired_workflows": [
-      "engine4-settlement.yml",
-      "engine4-verify-results.yml",
-      "engine4-result-backfill.yml"
-    ],
-    "retired_note": "旧结算/核验链路已主动停用，正式赛果以 Supabase 为准；巡检不得告警、不得触发、不得恢复。"
+    "workflow_file": "build-engine4.yml",
+    "audit_workflow": "public-refresh-audit.yml"
   },
   "probes": [
     {
@@ -82,14 +60,6 @@
         "Accept-Language": "zh-CN,zh;q=0.9",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36"
       }
-    },
-    {
-      "id": "lota",
-      "name": "LOTA",
-      "url": "",
-      "required": false,
-      "enabled": false,
-      "note": "LOTA 端点在私人引擎内，未在公开仓库出现；待授权后从 90scale-engine 读取真实地址再启用"
     }
   ],
   "budget": {
@@ -102,59 +72,84 @@
     "warn_dedupe_min": 120,
     "fail_dedupe_min": 45,
     "prices": {
-      "deepseek-chat": { "input": 2.0, "output": 8.0 },
-      "deepseek-reasoner": { "input": 4.0, "output": 16.0 }
+      "deepseek-chat": {
+        "input": 2.0,
+        "output": 8.0
+      },
+      "deepseek-reasoner": {
+        "input": 4.0,
+        "output": 16.0
+      }
     }
   },
   "handoff": {
     "tasks_dir": "tasks",
     "reports_dir": "reports",
     "state_dir": "state",
-    "sla_minutes": { "P0": 15, "P1": 60, "P2": 240 }
+    "sla_minutes": {
+      "P0": 15,
+      "P1": 60,
+      "P2": 240
+    }
   },
   "executor": {
     "enabled": true,
     "max_tasks_per_run": 3,
     "max_attempts": 2,
-    "allowed_actions": ["site_probe", "inspect_all", "engine_runs_audit", "workflow_runs"]
+    "allowed_actions": [
+      "site_probe",
+      "inspect_all",
+      "engine_runs_audit",
+      "workflow_runs"
+    ]
   },
   "watchdog": {
-    "enabled": true,
-    "auto_apply": true,
-    "allow_in_sale_when_stale": true,
-    "lookback_min": 90,
-    "cooldown_min": 90,
-    "max_per_day": 3,
-    "require_no_active_run": true,
-    "block_in_sale_window": true,
-    "manual_override_in_sale": true,
-    "note": "auto_apply=false：定时触发只做判定不补跑；人工 dispatch + 授权串才可真实补触发"
+    "enabled": false,
+    "auto_apply": false,
+    "note": "补偿由公开 public-refresh-audit.yml 根据实际销售及防重证据执行"
   },
   "recovery": {
     "enabled": true,
     "max_per_hour": 2,
-    "stop_sale_window_bj": ["08:45", "22:45"],
+    "stop_sale_window_bj": [
+      "08:45",
+      "22:45"
+    ],
     "require_confirm_phrase": "YES-I-APPROVE",
     "note": "写生产的恢复动作必须人工 workflow_dispatch + 授权串；代码修复只能走 PR"
   },
   "recovery_plans": {
     "engine_missed_run": {
       "class": "operational",
-      "action": "dispatch_engine4",
+      "action": "dispatch_public_audit",
       "allow_in_sale": true,
       "max_per_hour": 1,
       "writes_frozen_data": false,
-      "preconditions": { "engine_runs": ["warn", "fail"], "engine_fresh": ["warn", "fail"] },
-      "description": "引擎计划点漏跑且当日快照过期时，重新触发既有预测工作流；只产生新快照，不改写历史冻结数据"
+      "preconditions": {
+        "engine_runs": [
+          "WARN",
+          "FAIL"
+        ],
+        "engine_fresh": [
+          "WARN",
+          "FAIL"
+        ]
+      },
+      "description": "请求公开自检复验，由现有在售及防重闸门决定是否补偿。以公开快照和正式站内容验收"
     },
     "site_sync_failure": {
       "class": "operational",
-      "action": "dispatch_site_sync",
+      "action": "dispatch_public_audit",
       "allow_in_sale": true,
       "max_per_hour": 2,
       "writes_frozen_data": false,
-      "preconditions": { "site_data_sync": ["warn", "fail"] },
-      "description": "网站数据与仓库不一致时，重新触发既有同步工作流（合并逻辑自带冻结保护）"
+      "preconditions": {
+        "site_data_sync": [
+          "WARN",
+          "FAIL"
+        ]
+      },
+      "description": "请求公开自检复验，由现有在售及防重闸门决定是否补偿。以公开快照和正式站内容验收"
     },
     "collector_failure": {
       "class": "operational",
@@ -162,7 +157,12 @@
       "allow_in_sale": false,
       "max_per_hour": 0,
       "writes_frozen_data": false,
-      "preconditions": { "sources": ["warn", "fail"] },
+      "preconditions": {
+        "sources": [
+          "WARN",
+          "FAIL"
+        ]
+      },
       "description": "采集链路失败只出报告，不自动换源；换源属于代码变更，必须走 PR"
     },
     "code_fix": {
@@ -175,5 +175,6 @@
   },
   "deepseek": {
     "base_url": "https://api.deepseek.com"
-  }
+  },
+  "private_audit_repo": "SuolunPro/90scale-engine"
 }

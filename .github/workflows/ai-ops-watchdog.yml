@@ -1,111 +1,23 @@
-name: 九十刻度 AI 运维 · 引擎漏跑看门狗
-
-# V1.4：定时只做判定（dry-run），不触发生产引擎。
-# 只有人工 workflow_dispatch 且 apply=true + 授权串，才可能真的补触发一次 engine4.yml。
+name: 九十刻度 AI 运维 · 公开补偿复验
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
-    inputs:
-      apply:
-        description: '是否允许真实补触发（默认 false，仅判定）'
-        required: false
-        type: boolean
-        default: false
-      confirm:
-        description: '授权串：YES-I-APPROVE（apply=true 时必填）'
-        required: false
-        type: string
-        default: ''
-      resolve_only:
-        description: '仅补齐上一轮 Run 结论（绝不触发引擎）'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
-  contents: write
-  actions: read
-
-concurrency:
-  group: 90scale-ai-ops-watchdog
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  watchdog:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: 跨触发来源去重
-        id: dedupe
+      - name: 复验公开自愈回执与正式站快照
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python ops/dedupe.py --workflow ai-ops-watchdog.yml --window-min 5
-      - name: 校验运行模式（防止误报成功）
-        env:
-          APPLY: ${{ inputs.apply }}
-          CONFIRM: ${{ inputs.confirm }}
-          RESOLVE_ONLY: ${{ inputs.resolve_only }}
+          ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
         run: |
-          if [ "$APPLY" = "true" ] && [ "$RESOLVE_ONLY" = "true" ]; then
-            echo "::error::apply 与 resolve_only 不得同时开启"
-            exit 1
-          fi
-          if [ "$APPLY" = "true" ] && [ "$CONFIRM" != "YES-I-APPROVE" ]; then
-            echo "::error::申请人工补跑但授权串无效；拒绝并标记失败"
-            exit 1
-          fi
-          if [ "$RESOLVE_ONLY" = "true" ]; then
-            echo "::notice::本次仅验收上一轮结果，不会触发主引擎"
-          elif [ "$APPLY" = "true" ]; then
-            echo "::notice::本次为人工授权补跑，自动模式不执行"
-          else
-            echo "::notice::本次为自动巡检，按安全闸门决定是否补跑"
-          fi
-      - name: 判定 / 自动补跑（按 config.auto_apply）
-        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.resolve_only != true && inputs.apply != true }}
-        env:
-          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python ops/watchdog.py --config config/ops.json --auto | tee watchdog.out
-          {
-            echo "## 引擎漏跑看门狗判定"
-            echo '```json'
-            head -c 4000 watchdog.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: 仅补齐上一轮结论（不触发引擎）
-        if: ${{ inputs.resolve_only == true }}
-        env:
-          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python ops/watchdog.py --config config/ops.json --resolve-only | tee resolve.out
-          {
-            echo "## 看门狗结果补齐"
-            echo '```json'
-            head -c 3000 resolve.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: 受控补触发（需授权）
-        if: ${{ steps.dedupe.outputs.skip != 'true' && inputs.apply == true && inputs.confirm == 'YES-I-APPROVE' }}
-        env:
-          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WATCHDOG_MANUAL_APPLY: '1'
-        run: |
-          python ops/watchdog.py --config config/ops.json --apply --confirm YES-I-APPROVE | tee watchdog-apply.out
-          {
-            echo "## 受控补触发"
-            echo '```json'
-            tail -c 3000 watchdog-apply.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          set -o pipefail
+          python ops/watchdog.py | tee -a "$GITHUB_STEP_SUMMARY"
