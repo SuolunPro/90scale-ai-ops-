@@ -1,44 +1,52 @@
 {
-  "at": "2026-11-28T17:45:30Z",
+  "at": "2026-11-28T18:45:32Z",
   "verdict": "FAIL",
   "signature": "sources",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "正式生产 SuolunPro/suolunpro.github.io 在售状态 OPEN，唯一检查项 sources 为 FAIL：正式快照 latest.json 的采集时间为 2026-11-28T17:34:45Z，距本次诊断 2026-11-29 01:45:14（北京时间）约 8 小时 10 分钟，且检查明细未给出缺失、陈旧、身份冲突的具体分类与逐场快照依据。HTTP 可达性被独立记录，不能作为资料时效证据。根因未确认，判定为 FAIL 但需只读复核。",
+    "summary": "正式生产 SuolunPro/suolunpro.github.io 在售状态 OPEN 下，唯一检查项 sources 为 FAIL：正式快照 latest.json 的采集时间为 2026-11-28T17:34:45Z，距北京时 2026-11-29 02:45:12（UTC 2026-11-28T18:45:12Z）约 70 分钟，且 HTTP 可达性仅证明端点可达，不能证明资料时效。证据仅覆盖单一快照与单一检查项，缺少逐场快照、身份字段与同销售日公开 main/正式站产物对照，根因未确认，整体判定维持 FAIL 但根因记为 UNKNOWN。",
     "root_causes": [
       {
-        "cause": "UNKNOWN：sources 检查 FAIL 的具体成因未确认，现有证据仅显示正式快照采集时间戳与诊断时间存在约 8 小时 10 分钟间隔，未提供逐场快照以区分缺失、陈旧或身份冲突。",
-        "evidence": "checks[sources].status=FAIL，checked_at=2026-11-28T17:34:45.932586+00:00，link=https://suolunpro.github.io/data/engine4/latest.json；detail 仅说明“统计来自正式快照，HTTP 可达性独立记录，资料时效以采集时间为准”，未附逐场快照。"
+        "cause": "UNKNOWN：sources 检查 FAIL，正式快照采集时间 2026-11-28T17:34:45Z 早于当前北京时间约 70 分钟，无法区分是采集延迟、快照陈旧还是上游缺失",
+        "evidence": "checks[sources].status=FAIL，checked_at=2026-11-28T17:34:45.932586+00:00，link=https://suolunpro.github.io/data/engine4/latest.json；detail 明确 HTTP 可达性独立记录、时效以采集时间为准"
+      },
+      {
+        "cause": "UNKNOWN：证据集不完整，仅有 sources 一项检查，缺少逐场快照以区分缺失、陈旧与身份冲突",
+        "evidence": "checks 数组仅含 1 条记录（id=sources），无逐场快照或身份字段证据"
+      },
+      {
+        "cause": "UNKNOWN：缺少同销售日公开 main 与正式站产物的对照证据，无法确认是否为生产侧问题",
+        "evidence": "verdict=FAIL、sale_state=OPEN，但未提供 main 分支产物或正式站产物比对记录"
       }
     ],
-    "customer_impact": "在售状态下正式快照资料时效未获确认，客户可能看到陈旧或与逐场不一致的统计；具体影响范围因缺少逐场快照证据无法量化，记为 UNKNOWN。",
+    "customer_impact": "在售状态下正式快照时效性未获确认，若确为陈旧或缺失，客户可能看到过期或不全的预测数据；当前证据不足以确认实际影响范围，影响程度记为 UNKNOWN。",
     "escalate": false,
     "readonly_review_items": [
-      "只读拉取 https://suolunpro.github.io/data/engine4/latest.json 的响应头与内容时间戳，确认采集时间与生成时间是否一致。",
-      "只读比对同销售日正式站逐场快照与 latest.json 的场次覆盖，区分缺失、陈旧、身份冲突三类。",
-      "只读核对正式生产 main 分支同销售日产物与正式站发布产物是否一致，作为恢复判定证据。",
-      "若确认需补偿，唯一入口为正式生产 public-refresh-audit.yml，由其执行在售与防重闸门；不得触发私人引擎、恢复旧工作流、覆盖冻结预测或改动算法、会员、赛果。"
+      "只读复核正式快照 https://suolunpro.github.io/data/engine4/latest.json 的采集时间与内容完整性，确认 2026-11-28T17:34:45Z 之后是否有更新",
+      "只读拉取逐场快照，逐场比对缺失、陈旧与身份冲突三类情形",
+      "只读对照同销售日公开 main 分支产物与正式站产物，确认差异来源",
+      "如需补偿，唯一入口为正式生产 public-refresh-audit.yml，由其执行在售与防重闸门；本诊断不触发任何写操作"
     ]
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.36319,
-    "remaining_cny": 8.63681,
-    "calls": 212,
+    "spent_cny": 1.36858,
+    "remaining_cny": 8.63142,
+    "calls": 213,
     "exhausted": false,
-    "used_pct": 13.63
+    "used_pct": 13.69
   },
   "usage": {
     "prompt_tokens": 359,
-    "completion_tokens": 484,
-    "total_tokens": 843,
+    "completion_tokens": 584,
+    "total_tokens": 943,
     "prompt_tokens_details": {
       "cached_tokens": 0
     },
     "prompt_cache_hit_tokens": 0,
     "prompt_cache_miss_tokens": 359
   },
-  "cost_cny": 0.00459
+  "cost_cny": 0.00539
 }
