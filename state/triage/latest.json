@@ -1,48 +1,44 @@
 {
-  "at": "2026-11-28T16:00:32Z",
-  "verdict": "WARN",
+  "at": "2026-11-28T17:45:30Z",
+  "verdict": "FAIL",
   "signature": "sources",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "只读诊断结论：WARN。唯一检查项 sources 为 WARN，说明正式快照统计可用但资料时效存在告警；HTTP 可达性不能证明数据新鲜。销售状态为 UNKNOWN，无法判断是否处于在售窗口。当前证据不足以确认生产故障，根因未确认，需只读复核。",
+    "summary": "正式生产 SuolunPro/suolunpro.github.io 在售状态 OPEN，唯一检查项 sources 为 FAIL：正式快照 latest.json 的采集时间为 2026-11-28T17:34:45Z，距本次诊断 2026-11-29 01:45:14（北京时间）约 8 小时 10 分钟，且检查明细未给出缺失、陈旧、身份冲突的具体分类与逐场快照依据。HTTP 可达性被独立记录，不能作为资料时效证据。根因未确认，判定为 FAIL 但需只读复核。",
     "root_causes": [
       {
-        "cause": "UNKNOWN：快照资料时效告警，但缺少逐场快照与采集时间基线，无法区分缺失、陈旧或身份冲突",
-        "evidence": "checks[sources].status=WARN，detail 明确“HTTP 可达性独立记录，资料时效以采集时间为准”，link=https://suolunpro.github.io/data/engine4/latest.json，checked_at=2026-11-28T14:58:16Z；未提供逐场快照明细"
-      },
-      {
-        "cause": "UNKNOWN：销售状态未确定，无法判定该时效告警是否落在在售窗口内",
-        "evidence": "sale_state=UNKNOWN；beijing_time=2026-11-29 00:00:10，与 checked_at 2026-11-28T14:58:16Z 存在约 9 小时时差，期间无新证据"
+        "cause": "UNKNOWN：sources 检查 FAIL 的具体成因未确认，现有证据仅显示正式快照采集时间戳与诊断时间存在约 8 小时 10 分钟间隔，未提供逐场快照以区分缺失、陈旧或身份冲突。",
+        "evidence": "checks[sources].status=FAIL，checked_at=2026-11-28T17:34:45.932586+00:00，link=https://suolunpro.github.io/data/engine4/latest.json；detail 仅说明“统计来自正式快照，HTTP 可达性独立记录，资料时效以采集时间为准”，未附逐场快照。"
       }
     ],
-    "customer_impact": "UNKNOWN。快照端点可达且统计可读，但资料时效为 WARN，可能影响展示数据的及时性；因 sale_state 为 UNKNOWN，无法确认是否影响在售用户。无证据表明存在缺失、身份冲突或站点不可用。",
+    "customer_impact": "在售状态下正式快照资料时效未获确认，客户可能看到陈旧或与逐场不一致的统计；具体影响范围因缺少逐场快照证据无法量化，记为 UNKNOWN。",
     "escalate": false,
     "readonly_review_items": [
-      "核对 latest.json 内逐场快照的采集时间与当前北京时间偏差，判定属于正常延迟还是陈旧",
-      "确认同一销售日公开 main 分支产物与正式站 latest.json 是否一致（仅比对，不修改）",
-      "补充 sale_state 判定依据，明确告警是否处于在售窗口",
-      "如后续确认需补偿，唯一入口为正式生产 public-refresh-audit.yml，由其执行在售与防重闸门；本诊断不触发任何写操作"
+      "只读拉取 https://suolunpro.github.io/data/engine4/latest.json 的响应头与内容时间戳，确认采集时间与生成时间是否一致。",
+      "只读比对同销售日正式站逐场快照与 latest.json 的场次覆盖，区分缺失、陈旧、身份冲突三类。",
+      "只读核对正式生产 main 分支同销售日产物与正式站发布产物是否一致，作为恢复判定证据。",
+      "若确认需补偿，唯一入口为正式生产 public-refresh-audit.yml，由其执行在售与防重闸门；不得触发私人引擎、恢复旧工作流、覆盖冻结预测或改动算法、会员、赛果。"
     ]
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.3586,
-    "remaining_cny": 8.6414,
-    "calls": 211,
+    "spent_cny": 1.36319,
+    "remaining_cny": 8.63681,
+    "calls": 212,
     "exhausted": false,
-    "used_pct": 13.59
+    "used_pct": 13.63
   },
   "usage": {
-    "prompt_tokens": 362,
-    "completion_tokens": 441,
-    "total_tokens": 803,
+    "prompt_tokens": 359,
+    "completion_tokens": 484,
+    "total_tokens": 843,
     "prompt_tokens_details": {
       "cached_tokens": 0
     },
     "prompt_cache_hit_tokens": 0,
-    "prompt_cache_miss_tokens": 362
+    "prompt_cache_miss_tokens": 359
   },
-  "cost_cny": 0.004252
+  "cost_cny": 0.00459
 }
