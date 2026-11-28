@@ -1,16 +1,17 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-28T00:00:11Z",
-  "beijing_time": "2026-11-28 08:00:11",
-  "in_sale_window": false,
+  "generated_at": "2026-11-28T01:00:13Z",
+  "beijing_time": "2026-11-28 09:00:13",
+  "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=warn,legacy_sale_status=ok",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=warn,engine_runs=ok,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=warn,legacy_sale_status=ok",
   "signature": "independent_review,settlement",
   "failed": [
     "settlement",
     "independent_review"
   ],
   "warned": [
+    "engine_fresh",
     "site_workflows"
   ],
   "checks": [
@@ -19,7 +20,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，102233 字节，耗时 53ms"
+      "detail": "HTTP 200，102233 字节，耗时 109ms"
     },
     {
       "id": "site_data_sync",
@@ -34,12 +35,12 @@
     {
       "id": "engine_fresh",
       "title": "预测主引擎当日快照",
-      "status": "ok",
-      "severity": "info",
-      "detail": "sale_day=2026-11-28，快照 178 分钟前生成",
+      "status": "warn",
+      "severity": "warn",
+      "detail": "最新快照已 238 分钟未更新（阈值 180 分钟）",
       "sale_day": "2026-11-28",
-      "generated_age_min": 178.4,
-      "in_window": false
+      "generated_age_min": 238.4,
+      "in_window": true
     },
     {
       "id": "engine_runs",
@@ -50,7 +51,7 @@
       "missed_points": [],
       "checked_points": 0,
       "runs_today": 13,
-      "last_run_age_min": 184.7,
+      "last_run_age_min": 244.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -72,7 +73,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-27 有 9 场开赛 15.3h 仍未结算",
+      "detail": "2026-11-27 有 9 场开赛 16.3h 仍未结算",
       "checked": [
         {
           "day": "2026-11-25",
@@ -90,7 +91,7 @@
           "day": "2026-11-27",
           "matches": 11,
           "pending": 9,
-          "overdue_h": 15.3
+          "overdue_h": 16.3
         }
       ]
     },
@@ -115,8 +116,8 @@
           "name": "体彩官方接口",
           "status": "down",
           "http": 567,
-          "bytes": 7352,
-          "elapsed_ms": 2013,
+          "bytes": 7351,
+          "elapsed_ms": 1778,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -127,7 +128,7 @@
           "status": "up",
           "http": 200,
           "bytes": 85002,
-          "elapsed_ms": 1817,
+          "elapsed_ms": 1515,
           "error": null,
           "cn_only": true,
           "required": false
@@ -137,8 +138,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 271329,
-          "elapsed_ms": 597,
+          "bytes": 268574,
+          "elapsed_ms": 475,
           "error": null,
           "cn_only": false,
           "required": false
@@ -148,8 +149,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 209560,
-          "elapsed_ms": 1838,
+          "bytes": 209578,
+          "elapsed_ms": 1458,
           "error": null,
           "cn_only": true,
           "required": false
@@ -184,17 +185,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.264464,
-    "remaining_cny": 8.735536,
-    "calls": 198,
+    "spent_cny": 1.271578,
+    "remaining_cny": 8.728422,
+    "calls": 199,
     "exhausted": false,
-    "used_pct": 12.64
+    "used_pct": 12.72
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "runnervm3lb7s",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "46085504481",
+    "run_id": "46090845227",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
