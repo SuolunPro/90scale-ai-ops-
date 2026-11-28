@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-28T01:15:35Z",
+  "at": "2026-11-28T01:30:29Z",
   "verdict": "FAIL",
-  "signature": "independent_review,settlement",
+  "signature": "independent_review,settlement,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎快照与计划点已停滞约 4 小时，且 2026-11-27 有 9 场赛果超期 16.6h 未结算；独立复核数据滞后 15 天。当前证据只能指向调度/结算链路停滞，尚缺工作流运行日志与结算任务报错详情来定位具体环节。",
+    "summary": "预测引擎计划点漏跑（09:12 无运行，最近一次运行在 275 分钟前）与 11-27 有 9 场开赛 16.8h 仍未结算同时出现，最可能是结算链路中断导致赛果未回填；独立复核滞后 15 天、网站仓库 Site module safety 连续失败为次要问题。当前证据不足以确认结算中断的具体环节（引擎运行日志、赛果抓取源状态、结算工作流执行记录均未提供）。",
     "root_causes": [
       {
-        "cause": "结算/核验工作流调度停滞，导致赛果未回填与结算积压",
+        "cause": "结算/赛果回填链路中断，导致 11-27 的 9 场比赛长期未结算，并伴随预测引擎计划点漏跑",
         "confidence": 0.55,
-        "evidence": "settlement: 2026-11-27 有 9 场 pending，overdue_h=16.6；site_workflows: 120 分钟内 recent_runs=0，疑似调度停滞；engine_runs 中 retired_workflows_ignored 含 engine4-settlement.yml / engine4-verify-results.yml"
+        "evidence": "settlement: 2026-11-27 matches=11 pending=9 overdue_h=16.8；engine_runs: missed_points=[\"09:12\"], last_run_age_min=274.7, runs_today=13；retired_workflows_ignored 含 engine4-settlement.yml / engine4-result-backfill.yml"
       },
       {
-        "cause": "预测主引擎快照生成链路中断或延迟（上游数据/任务未触发）",
-        "confidence": 0.4,
-        "evidence": "engine_fresh: generated_age_min=253.4 超阈值 180；engine_runs: 09:12 计划点无运行，last_run_age_min=259.7，runs_today=13"
-      },
-      {
-        "cause": "独立复核流程长期未执行，属独立于当日故障的持续性缺口",
+        "cause": "预测引擎调度或运行环境异常（计划点 09:12 未触发，最近运行距今约 4.6 小时）",
         "confidence": 0.3,
-        "evidence": "independent_review: latest=2026-11-13，lag_days=15"
+        "evidence": "engine_runs.status=warn, checked_points=1, missed_points=[\"09:12\"], last_run_age_min=274.7"
+      },
+      {
+        "cause": "网站仓库 Site module safety 工作流连续失败，可能影响站点模块发布或校验",
+        "confidence": 0.2,
+        "evidence": "site_workflows: 120 分钟内 2 次失败（2026-11-28T01:19:27Z、01:20:02Z），recent_runs=14"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s https://api.github.com/repos/<org>/<repo>/actions/runs?per_page=20",
-        "purpose": "只读查看最近工作流运行记录与结论，确认调度是否停滞及失败环节"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46092564197",
+        "purpose": "只读查看 Site module safety 失败运行的结论与失败步骤，确认是否与结算/数据模块相关"
       },
       {
-        "command": "curl -s https://api.github.com/repos/<org>/<repo>/actions/workflows/engine4-settlement.yml/runs?per_page=10",
-        "purpose": "确认结算工作流是否被停用或长期未触发"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46092515971",
+        "purpose": "只读对比第二次失败运行，判断是否为同一原因的重复失败"
       },
       {
-        "command": "git log --since='2026-11-26' --oneline -- <snapshot_dir>",
-        "purpose": "只读查看预测快照文件提交历史，确认快照停更起点"
+        "command": "git log --since=\"2026-11-26\" --oneline -- '*settlement*' '*result*'",
+        "purpose": "只读查看结算/赛果相关代码或配置在故障窗口前是否有变更"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<settlement_state>.json'));print([m for m in d if m.get('day')=='2026-11-27' and m.get('status')=='pending'])\"",
-        "purpose": "只读列出 2026-11-27 未结算场次，确认是否缺赛果源数据"
+        "command": "python -c \"import json,glob;[print(p) for p in glob.glob('**/*review*',recursive=True)]\"",
+        "purpose": "只读定位独立复核文件位置，确认最新文件日期 2026-11-13 与滞后原因"
       }
     ],
     "suggested_fix": {
-      "action": "人工核查并恢复结算/核验工作流调度（确认是否被停用或触发失败），补跑 2026-11-27 的赛果核验与结算；同时排查预测引擎快照任务未触发原因，并安排独立复核数据补做",
+      "action": "人工核查 11-27 未结算 9 场比赛的赛果数据是否已抓取入库，并检查 engine4-settlement / engine4-result-backfill 相关调度是否被停用或报错；确认后由值班人员手动触发一次结算补跑（需审批），同时排查 09:12 计划点漏跑的调度配置。",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "2026-11-27 的 9 场比赛结果与结算未更新，会员可能看到过期赛果/未结算状态，影响信任与对账；预测快照停更约 4 小时，站点预测展示可能为旧数据。",
+    "customer_impact": "11-27 的 9 场比赛赛果与结算延迟超过 16 小时，会员积分/派彩与排行榜可能未更新，存在会员投诉与对账偏差风险；预测引擎漏跑可能使部分场次预测缺失。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.278822,
-    "remaining_cny": 8.721178,
-    "calls": 200,
+    "spent_cny": 1.28671,
+    "remaining_cny": 8.71329,
+    "calls": 201,
     "exhausted": false,
-    "used_pct": 12.79
+    "used_pct": 12.87
   },
   "usage": {
-    "prompt_tokens": 842,
-    "completion_tokens": 695,
-    "total_tokens": 1537,
+    "prompt_tokens": 864,
+    "completion_tokens": 770,
+    "total_tokens": 1634,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 714
+    "prompt_cache_miss_tokens": 736
   },
-  "cost_cny": 0.007244
+  "cost_cny": 0.007888
 }
