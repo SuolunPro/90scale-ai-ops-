@@ -1641,6 +1641,14 @@
       "completion_tokens": 791,
       "cost_cny": 0.007724,
       "note": "triage:FAIL:independent_review,settlement"
+    },
+    {
+      "at": "2026-11-28T06:00:39+00:00",
+      "model": "deepseek-chat",
+      "prompt_tokens": 620,
+      "completion_tokens": 715,
+      "cost_cny": 0.00696,
+      "note": "triage:FAIL:settlement"
     }
   ]
 }
