@@ -1,72 +1,48 @@
 {
-  "at": "2026-11-28T08:00:32Z",
-  "verdict": "FAIL",
-  "signature": "independent_review,settlement,site_workflows",
+  "at": "2026-11-28T16:00:32Z",
+  "verdict": "WARN",
+  "signature": "sources",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎计划点漏跑（13:12、15:12 两次未运行，最近一次运行在 107 分钟前）与 11-27 两场比赛超 23.3 小时未结算同时出现，疑似调度或工作流链路中断；独立复核数据已滞后 15 天，网站仓库 120 分钟内 5 次构建失败，但缺少工作流运行日志与失败原因，根因置信度偏低。",
+    "summary": "只读诊断结论：WARN。唯一检查项 sources 为 WARN，说明正式快照统计可用但资料时效存在告警；HTTP 可达性不能证明数据新鲜。销售状态为 UNKNOWN，无法判断是否处于在售窗口。当前证据不足以确认生产故障，根因未确认，需只读复核。",
     "root_causes": [
       {
-        "cause": "预测引擎调度链路中断或工作流被停用，导致计划点漏跑并连带赛果核验与结算未执行",
-        "confidence": 0.45,
-        "evidence": "engine_runs: missed_points=[13:12,15:12], last_run_age_min=107.3, runs_today=17；settlement: 2026-11-27 pending=2, overdue_h=23.3；retired_workflows_ignored 含 engine4-settlement.yml、engine4-verify-results.yml"
+        "cause": "UNKNOWN：快照资料时效告警，但缺少逐场快照与采集时间基线，无法区分缺失、陈旧或身份冲突",
+        "evidence": "checks[sources].status=WARN，detail 明确“HTTP 可达性独立记录，资料时效以采集时间为准”，link=https://suolunpro.github.io/data/engine4/latest.json，checked_at=2026-11-28T14:58:16Z；未提供逐场快照明细"
       },
       {
-        "cause": "网站仓库工作流（Site module safety / Build verified website predictions）连续失败，可能阻断预测产物发布与下游结算输入",
-        "confidence": 0.3,
-        "evidence": "site_workflows: 120 分钟内 5 次失败，recent_runs=22，失败集中在 06:05 与 07:56-07:58 两个时段"
-      },
-      {
-        "cause": "独立复核流程长期未产出新文件，复核环节停滞（可能为独立问题，非本次漏跑直接原因）",
-        "confidence": 0.25,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=15"
+        "cause": "UNKNOWN：销售状态未确定，无法判定该时效告警是否落在在售窗口内",
+        "evidence": "sale_state=UNKNOWN；beijing_time=2026-11-29 00:00:10，与 checked_at 2026-11-28T14:58:16Z 存在约 9 小时时差，期间无新证据"
       }
     ],
-    "diagnose_steps": [
-      {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46123653392",
-        "purpose": "只读查看 Site module safety 失败运行的结论与失败步骤，确认是否为构建/校验错误"
-      },
-      {
-        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs?per_page=20",
-        "purpose": "只读列出近期工作流运行状态与时间，确认失败是否持续及是否影响预测产物发布"
-      },
-      {
-        "command": "git log --since='2026-11-26' --oneline -- .github/workflows",
-        "purpose": "只读查看工作流配置近期是否有变更，排查调度被改动或停用的可能"
-      },
-      {
-        "command": "python -c \"import json,glob;[print(f) for f in glob.glob('**/review*2026-11*',recursive=True)]\"",
-        "purpose": "只读定位最新独立复核文件，确认滞后 15 天是否为产出中断而非路径变化"
-      }
-    ],
-    "suggested_fix": {
-      "action": "人工核查预测引擎调度配置与 engine4-settlement/verify-results 工作流是否被停用或报错，恢复调度后手动触发一次结算核验补齐 11-27 两场待结算比赛；同时排查网站仓库两个失败工作流的失败步骤并修复",
-      "risk": "medium",
-      "needs_approval": true
-    },
-    "customer_impact": "11-27 两场比赛超 23 小时未结算，会员账户积分/派彩可能延迟到账；网站预测构建连续失败可能导致页面预测内容未更新或展示滞后，影响会员查看与信任。",
-    "escalate": true
+    "customer_impact": "UNKNOWN。快照端点可达且统计可读，但资料时效为 WARN，可能影响展示数据的及时性；因 sale_state 为 UNKNOWN，无法确认是否影响在售用户。无证据表明存在缺失、身份冲突或站点不可用。",
+    "escalate": false,
+    "readonly_review_items": [
+      "核对 latest.json 内逐场快照的采集时间与当前北京时间偏差，判定属于正常延迟还是陈旧",
+      "确认同一销售日公开 main 分支产物与正式站 latest.json 是否一致（仅比对，不修改）",
+      "补充 sale_state 判定依据，明确告警是否处于在售窗口",
+      "如后续确认需补偿，唯一入口为正式生产 public-refresh-audit.yml，由其执行在售与防重闸门；本诊断不触发任何写操作"
+    ]
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.354348,
-    "remaining_cny": 8.645652,
-    "calls": 210,
+    "spent_cny": 1.3586,
+    "remaining_cny": 8.6414,
+    "calls": 211,
     "exhausted": false,
-    "used_pct": 13.54
+    "used_pct": 13.59
   },
   "usage": {
-    "prompt_tokens": 1048,
-    "completion_tokens": 726,
-    "total_tokens": 1774,
+    "prompt_tokens": 362,
+    "completion_tokens": 441,
+    "total_tokens": 803,
     "prompt_tokens_details": {
-      "cached_tokens": 128
+      "cached_tokens": 0
     },
-    "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 920
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 362
   },
-  "cost_cny": 0.007904
+  "cost_cny": 0.004252
 }
