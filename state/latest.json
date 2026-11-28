@@ -1,15 +1,14 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-28T02:30:13Z",
-  "beijing_time": "2026-11-28 10:30:13",
+  "generated_at": "2026-11-28T03:30:12Z",
+  "beijing_time": "2026-11-28 11:30:12",
   "in_sale_window": true,
   "verdict": "FAIL",
-  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=fail,legacy_sale_status=ok",
-  "signature": "independent_review,settlement,site_workflows",
+  "fingerprint": "site_home=ok,site_data_sync=ok,engine_fresh=ok,engine_runs=warn,pool_coverage=ok,settlement=fail,independent_review=fail,sources=skip,site_workflows=ok,legacy_sale_status=ok",
+  "signature": "independent_review,settlement",
   "failed": [
     "settlement",
-    "independent_review",
-    "site_workflows"
+    "independent_review"
   ],
   "warned": [
     "engine_runs"
@@ -20,7 +19,7 @@
       "title": "正式网站首页可访问",
       "status": "ok",
       "severity": "info",
-      "detail": "HTTP 200，102119 字节，耗时 241ms"
+      "detail": "HTTP 200，102119 字节，耗时 91ms"
     },
     {
       "id": "site_data_sync",
@@ -37,9 +36,9 @@
       "title": "预测主引擎当日快照",
       "status": "ok",
       "severity": "info",
-      "detail": "sale_day=2026-11-28，快照 62 分钟前生成",
+      "detail": "sale_day=2026-11-28，快照 122 分钟前生成",
       "sale_day": "2026-11-28",
-      "generated_age_min": 61.6,
+      "generated_age_min": 121.5,
       "in_window": true
     },
     {
@@ -47,13 +46,14 @@
       "title": "预测引擎计划点漏跑",
       "status": "warn",
       "severity": "warn",
-      "detail": "近 180 分钟内 1 个计划点无运行：09:12；最近一次运行 335 分钟前",
+      "detail": "近 180 分钟内 2 个计划点无运行：09:12、11:12；最近一次运行 395 分钟前",
       "missed_points": [
-        "09:12"
+        "09:12",
+        "11:12"
       ],
-      "checked_points": 1,
+      "checked_points": 2,
       "runs_today": 13,
-      "last_run_age_min": 334.7,
+      "last_run_age_min": 394.7,
       "retired_workflows_ignored": [
         "engine4-settlement.yml",
         "engine4-verify-results.yml",
@@ -75,7 +75,7 @@
       "title": "赛果核验与结算",
       "status": "fail",
       "severity": "critical",
-      "detail": "2026-11-27 有 9 场开赛 17.8h 仍未结算",
+      "detail": "2026-11-27 有 2 场开赛 18.8h 仍未结算",
       "checked": [
         {
           "day": "2026-11-25",
@@ -92,8 +92,8 @@
         {
           "day": "2026-11-27",
           "matches": 11,
-          "pending": 9,
-          "overdue_h": 17.8
+          "pending": 2,
+          "overdue_h": 18.8
         }
       ]
     },
@@ -119,7 +119,7 @@
           "status": "down",
           "http": 567,
           "bytes": 7352,
-          "elapsed_ms": 2147,
+          "elapsed_ms": 1747,
           "error": "HTTP 567",
           "cn_only": true,
           "required": true
@@ -129,8 +129,8 @@
           "name": "球来了镜像",
           "status": "up",
           "http": 200,
-          "bytes": 86063,
-          "elapsed_ms": 2344,
+          "bytes": 86062,
+          "elapsed_ms": 1798,
           "error": null,
           "cn_only": true,
           "required": false
@@ -140,8 +140,8 @@
           "name": "FotMob",
           "status": "up",
           "http": 200,
-          "bytes": 267773,
-          "elapsed_ms": 496,
+          "bytes": 268045,
+          "elapsed_ms": 438,
           "error": null,
           "cn_only": false,
           "required": false
@@ -151,8 +151,8 @@
           "name": "澳客竞彩",
           "status": "up",
           "http": 200,
-          "bytes": 209585,
-          "elapsed_ms": 2045,
+          "bytes": 244993,
+          "elapsed_ms": 1483,
           "error": null,
           "cn_only": true,
           "required": false
@@ -168,22 +168,11 @@
     {
       "id": "site_workflows",
       "title": "网站仓库工作流健康",
-      "status": "fail",
-      "severity": "warn",
-      "detail": "120 分钟内有 2 次失败：Site module safety",
-      "failures": [
-        {
-          "name": "Site module safety",
-          "at": "2026-11-28T01:20:02Z",
-          "url": "https://github.com/SuolunPro/suolunpro.github.io/actions/runs/46092564197"
-        },
-        {
-          "name": "Site module safety",
-          "at": "2026-11-28T01:19:27Z",
-          "url": "https://github.com/SuolunPro/suolunpro.github.io/actions/runs/46092515971"
-        }
-      ],
-      "recent_runs": 19
+      "status": "ok",
+      "severity": "info",
+      "detail": "120 分钟内 7 次运行，无失败",
+      "failures": [],
+      "recent_runs": 7
     },
     {
       "id": "legacy_sale_status",
@@ -198,17 +187,17 @@
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.28671,
-    "remaining_cny": 8.71329,
-    "calls": 201,
+    "spent_cny": 1.294798,
+    "remaining_cny": 8.705202,
+    "calls": 202,
     "exhausted": false,
-    "used_pct": 12.87
+    "used_pct": 12.95
   },
   "runner": {
-    "host": "runnervm0hi8g",
+    "host": "runnervm3lb7s",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "46098369931",
+    "run_id": "46103141985",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
