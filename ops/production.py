@@ -26,6 +26,32 @@ def published_result_evidence(day):
     return {str(r["match_no"]): r for r in rows if counts[str(r.get("match_no"))] == 1 and "match_no" in r}
 
 
+def fotmob_fixture_status(row):
+    """Use the independent verifier's public fallback and identity fields."""
+    fixture = str(row.get("fotmob_match_id") or "")
+    teams = tuple(str(row.get(key) or "") for key in ("fotmob_home_team_id", "fotmob_away_team_id"))
+    kickoff = C.parse_ts(row.get("kickoff"))
+    if not fixture.isdecimal() or not all(team.isdecimal() for team in teams) or not kickoff:
+        return {}
+    url = "https://www.fotmob.com/api/data/matchDetails?matchId=" + fixture
+    response = C.as_json(C.http_get(url, timeout=8, retries=0, headers={"User-Agent": "Mozilla/5.0"})) or {}
+    general = response.get("general") or {}
+    match_time = C.parse_ts(general.get("matchTimeUTCDate"))
+    actual_teams = tuple(str((general.get(key) or {}).get("id") or "") for key in ("homeTeam", "awayTeam"))
+    if (str(general.get("matchId")) != fixture or actual_teams != teams
+            or not match_time or abs(match_time - kickoff) > timedelta(minutes=10)):
+        return {}
+    status = (response.get("header") or {}).get("status") or {}
+    reason = (status.get("reason") or {}).get("short")
+    known = {"PP": "POSTPONED", "ABD": "ABANDONED"}
+    state = known.get(reason)
+    if not state:
+        state = ("CANCELLED" if status.get("cancelled") is True else
+                 "FINISHED" if status.get("finished") is True else
+                 "IN_PROGRESS" if status.get("started") is True else None)
+    return {"status": state, "source": "FotMob", "url": url} if state else {}
+
+
 def same_result_fixture(fixture, evidence):
     pairs = [(fixture.get(a), evidence.get(b)) for a, b in
              (("source_id", "qiulaile_id"), ("fotmob_match_id", "fotmob_match_id"))
@@ -311,6 +337,13 @@ def audit(cfg, now, root="."):
         residual = private_runs.result()
         result_evidence = {name: future.result() for name, future in staging.items()}
         intelligence = C.as_json(intelligence_request.result()) or {}
+        unknown = [(name, row) for name in paths[1:-1] for row in docs[name].get("matches", [])
+                   if row.get("fotmob_match_id") and settlement_state(
+                       row, now, cfg["thresholds"]["settlement_overdue_fail_h"],
+                       result_evidence[name].get(str(row.get("match_no")))) == "UNKNOWN"]
+        status_requests = {(name, str(row.get("match_no"))): pool.submit(fotmob_fixture_status, row)
+                           for name, row in unknown[:12]}
+        statuses = {key: future.result() for key, future in status_requests.items()}
 
     receipt = receipts[0] if receipts else {}
     source = ((receipt.get("integrity") or {}).get("source") or {})
@@ -431,7 +464,11 @@ def audit(cfg, now, root="."):
         if not name.startswith("sales/") or name.split("/")[-1] > str(day):
             continue
         for row in docs[name].get("matches", []):
-            evidence = (result_evidence.get(name) or {}).get(str(row.get("match_no")))
+            number = str(row.get("match_no"))
+            evidence = (result_evidence.get(name) or {}).get(number)
+            live_status = statuses.get((name, number))
+            if live_status:
+                row = {**row, "event_status": live_status}
             state = settlement_state(row, now, cfg["thresholds"]["settlement_overdue_fail_h"], evidence)
             settled.setdefault(state, []).append(f"{name.split('/')[-1]} / {row.get('match_no')}")
     settlement_runs = runs_by[SETTLEMENT] or []
@@ -446,6 +483,7 @@ def audit(cfg, now, root="."):
     out.append(outcome("settlement", "独立赛果核验及异常赛事", settle_status,
                        "；".join(f"{states_cn[k]} {len(v)} 场" for k, v in settled.items()),
                        states=settled, publisher=last_settlement.get("html_url"), checked_at=raw_at,
+                       event_sources={f"{name.split('/')[-1]} / {number}": v for (name, number), v in statuses.items() if v},
                        link=f"https://github.com/{PUBLIC}/actions/workflows/{SETTLEMENT}"))
 
     matched = {name: bool(main.get(name) and docs.get(name) and main[name] == docs[name]) for name in main_names}

@@ -66,6 +66,17 @@ def build_markdown(doc: dict) -> str:
             lines += ["", "## 上游端点探测", ""]
             lines += [f"- {p['name']} · HTTP {p['http']} · {p['elapsed_ms']} ms" for p in check["probes"]]
 
+    for check in doc["checks"]:
+        if check["id"] == "settlement":
+            states = check.get("states") or {}
+            for status, label in (("OVERDUE", "完赛且超时"), ("POSTPONED", "延期"),
+                                  ("CANCELLED", "取消"), ("ABANDONED", "腰斩"),
+                                  ("VOID", "官方作废"), ("UNKNOWN", "赛事状态待核实")):
+                fixtures = states.get(status, [])
+                if fixtures:
+                    sources = check.get("event_sources") or {}
+                    names = [f"[{name}]({sources[name]['url']})" if name in sources else name for name in fixtures]
+                    lines += ["", f"- {label} · {'、'.join(names)}"]
     recovery = next((c.get("recovery") for c in doc["checks"] if c["id"] == "self_heal"), None)
     if recovery:
         for key, label in (("recovered", "已取得发布证据"), ("unverified", "仍待复验")):
