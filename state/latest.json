@@ -1,12 +1,12 @@
 {
   "schema": 2,
-  "generated_at": "2026-11-28T16:00:10Z",
-  "beijing_time": "2026-11-29 00:00:10",
+  "generated_at": "2026-11-28T16:30:18Z",
+  "beijing_time": "2026-11-29 00:30:18",
   "production_repo": "SuolunPro/suolunpro.github.io",
   "sale_state": "UNKNOWN",
   "in_sale_window": null,
   "verdict": "WARN",
-  "fingerprint": "engine_runs=PASS,engine_fresh=UNKNOWN,pool_coverage=UNKNOWN,sources=WARN,settlement=UNKNOWN,site_data_sync=PASS,self_heal=UNKNOWN,independent_review=RETIRED,experimental=SKIP,intelligence=SKIP,handoff=PASS,private_audit=SKIP,endpoints=UNKNOWN",
+  "fingerprint": "engine_runs=UNKNOWN,engine_fresh=UNKNOWN,pool_coverage=UNKNOWN,sources=WARN,settlement=UNKNOWN,site_data_sync=UNKNOWN,self_heal=UNKNOWN,independent_review=RETIRED,experimental=SKIP,intelligence=SKIP,handoff=PASS,private_audit=SKIP,endpoints=UNKNOWN",
   "signature": "sources",
   "failed": [],
   "warned": [
@@ -16,24 +16,24 @@
     {
       "id": "engine_runs",
       "title": "公开主引擎",
-      "status": "PASS",
+      "status": "UNKNOWN",
       "severity": "info",
-      "detail": "今日 0 次，成功 0、失败 0、取消 0、运行或排队 0。最近成功结束 未知",
-      "runs_today": 0,
+      "detail": "Actions 运行记录不可用",
+      "runs_today": null,
       "counts": {},
       "last_success": null,
       "link": "https://github.com/SuolunPro/suolunpro.github.io/actions/workflows/build-engine4.yml",
       "historical_failures": [],
-      "checked_at": "2026-11-28T16:00:10Z"
+      "checked_at": "2026-11-28T16:30:18Z"
     },
     {
       "id": "engine_fresh",
       "title": "在售预测刷新",
       "status": "UNKNOWN",
       "severity": "info",
-      "detail": "销售窗口 UNKNOWN，公开 main 快照 2026-11-28T14:58:16Z，最近有证据的生产计划点 未知",
+      "detail": "销售窗口 UNKNOWN，公开 main 快照 未知，最近有证据的生产计划点 未知",
       "sale_state": "UNKNOWN",
-      "generated_at": "2026-11-28T14:58:16Z",
+      "generated_at": null,
       "receipt_at": null,
       "link": "https://github.com/SuolunPro/suolunpro.github.io/actions/workflows/public-refresh-audit.yml"
     },
@@ -77,70 +77,6 @@
           "missing": []
         },
         "sales/2026-11-28": {
-          "numbers": [
-            "001",
-            "002",
-            "003",
-            "004",
-            "005",
-            "006",
-            "007",
-            "008",
-            "009",
-            "010",
-            "011",
-            "012",
-            "013",
-            "014",
-            "015",
-            "016",
-            "017",
-            "018",
-            "019",
-            "020",
-            "021",
-            "022",
-            "023"
-          ],
-          "ordered": true,
-          "duplicates": [],
-          "invalid": [],
-          "pending": [],
-          "missing": []
-        },
-        "main/latest": {
-          "numbers": [
-            "001",
-            "002",
-            "003",
-            "004",
-            "005",
-            "006",
-            "007",
-            "008",
-            "009",
-            "010",
-            "011",
-            "012",
-            "013",
-            "014",
-            "015",
-            "016",
-            "017",
-            "018",
-            "019",
-            "020",
-            "021",
-            "022",
-            "023"
-          ],
-          "ordered": true,
-          "duplicates": [],
-          "invalid": [],
-          "pending": [],
-          "missing": []
-        },
-        "main/sales/2026-11-28": {
           "numbers": [
             "001",
             "002",
@@ -662,7 +598,7 @@
       "title": "独立赛果核验及异常赛事",
       "status": "UNKNOWN",
       "severity": "info",
-      "detail": "已核验 12 场；未开赛 32 场；比赛中 8 场；完赛待核验 3 场；确认为完赛且超时 0 场；延期 1 场；取消 0 场；腰斩 0 场；官方作废 0 场；状态待核实 1 场",
+      "detail": "已核验 12 场；未开赛 32 场；比赛中 4 场；完赛待核验 7 场；确认为完赛且超时 0 场；延期 1 场；取消 0 场；腰斩 0 场；官方作废 0 场；状态待核实 1 场",
       "states": {
         "SETTLED": [
           "2026-11-27 / 001",
@@ -713,10 +649,6 @@
           "2026-11-29 / 023"
         ],
         "IN_PROGRESS": [
-          "2026-11-28 / 007",
-          "2026-11-28 / 008",
-          "2026-11-28 / 009",
-          "2026-11-28 / 010",
           "2026-11-28 / 011",
           "2026-11-28 / 012",
           "2026-11-28 / 013",
@@ -725,7 +657,11 @@
         "FINISHED_PENDING": [
           "2026-11-28 / 004",
           "2026-11-28 / 005",
-          "2026-11-28 / 006"
+          "2026-11-28 / 006",
+          "2026-11-28 / 007",
+          "2026-11-28 / 008",
+          "2026-11-28 / 009",
+          "2026-11-28 / 010"
         ],
         "OVERDUE": [],
         "POSTPONED": [
@@ -739,35 +675,30 @@
         ]
       },
       "publisher": null,
-      "checked_at": "2026-11-28T16:00:10Z",
+      "checked_at": "2026-11-28T16:30:18Z",
       "event_sources": {
         "2026-11-27 / 004": {
           "status": "POSTPONED",
           "source": "FotMob",
           "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5832971"
         },
-        "2026-11-28 / 006": {
-          "status": "FINISHED",
-          "source": "FotMob",
-          "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5749763"
-        },
         "2026-11-28 / 007": {
-          "status": "IN_PROGRESS",
+          "status": "FINISHED",
           "source": "FotMob",
           "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5881239"
         },
         "2026-11-28 / 008": {
-          "status": "IN_PROGRESS",
+          "status": "FINISHED",
           "source": "FotMob",
           "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5881234"
         },
         "2026-11-28 / 009": {
-          "status": "IN_PROGRESS",
+          "status": "FINISHED",
           "source": "FotMob",
           "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5881236"
         },
         "2026-11-28 / 010": {
-          "status": "IN_PROGRESS",
+          "status": "FINISHED",
           "source": "FotMob",
           "url": "https://www.fotmob.com/api/data/matchDetails?matchId=5881238"
         },
@@ -797,27 +728,27 @@
     {
       "id": "site_data_sync",
       "title": "公开 main 与正式站发布",
-      "status": "PASS",
+      "status": "UNKNOWN",
       "severity": "info",
-      "detail": "latest 一致；sales/2026-11-28 一致",
+      "detail": "latest 未通过比对；sales/2026-11-28 未通过比对",
       "comparisons": {
-        "latest": true,
-        "sales/2026-11-28": true
+        "latest": false,
+        "sales/2026-11-28": false
       },
-      "ref": "817a2582589a9d3569d554a9081b2e8dfc7b2dfd",
+      "ref": null,
       "link": "https://suolunpro.github.io/data/engine4/latest.json",
       "compared_paths": {
         "latest": [
-          "https://github.com/SuolunPro/suolunpro.github.io/blob/817a2582589a9d3569d554a9081b2e8dfc7b2dfd/data/engine4/latest.json",
+          "https://github.com/SuolunPro/suolunpro.github.io/blob/None/data/engine4/latest.json",
           "https://suolunpro.github.io/data/engine4/latest.json"
         ],
         "sales/2026-11-28": [
-          "https://github.com/SuolunPro/suolunpro.github.io/blob/817a2582589a9d3569d554a9081b2e8dfc7b2dfd/data/engine4/sales/2026-11-28.json",
+          "https://github.com/SuolunPro/suolunpro.github.io/blob/None/data/engine4/sales/2026-11-28.json",
           "https://suolunpro.github.io/data/engine4/sales/2026-11-28.json"
         ]
       },
       "generated_at": "2026-11-28T14:58:16.261612+00:00",
-      "checked_at": "2026-11-28T16:00:10Z"
+      "checked_at": "2026-11-28T16:30:18Z"
     },
     {
       "id": "self_heal",
@@ -864,7 +795,7 @@
       "counts": {
         "done": 5
       },
-      "checked_at": "2026-11-28T16:00:10Z",
+      "checked_at": "2026-11-28T16:30:18Z",
       "link": "https://github.com/SuolunPro/90scale-ai-ops-/tree/main/tasks"
     },
     {
@@ -876,7 +807,7 @@
       "counts": {},
       "residual_workflows": {},
       "billed_minutes": null,
-      "checked_at": "2026-11-28T16:00:10Z",
+      "checked_at": "2026-11-28T16:30:18Z",
       "link": "https://github.com/SuolunPro/90scale-engine/actions"
     },
     {
@@ -890,8 +821,8 @@
           "id": "sporttery",
           "name": "体彩官方接口",
           "http": 567,
-          "bytes": 7351,
-          "elapsed_ms": 4960,
+          "bytes": 7352,
+          "elapsed_ms": 1070,
           "status": "UNKNOWN",
           "error": "HTTP 567",
           "link": "https://webapi.sporttery.cn/gateway/jc/football/getMatchCalculatorV1.qry?channel=c&poolCode=had,hhad,crs,ttg,hafu"
@@ -900,8 +831,8 @@
           "id": "qiulaile",
           "name": "球来了镜像",
           "http": 200,
-          "bytes": 86289,
-          "elapsed_ms": 2103,
+          "bytes": 79735,
+          "elapsed_ms": 8953,
           "status": "PASS",
           "error": null,
           "link": "https://qiulaile.vip/api/matches?matchType=0&mode=full"
@@ -911,7 +842,7 @@
           "name": "FotMob",
           "http": 200,
           "bytes": 174465,
-          "elapsed_ms": 371,
+          "elapsed_ms": 321,
           "status": "PASS",
           "error": null,
           "link": "https://www.fotmob.com/api/data/matches?date=20261129"
@@ -920,34 +851,34 @@
           "id": "okooo",
           "name": "澳客竞彩",
           "http": 200,
-          "bytes": 244629,
-          "elapsed_ms": 1304,
+          "bytes": 244613,
+          "elapsed_ms": 1759,
           "status": "PASS",
           "error": null,
           "link": "https://www.okooo.com/jingcai/2026-11-29/"
         }
       ],
-      "checked_at": "2026-11-28T16:00:10Z"
+      "checked_at": "2026-11-28T16:30:18Z"
     }
   ],
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.354348,
-    "remaining_cny": 8.645652,
-    "calls": 210,
+    "spent_cny": 1.3586,
+    "remaining_cny": 8.6414,
+    "calls": 211,
     "exhausted": false,
-    "used_pct": 13.54,
+    "used_pct": 13.59,
     "exists": true,
-    "today_calls": 0,
-    "today_cny": 0,
-    "updated_at": "2026-11-28T08:00:36+00:00"
+    "today_calls": 1,
+    "today_cny": 0.004252,
+    "updated_at": "2026-11-28T16:00:37+00:00"
   },
   "runner": {
-    "host": "runnervm3lb7s",
+    "host": "ip-10-0-140-110",
     "python": "3.12.16",
     "ci": true,
-    "run_id": "46162774570",
+    "run_id": "46165471341",
     "repo": "SuolunPro/90scale-ai-ops-"
   }
 }
