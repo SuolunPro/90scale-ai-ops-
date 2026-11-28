@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-28T03:30:29Z",
+  "at": "2026-11-28T04:30:31Z",
   "verdict": "FAIL",
   "signature": "independent_review,settlement",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "预测引擎近 395 分钟无运行且漏跑 09:12、11:12 两个计划点，同时 11-27 有 2 场赛果超 18.8h 未结算、独立复核数据滞后 15 天；三者可能同源于引擎/结算工作流停摆，但缺少工作流运行日志与失败原因证据，根因置信度偏低。",
+    "summary": "预测引擎近 180 分钟漏跑 2 个计划点，且 11-27 有 2 场赛果超期 19.8h 未结算、独立复核数据滞后 15 天；三者可能同源于引擎/结算工作流停摆，但缺少工作流运行日志与赛果源状态证据，根因置信度偏低。",
     "root_causes": [
       {
-        "cause": "预测引擎调度工作流停摆或持续失败，导致计划点漏跑并连带结算与复核链路中断",
+        "cause": "预测引擎计划任务停摆，连带赛果核验/结算与复核产出中断",
         "confidence": 0.55,
-        "evidence": "engine_runs: last_run_age_min=394.7，missed_points=[09:12,11:12]，runs_today=13；settlement: 2026-11-27 pending=2, overdue_h=18.8；independent_review: latest=2026-11-13, lag_days=15"
+        "evidence": "engine_runs: 11:12、12:12 两个计划点无运行，last_run_age_min=54.9，runs_today=15；settlement: 2026-11-27 pending=2, overdue_h=19.8；independent_review: latest=2026-11-13, lag_days=15"
       },
       {
-        "cause": "赛果数据源未回填或核验环节卡住，使 11-27 两场比赛无法进入结算",
-        "confidence": 0.35,
-        "evidence": "settlement: day=2026-11-27 matches=11 pending=2 overdue_h=18.8，而 11-25、11-26 pending=0"
+        "cause": "赛果数据源未回传或核验环节卡住，导致个别场次长期挂起未结算",
+        "confidence": 0.3,
+        "evidence": "settlement 仅 2026-11-27 单日 pending=2，11-25/11-26 pending=0，说明并非全量结算链路失效，更像单日个别场次赛果缺失"
       },
       {
-        "cause": "独立复核流程长期未产出新文件（可能独立于引擎停摆的独立问题）",
+        "cause": "独立复核流程长期未执行（独立于本次引擎漏跑的历史性停滞）",
         "confidence": 0.25,
-        "evidence": "independent_review: latest=2026-11-13, lag_days=15，滞后幅度远大于本次引擎停摆时长"
+        "evidence": "independent_review latest=2026-11-13，滞后 15 天，远早于本次 180 分钟漏跑窗口，时间尺度不匹配"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <巡检系统只读健康检查地址>",
-        "purpose": "确认巡检/调度服务本身是否可达，排除整体不可用"
+        "command": "curl -s -o /dev/null -w '%{http_code}\\n' <赛果源只读接口地址>",
+        "purpose": "确认赛果数据源是否可访问、是否已回传 2026-11-27 两场赛果"
       },
       {
-        "command": "git log --since='2026-11-27' --oneline -- <引擎与结算相关目录>",
-        "purpose": "查看停摆前后是否有代码或配置变更导致工作流失败"
+        "command": "git log --since='2026-11-26' --oneline -- <引擎/结算工作流目录>",
+        "purpose": "确认近期是否有工作流配置或代码变更导致计划点漏跑"
       },
       {
-        "command": "python -c \"import json,sys; d=json.load(open('<只读巡检结果文件>')); print(d.get('checks'))\"",
-        "purpose": "复核 engine_runs 与 settlement 原始字段，确认漏跑点与待结算场次明细"
+        "command": "python -c \"import json;d=json.load(open('<最新复核文件路径>'));print(d.get('date'),len(d))\"",
+        "purpose": "只读查看最新复核文件内容与生成时间，判断复核流程是否真的停摆"
       },
       {
-        "command": "curl -s <只读赛果查询接口>",
-        "purpose": "确认 11-27 两场比赛的赛果是否已存在于数据源，区分数据缺失与结算逻辑卡住"
+        "command": "curl -s <内部巡检/调度状态只读接口> | python -m json.tool",
+        "purpose": "确认 11:12、12:12 计划点的调度触发记录与失败原因"
       }
     ],
     "suggested_fix": {
-      "action": "人工检查预测引擎与结算工作流的最近运行记录和失败日志，确认停摆原因后手动触发一次补跑（含 09:12、11:12 计划点与 11-27 待结算场次），并核查独立复核流程为何自 11-13 起无新文件",
+      "action": "人工核查 11-27 两场未结算场次的赛果源回传情况并补录赛果后触发结算；同时检查预测引擎计划任务调度配置与最近变更，恢复 11:12/12:12 漏跑点；复核流程单独排查为何自 11-13 起无新文件",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "11-27 两场比赛超 18.8h 未结算，相关会员的积分/收益状态可能延迟更新；引擎停摆期间新预测未生成，若持续将影响后续场次预测与结算时效；独立复核滞后 15 天削弱结果可信度保障。",
+    "customer_impact": "2 场赛事超期未结算将导致相关会员的积分/收益延迟到账，可能引发客诉；引擎漏跑使后续预测点缺失，影响在售窗口内的预测覆盖与网站展示新鲜度；复核滞后削弱结果可信度但暂不直接影响前台。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.301736,
-    "remaining_cny": 8.698264,
-    "calls": 203,
+    "spent_cny": 1.308826,
+    "remaining_cny": 8.691174,
+    "calls": 204,
     "exhausted": false,
-    "used_pct": 13.02
+    "used_pct": 13.09
   },
   "usage": {
     "prompt_tokens": 689,
-    "completion_tokens": 695,
-    "total_tokens": 1384,
+    "completion_tokens": 714,
+    "total_tokens": 1403,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
     "prompt_cache_miss_tokens": 561
   },
-  "cost_cny": 0.006938
+  "cost_cny": 0.00709
 }
