@@ -437,6 +437,19 @@ class TestProductionEvidence(unittest.TestCase):
         self.assertEqual(production.settlement_state(row, self.now, 8, evidence), "UNKNOWN")
         self.assertEqual(production.settlement_state(row, self.now, 8, dict(evidence, qiulaile_id="123")), "OVERDUE")
 
+    def test_fotmob_postponement_requires_matching_identity(self):
+        match = {"fotmob_match_id": 5832971, "fotmob_home_team_id": 9839,
+                 "fotmob_away_team_id": 10219, "kickoff": "2026-11-28 03:00"}
+        response = {"general": {"matchId": "5832971", "homeTeam": {"id": 9839}, "awayTeam": {"id": 10219},
+                                "matchTimeUTCDate": "2026-11-27T19:00:00Z"},
+                    "header": {"status": {"cancelled": True, "started": False, "finished": False,
+                                          "reason": {"short": "PP"}}}}
+        with patch.object(production.C, "as_json", return_value=response), patch.object(production.C, "http_get"):
+            event = production.fotmob_fixture_status(match)
+            self.assertEqual(event["status"], "POSTPONED")
+            self.assertEqual(production.fotmob_fixture_status(dict(match, fotmob_away_team_id=1)), {})
+        self.assertEqual(production.settlement_state(dict(match, event_status=event), self.now, 8), "POSTPONED")
+
     def test_inventory_detects_order_duplicate_pending(self):
         doc = {"sale_day": "2026-11-28", "matches": [{"match_no": n} for n in ("008", "003", "008")]}
         seen = production.inventory(doc, doc["sale_day"])
