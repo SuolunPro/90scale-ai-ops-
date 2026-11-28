@@ -52,9 +52,16 @@ def build_markdown(doc: dict) -> str:
                 lines.append(f"| {name} | {hits}/{total} ({hits/total:.1%}) | {len(bucket.get('missing', []))} | "
                              f"{len(bucket.get('stale', []))} | {len(bucket.get('match_failed', []))} | {unverified} |")
             bf = check["coverage"].get("必发指数", {})
-            gaps = [f"{name} {'、'.join(bf[name])}" for name in ("missing", "unverified", "invalid", "stale") if bf.get(name)]
+            labels = {"missing": "缺失", "unverified": "待核验", "invalid": "无效", "stale": "陈旧"}
+            gaps = [f"{label} {'、'.join(bf[name])}" for name, label in labels.items() if bf.get(name)]
             if gaps:
                 lines += ["", "必发赛号（销售日 / 编号）", "", *["- " + gap for gap in gaps]]
+            market = check.get("betfair_breakdown") or {}
+            for key, label in (("frozen_missing", "已停售缺失"), ("eligible_missing", "已核实在售待补")):
+                if market.get(key):
+                    lines += ["", f"- {label} · {'、'.join(market[key])}"]
+            for name, numbers in market.get("publication_issues", {}).items():
+                lines += ["", f"- 发布阶段必发字段丢失 · {name} · {'、'.join(numbers)}"]
         if check.get("probes"):
             lines += ["", "## 上游端点探测", ""]
             lines += [f"- {p['name']} · HTTP {p['http']} · {p['elapsed_ms']} ms" for p in check["probes"]]
