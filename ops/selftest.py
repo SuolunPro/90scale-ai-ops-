@@ -423,6 +423,14 @@ class TestProductionEvidence(unittest.TestCase):
         self.assertEqual(production.settlement_state(dict(match, event_status={"status": "VOID",
                           "official_confirmed": True}), self.now, 8), "VOID")
 
+    def test_closed_fixture_odds_keep_prematch_evidence(self):
+        match = {"sale_day": "2026-11-28", "kickoff": "2026-11-29 01:00",
+                 "bifa": {"captured_at": "2026-11-28T16:00:00+08:00",
+                          "prematch_verified": True, "index_rows": [{"bfMarketIndex": 1}] * 3}}
+        self.assertEqual(production.fixture_sources(match, self.now)["必发指数"], "stale")
+        after_sale = self.now.replace(hour=23, minute=30)
+        self.assertEqual(production.fixture_sources(match, after_sale)["必发指数"], "available")
+
     def test_settlement_requires_same_fixture(self):
         row = {"match_no": "001", "source_id": "123", "kickoff": "2026-11-27 21:00"}
         evidence = {"independent_verified": True, "ft": "2:0", "qiulaile_id": "456"}

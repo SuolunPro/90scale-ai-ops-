@@ -70,9 +70,13 @@ def outcome(check, title, status, detail, **extra):
     return C.result(check, title, status, severity, detail, **extra)
 
 
+def daily_cutoff(local):
+    return local.replace(hour=23 if local.weekday() >= 5 else 22, minute=0, second=0, microsecond=0)
+
+
 def sale_state(now, receipt):
     local = now.astimezone(C.BJ)
-    end = local.replace(hour=23 if local.weekday() >= 5 else 22, minute=0, second=0, microsecond=0)
+    end = daily_cutoff(local)
     if local >= end:
         return "CLOSED"
     if not receipt or receipt.get("error"):
@@ -109,7 +113,7 @@ def numbers(quotes, length=3, minimum=0):
         return False
 
 
-def quote_state(pair, captured, now, kickoff, *, asian=False):
+def quote_state(pair, captured, now, kickoff, *, asian=False, open_for_refresh=True):
     def valid(value):
         if not isinstance(value, str):
             return False
@@ -123,18 +127,23 @@ def quote_state(pair, captured, now, kickoff, *, asian=False):
         return "missing"
     if captured and kickoff and captured >= kickoff:
         return "invalid"
-    if captured and kickoff and now < kickoff and now - captured > timedelta(hours=3):
+    if open_for_refresh and captured and kickoff and now < kickoff and now - captured > timedelta(hours=3):
         return "stale"
     if not captured:
         return "unverified"
     return "available"
 
 
-def fixture_sources(row, now, matching_failure=False):
+def fixture_sources(row, now, matching_failure=False, cutoff=None):
     market = row.get("market") or {}
     betfair = row.get("bifa") or {}
     xg = row.get("fotmob_xg") or {}
     kickoff = C.parse_ts(row.get("kickoff"))
+    sale_day = C.parse_ts(row.get("sale_day"))
+    if cutoff is None and sale_day:
+        cutoff = daily_cutoff(sale_day.astimezone(C.BJ))
+    open_for_refresh = not (row.get("frozen") or row.get("frozen_at") or row.get("settlement")
+                            or (cutoff and now >= cutoff))
     market_at = C.parse_ts(market.get("captured_at"))
     bf_at = C.parse_ts(betfair.get("captured_at"))
     bf_rows = betfair.get("index_rows") or []
@@ -146,13 +155,15 @@ def fixture_sources(row, now, matching_failure=False):
             bf_status = "invalid"
         elif (betfair.get("prematch_verified") is True and kickoff and bf_at
               and len(bf_rows) == 3 and all(isinstance(r.get("bfMarketIndex"), (int, float)) for r in bf_rows)):
-            bf_status = "stale" if now < kickoff and now - bf_at > timedelta(hours=3) else "available"
+            bf_status = ("stale" if open_for_refresh and now < kickoff and now - bf_at > timedelta(hours=3)
+                         else "available")
+    market_options = {"open_for_refresh": open_for_refresh}
     return {
         "体彩普通SP": "available" if numbers(row.get("spf"), minimum=1) else "missing",
         "体彩让球SP": "available" if numbers(row.get("rqspf"), minimum=1) and row.get("handicap") is not None else "missing",
-        "William Hill": quote_state(market.get("william") or {}, market_at, now, kickoff),
-        "澳门亚盘及水位": quote_state((market.get("asia") or {}).get("澳门") or {}, market_at, now, kickoff, asian=True),
-        "澳门大小球及水位": quote_state((market.get("over_under") or {}).get("澳门") or {}, market_at, now, kickoff, asian=True),
+        "William Hill": quote_state(market.get("william") or {}, market_at, now, kickoff, **market_options),
+        "澳门亚盘及水位": quote_state((market.get("asia") or {}).get("澳门") or {}, market_at, now, kickoff, asian=True, **market_options),
+        "澳门大小球及水位": quote_state((market.get("over_under") or {}).get("澳门") or {}, market_at, now, kickoff, asian=True, **market_options),
         "必发指数": bf_status,
         "FotMob赛事匹配": ("available" if row.get("fotmob_match_id") else
                            "match_failed" if "匹配" in xg_reason or "映射" in xg_reason else "missing"),
@@ -351,13 +362,23 @@ def audit(cfg, now, root="."):
 
     rejections = {str(r.get("number")) for r in source.get("rejections", []) if r.get("reason") == "IDENTITY_CONFLICT"}
     coverage = {}
+    proven_cutoffs = {}
+    for proof in receipts:
+        receipt_day = (proof.get("integrity") or {}).get("sale_day")
+        for item in (proof.get("verified_live") or {}).values():
+            if len(item) >= 5 and (cutoff := C.parse_ts(item[4])):
+                proven_cutoffs.setdefault((receipt_day, str(item[0])), cutoff)
     source_tables = {"latest": latest, **{name: doc for name, doc in docs.items()
                     if name in {f"sales/{day}", f"sales/{day + timedelta(days=1)}"}
                     and doc.get("sale_day") != latest.get("sale_day")}}
     for name, doc in source_tables.items():
         for row in doc.get("matches", []):
             fixture = f"{doc['sale_day']} / {row.get('match_no')}"
-            for field, state in fixture_sources(row, now, name == "latest" and str(row.get("match_no")) in rejections).items():
+            number = str(row.get("match_no"))
+            cutoff = proven_cutoffs.get((doc["sale_day"], number))
+            freshness_row = {**row, "sale_day": row.get("sale_day") or doc["sale_day"]}
+            for field, state in fixture_sources(freshness_row, now,
+                                               name == "latest" and number in rejections, cutoff).items():
                 coverage.setdefault(field, {}).setdefault(state, []).append(fixture)
     bf = coverage.get("必发指数", {})
     src_state = ("FAIL" if latest_n and not (bf.get("available") or bf.get("stale"))
@@ -367,9 +388,19 @@ def audit(cfg, now, root="."):
                      ("体彩普通SP", "体彩让球SP", "William Hill", "澳门亚盘及水位")
                      for s in ("missing", "stale", "invalid")))
                  else "PASS" if coverage else "UNKNOWN")
+    current_bf = [item for item in (bf.get("missing", []) + bf.get("invalid", []) + bf.get("unverified", []))
+                  if item.startswith(str(day) + " / ")]
+    betfair_receipt = receipt.get("betfair") or {}
+    ticket_bf = {
+        "frozen_missing": current_bf if sale == "CLOSED" else [],
+        "eligible_missing": (betfair_receipt.get("private") or {}).get("eligible_missing", []) if sale == "OPEN" else [],
+        "publication_issues": {k: x["betfair_lost_after_prediction"] for k, x in
+                               (receipt.get("snapshot_issues") or {}).items()
+                               if x.get("betfair_lost_after_prediction")},
+    }
     out.append(outcome("sources", "逐场采集与匹配", src_state,
                        "统计来自正式快照。HTTP 可达性独立记录，资料时效以采集时间为准。"
-                       if coverage else "没有可核验的逐场快照", coverage=coverage,
+                       if coverage else "没有可核验的逐场快照", coverage=coverage, betfair_breakdown=ticket_bf,
                        link=page_url("latest"), checked_at=latest.get("generated_at")))
 
     settled = {status: [] for status in ("SETTLED", "NOT_STARTED", "IN_PROGRESS", "FINISHED_PENDING",
