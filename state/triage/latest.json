@@ -1,72 +1,72 @@
 {
-  "at": "2026-11-28T06:00:35Z",
+  "at": "2026-11-28T06:15:30Z",
   "verdict": "FAIL",
-  "signature": "settlement",
+  "signature": "independent_review,settlement,site_workflows",
   "model": "deepseek-chat",
   "status": "ok",
   "triage": {
-    "summary": "结算链路疑似中断：2026-11-27 有 2 场开赛 21.3h 仍未结算，且预测引擎计划点连续 3 个漏跑、最近运行在 145 分钟前；但缺少引擎运行日志与结算任务日志，根因尚不能确定。",
+    "summary": "结算链路疑似中断：11-27 有 2 场开赛 21.6h 未结算，同时预测引擎 12:12/13:12 计划点漏跑、网站构建连续失败；但缺少结算任务日志与失败构建日志，根因待确认。",
     "root_causes": [
       {
-        "cause": "预测/结算相关调度任务（工作流）未触发或已停用，导致计划点漏跑并连带结算积压",
+        "cause": "结算/核验工作流未执行或执行失败，导致 11-27 赛果长期挂起",
         "confidence": 0.55,
-        "evidence": "engine_runs: missed_points=[11:12,12:12,13:12], last_run_age_min=145, runs_today=15；retired_workflows_ignored 含 engine4-settlement.yml、engine4-verify-results.yml、engine4-result-backfill.yml"
+        "evidence": "settlement: 2026-11-27 matches=11 pending=2 overdue_h=21.6；engine_runs 漏跑 12:12、13:12，且 retired_workflows_ignored 含 engine4-settlement.yml / engine4-verify-results.yml"
       },
       {
-        "cause": "赛果数据源未回填或核验失败，使 11-27 的 2 场比赛无法进入结算",
-        "confidence": 0.4,
-        "evidence": "settlement: 2026-11-27 matches=11, pending=2, overdue_h=21.3；11-25/11-26 pending=0，说明积压集中在单日"
+        "cause": "上游赛果数据源缺失或抓取失败，结算无输入可核",
+        "confidence": 0.3,
+        "evidence": "settlement 仅 11-27 出现 pending=2，11-25/11-26 pending=0，说明非全链路瘫痪而是单日数据缺口；缺赛果抓取日志佐证"
       },
       {
-        "cause": "结算任务本身执行报错或超时（非调度缺失）",
+        "cause": "网站仓库构建/模块安全检查失败，可能阻断预测产物发布",
         "confidence": 0.25,
-        "evidence": "settlement 状态为 FAIL/critical，但巡检未提供结算任务执行日志或错误码"
+        "evidence": "site_workflows: 120 分钟内 3 次失败（Build verified website predictions ×2、Site module safety ×1），recent_runs=13"
       }
     ],
     "diagnose_steps": [
       {
-        "command": "curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:<engine_port>/health",
-        "purpose": "确认预测引擎服务进程是否存活可响应"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46115034793",
+        "purpose": "读取失败构建的结论与失败步骤，确认是数据校验失败还是构建环境问题"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<engine_runs_log_path>'));print([r for r in d if r.get('date')=='2026-11-27'])\"",
-        "purpose": "只读查看 11-27 各计划点运行记录与报错信息，确认漏跑是未触发还是执行失败"
+        "command": "curl -s https://api.github.com/repos/SuolunPro/suolunpro.github.io/actions/runs/46114984983",
+        "purpose": "确认 Site module safety 失败原因是否与预测数据格式/模块校验相关"
       },
       {
-        "command": "git log --oneline -20 -- .github/workflows/",
-        "purpose": "只读查看工作流配置近期变更，确认 engine4-settlement.yml 等是否被停用或改名"
+        "command": "git log --since=2026-11-26 --until=2026-11-28 --oneline",
+        "purpose": "只读查看近两日提交，判断是否有改动触发构建与结算异常"
       },
       {
-        "command": "python -c \"import json;d=json.load(open('<settlement_state_path>'));print([m for m in d if m.get('day')=='2026-11-27' and m.get('status')=='pending'])\"",
-        "purpose": "只读列出 11-27 两场未结算比赛的 ID 与状态，确认卡在赛果核验还是结算写入"
+        "command": "python -c \"import json;d=json.load(open('settlement_state.json'));print([m for m in d if m.get('day')=='2026-11-27'])\"",
+        "purpose": "只读列出 11-27 两场未结算比赛的赛果字段是否为空，区分数据缺失与结算未触发"
       }
     ],
     "suggested_fix": {
-      "action": "先只读核对 11-27 两场未结算比赛的赛果数据是否已入库；若赛果缺失，人工补录赛果后手动触发一次结算核验流程；若赛果已存在，则排查结算任务报错并人工重跑该日结算。",
+      "action": "人工核查 11-27 两场未结算比赛的赛果数据是否已入库；若数据齐全，手动触发一次结算/核验工作流（由有权限人员执行），并检查 engine4-settlement.yml 等已退役工作流是否被误停用导致计划点漏跑",
       "risk": "medium",
       "needs_approval": true
     },
-    "customer_impact": "11-27 两场比赛的会员派奖与积分结算延迟超过 21 小时，相关会员可能看到未结算注单；预测引擎计划点漏跑可能使后续场次预测缺失，影响网站预测展示与投注体验。",
+    "customer_impact": "11-27 两场比赛的会员结算与积分/战绩更新延迟超过 21 小时，相关会员可能看到未结算状态；网站预测页面因构建失败可能未更新最新预测内容。",
     "escalate": true
   },
   "budget": {
     "month": "2026-11",
     "cap_cny": 10.0,
-    "spent_cny": 1.32351,
-    "remaining_cny": 8.67649,
-    "calls": 206,
+    "spent_cny": 1.330822,
+    "remaining_cny": 8.669178,
+    "calls": 207,
     "exhausted": false,
-    "used_pct": 13.24
+    "used_pct": 13.31
   },
   "usage": {
-    "prompt_tokens": 620,
-    "completion_tokens": 715,
-    "total_tokens": 1335,
+    "prompt_tokens": 936,
+    "completion_tokens": 680,
+    "total_tokens": 1616,
     "prompt_tokens_details": {
       "cached_tokens": 128
     },
     "prompt_cache_hit_tokens": 128,
-    "prompt_cache_miss_tokens": 492
+    "prompt_cache_miss_tokens": 808
   },
-  "cost_cny": 0.00696
+  "cost_cny": 0.007312
 }
