@@ -42,6 +42,7 @@ jobs:
         env:
           # 只读补偿回执及私人额度审计。
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
         run: |
           python ops/inspector.py \
             --config config/ops.json \
