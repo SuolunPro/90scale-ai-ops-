@@ -21,32 +21,86 @@ from ops import budget, checks  # noqa: E402
 from ops import common as C  # noqa: E402
 
 
+def beijing(value):
+    date = C.parse_ts(value)
+    return date.astimezone(C.BJ).strftime("%Y-%m-%d %H:%M:%S") if date else "未知"
+
+
 def build_markdown(doc: dict) -> str:
     lines = [
-        f"## 九十刻度 AI 运维巡检 — {doc['verdict']}",
+        f"# 九十刻度4.0 AI运维日报｜{doc.get('beijing_time') or beijing(doc['generated_at'])} 北京时间",
         "",
-        f"- 时间：{doc['generated_at']}",
-        f"- 销售窗口内：{'是' if doc['in_sale_window'] else '否'}",
-        f"- 失败项：{', '.join(doc['failed']) or '无'}",
-        f"- 预警项：{', '.join(doc['warned']) or '无'}",
-        f"- 本月 AI 预算：已用 {doc['budget']['spent_cny']:.4f} / {doc['budget']['cap_cny']:.2f} 元"
-        f"（剩余 {doc['budget']['remaining_cny']:.4f} 元，调用 {doc['budget']['calls']} 次）",
+        f"**{doc['verdict']}** · 当前故障 {'、'.join(doc['failed']) or '无明确故障'} · 风险 {'、'.join(doc['warned']) or '无'}",
         "",
-        "| 状态 | 检查 | 说明 |",
-        "| --- | --- | --- |",
+        "| 项目 | 状态 | 最新证据时间（北京时间） | 结果 |",
+        "| --- | --- | --- | --- |",
     ]
-    label = {"ok": "OK", "warn": "WARN", "fail": "FAIL", "skip": "SKIP"}
-    for c in doc["checks"]:
-        detail = str(c.get("detail", "")).replace("|", "\\|")
-        lines.append(f"| {label.get(c['status'], c['status'])} | {c['title']} | {detail} |")
-    probes = next((c for c in doc["checks"] if c["id"] == "sources"), None)
-    if probes and probes.get("probes"):
-        lines += ["", "### 采集链路", "", "| 渠道 | 状态 | HTTP | 体积 | 耗时 |", "| --- | --- | --- | --- | --- |"]
-        for p in probes["probes"]:
-            lines.append(
-                f"| {p.get('name')} | {p.get('status')} | {p.get('http', '-')} | "
-                f"{p.get('bytes', '-')} | {p.get('elapsed_ms', '-')}ms |")
+    for check in doc["checks"]:
+        detail = str(check["detail"]).replace("|", "\\|")
+        when = beijing(check.get("receipt_at") or check.get("checked_at") or check.get("generated_at"))
+        link = f" [证据]({check['link']})" if check.get("link") else ""
+        lines.append(f"| {check['title']} | {check['status']} | {when} | {detail}{link} |")
+
+    for check in doc["checks"]:
+        if check.get("coverage"):
+            lines += ["", "## 逐场覆盖", "", "| 字段 | 可用 / 总数 | 缺失 | 陈旧 | 身份冲突 | 待核验或无效 |",
+                      "| --- | --- | --- | --- | --- | --- |"]
+            for name, bucket in check["coverage"].items():
+                hits = len(bucket.get("available", []))
+                total = sum(map(len, bucket.values()))
+                unverified = len(bucket.get("unverified", [])) + len(bucket.get("invalid", []))
+                lines.append(f"| {name} | {hits}/{total} ({hits/total:.1%}) | {len(bucket.get('missing', []))} | "
+                             f"{len(bucket.get('stale', []))} | {len(bucket.get('match_failed', []))} | {unverified} |")
+            bf = check["coverage"].get("必发指数", {})
+            gaps = [f"{name} {'、'.join(bf[name])}" for name in ("missing", "unverified", "invalid", "stale") if bf.get(name)]
+            if gaps:
+                lines += ["", "必发赛号（销售日 / 编号）", "", *["- " + gap for gap in gaps]]
+        if check.get("probes"):
+            lines += ["", "## 上游端点探测", ""]
+            lines += [f"- {p['name']} · HTTP {p['http']} · {p['elapsed_ms']} ms" for p in check["probes"]]
+
+    recovery = next((c.get("recovery") for c in doc["checks"] if c["id"] == "self_heal"), None)
+    if recovery:
+        for key, label in (("recovered", "已取得发布证据"), ("unverified", "仍待复验")):
+            for item in recovery.get(key, []):
+                run_id = item["audit_id"]
+                runs_url = f"https://github.com/SuolunPro/suolunpro.github.io/actions/runs/{run_id}"
+                lines += ["", f"- {label} · 回执 {run_id} · 目前正式站快照 {beijing(item['published_at'])}。 [公开审计]({runs_url})"]
+    ledger = doc["budget"]
+    if ledger.get("exists"):
+        lines += ["", f"DeepSeek 账本估算 · 当日 ¥{ledger['today_cny']:.6f}（{ledger['today_calls']} 次）"
+                  f" · 当月 ¥{ledger['spent_cny']:.6f}（{ledger['calls']} 次）"
+                  f" · 内部预算 ¥{ledger['cap_cny']:.2f}。账本记录截至 {beijing(ledger.get('updated_at'))}。"]
+    else:
+        lines += ["", "DeepSeek 账本估算 · 当前账本不可读，费用待核实。"]
     return "\n".join(lines) + "\n"
+
+
+def build_status(cfg, now, root, only=None, current_ledger=None):
+    results = checks.run_all(cfg, now=now, only=only, root=root)
+    failed = [c["id"] for c in results if c["status"] == "FAIL"]
+    warned = [c["id"] for c in results if c["status"] == "WARN"]
+    ledger = current_ledger if current_ledger is not None else C.load_json(budget.ledger_path(root, now))
+    entries = (ledger or {}).get("entries", [])
+    today = [e for e in entries if (ts := C.parse_ts(e.get("at")))
+             and ts.astimezone(C.BJ).date() == now.astimezone(C.BJ).date()]
+    estimate = budget.summary(ledger or budget.load_ledger(root, now), cfg["budget"]["cap_cny"])
+    estimate.update(exists=isinstance(ledger, dict), today_calls=len(today),
+                    today_cny=budget.spent({"entries": today}),
+                    updated_at=max((e.get("at") for e in entries if e.get("at")), default=None))
+    sale = next((c.get("sale_state") for c in results if c["id"] == "engine_fresh"), None)
+    return {
+        "schema": 2, "generated_at": C.iso(now),
+        "beijing_time": beijing(C.iso(now)), "production_repo": cfg["site_repo"],
+        "sale_state": sale or "UNKNOWN", "in_sale_window": {"OPEN": True, "CLOSED": False}.get(sale),
+        "verdict": C.verdict_of(results),
+        "fingerprint": ",".join(f"{c['id']}={c['status']}" for c in results),
+        "signature": ",".join(sorted(failed)) or ",".join(sorted(warned)) or "PASS",
+        "failed": failed, "warned": warned, "checks": results, "budget": estimate,
+        "runner": {"host": platform.node(), "python": platform.python_version(),
+                   "ci": os.getenv("GITHUB_ACTIONS") == "true", "run_id": os.getenv("GITHUB_RUN_ID", ""),
+                   "repo": os.getenv("GITHUB_REPOSITORY", "")},
+    }
 
 
 def main(argv=None) -> int:
@@ -65,36 +119,10 @@ def main(argv=None) -> int:
         print(f"FATAL: cannot read config {args.config}", file=sys.stderr)
         return 2
 
-    now = C.now_utc()
     only = [s for s in args.only.split(",") if s] or None
-    results = checks.run_all(cfg, now=now, only=only)
-    verdict = C.verdict_of(results)
-    failed = [c["id"] for c in results if c["status"] == "fail"]
-    warned = [c["id"] for c in results if c["status"] == "warn"]
-
-    ledger = budget.load_ledger(args.root, now)
-    bsum = budget.summary(ledger, cfg["budget"]["cap_cny"])
-
-    doc = {
-        "schema": 1,
-        "generated_at": C.iso(now),
-        "beijing_time": now.astimezone(C.BJ).strftime("%Y-%m-%d %H:%M:%S"),
-        "in_sale_window": C.in_sale_window(now),
-        "verdict": verdict,
-        "fingerprint": ",".join(f"{c['id']}={c['status']}" for c in results),
-        "signature": ",".join(sorted(failed)) or ",".join(sorted(warned)) or "OK",
-        "failed": failed,
-        "warned": warned,
-        "checks": results,
-        "budget": bsum,
-        "runner": {
-            "host": platform.node(),
-            "python": platform.python_version(),
-            "ci": os.getenv("GITHUB_ACTIONS") == "true",
-            "run_id": os.getenv("GITHUB_RUN_ID", ""),
-            "repo": os.getenv("GITHUB_REPOSITORY", ""),
-        },
-    }
+    doc = build_status(cfg, C.now_utc(), args.root, only)
+    verdict = doc["verdict"]
+    failed = doc["failed"]
 
     C.dump_json(os.path.join(args.root, args.out), doc)
     md = build_markdown(doc)

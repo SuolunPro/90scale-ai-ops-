@@ -46,12 +46,6 @@ def age_min(ts: dt.datetime | None, ref: dt.datetime | None = None) -> float | N
     return round(((ref or now_utc()) - ts).total_seconds() / 60.0, 1)
 
 
-def in_sale_window(now: dt.datetime | None = None) -> bool:
-    """Sale/prediction window in Beijing time: 09:00-22:45."""
-    bj = (now or now_utc()).astimezone(BJ)
-    return (9, 0) <= (bj.hour, bj.minute) <= (22, 45)
-
-
 # ---------------------------------------------------------------- http helpers
 def http_get(url: str, timeout: float = 20.0, retries: int = 2, headers: dict | None = None) -> dict:
     """GET a URL with retries; never raises. Returns a result dict."""
@@ -155,11 +149,8 @@ def result(check_id: str, title: str, status: str, severity: str, detail: str, *
 
 
 def verdict_of(checks: list) -> str:
-    codes = {c["status"] for c in checks}
-    if "fail" in codes:
-        return "FAIL"
-    if "warn" in codes:
-        return "WARN"
-    if "ok" in codes:
-        return "OK"
+    codes = {c["status"].upper() for c in checks}
+    for status in ("FAIL", "WARN", "UNKNOWN", "RECOVERED", "PASS", "RETIRED", "SKIP"):
+        if status in codes:
+            return status
     return "UNKNOWN"

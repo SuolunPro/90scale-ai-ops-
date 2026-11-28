@@ -40,7 +40,7 @@ from ops import common as C  # noqa: E402
 CONFIRM_PHRASE = "YES-I-APPROVE"
 CLASS_OPERATIONAL = "operational"
 CLASS_CODE = "code"
-EXECUTABLE = {"dispatch_engine4", "dispatch_site_sync", "rerun_failed_run"}
+EXECUTABLE = {"dispatch_public_audit"}
 
 
 # --------------------------------------------------------------------- config
@@ -72,7 +72,7 @@ def check_preconditions(plan: dict, status_doc: dict | None) -> list[str]:
         return []
     if not isinstance(status_doc, dict):
         return ["缺少巡检状态文件，无法核对前置条件"]
-    got = {c.get("id"): c.get("status") for c in status_doc.get("checks", [])}
+    got = {c.get("id"): str(c.get("status")).upper() for c in status_doc.get("checks", [])}
     problems = []
     for check_id, allowed in need.items():
         actual = got.get(check_id)
@@ -151,18 +151,12 @@ def execute(cfg: dict, plan: dict, token: str, run_id: int = 0) -> dict:
     if action == "none":
         return {"action": action, "ok": True, "skipped": True,
                 "note": "该计划仅要求报告，不执行任何动作"}
-    if action == "dispatch_engine4":
-        code, _ = _api("POST", f"/repos/{site}/actions/workflows/build-engine4.yml/dispatches",
+    if action == "dispatch_public_audit" and site == "SuolunPro/suolunpro.github.io":
+        workflow = "public-refresh-audit.yml"
+        code, _ = _api("POST", f"/repos/{site}/actions/workflows/{workflow}/dispatches",
                        token, {"ref": "main"})
-        return {"action": action, "repo": site, "http": code, "ok": code in (201, 204)}
-    if action == "dispatch_site_sync":
-        code, _ = _api("POST", f"/repos/{site}/actions/workflows/sync-engine4.yml/dispatches", token, {"ref": "main"})
-        return {"action": action, "repo": site, "http": code, "ok": code in (201, 204)}
-    if action == "rerun_failed_run":
-        if not run_id:
-            return {"action": action, "ok": False, "error": "缺少 run_id"}
-        code, _ = _api("POST", f"/repos/{site}/actions/runs/{run_id}/rerun", token, {})
-        return {"action": action, "run_id": run_id, "http": code, "ok": code in (201, 204)}
+        return {"action": action, "repo": site, "http": code, "ok": code in (200, 201, 204),
+                "verification": "UNKNOWN", "note": "派发回执需用公开审计和正式站产物核验"}
     return {"action": action, "ok": False, "error": "unsupported"}
 
 

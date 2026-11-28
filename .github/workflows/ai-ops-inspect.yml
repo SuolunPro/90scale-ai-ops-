@@ -9,12 +9,6 @@ on:
   repository_dispatch:
     types: [external_tick]
   workflow_dispatch:
-    inputs:
-      force_triage:
-        description: '强制跑一次 AI 诊断（用于验证预算记账，会消耗约 0.007 元）'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write   # only to persist state/budget + triage result in THIS repo
@@ -46,9 +40,8 @@ jobs:
         id: check
         if: steps.dedupe.outputs.skip != 'true'
         env:
-          # 可选：只读私人引擎 Actions 记录，用于 engine_runs 检查；没有则该项 SKIP
+          # 只读补偿回执及私人额度审计。
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
-          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
         run: |
           python ops/inspector.py \
             --config config/ops.json \
@@ -68,39 +61,10 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  recover_engine:
-    name: 漏跑自动恢复（球来了在售闸门）
-    needs: inspect
-    if: ${{ always() && needs.inspect.result == 'success' && (needs.inspect.outputs.verdict == 'WARN' || needs.inspect.outputs.verdict == 'FAIL') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 6
-    concurrency:
-      group: 90scale-engine-recovery
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: 自动检查漏跑并按安全条件补跑
-        env:
-          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -o pipefail
-          python ops/watchdog.py --config config/ops.json --auto | tee watchdog.out
-          {
-            echo "## DeepSeek巡检联动：主引擎自动恢复"
-            echo '至多补触发一次；球来了未核实在售则拒绝。'
-            echo '```'
-            tail -c 3500 watchdog.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
   triage:
     name: DeepSeek 诊断（仅异常）
     needs: inspect
-    if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN' || inputs.force_triage
+    if: needs.inspect.outputs.verdict == 'FAIL' || needs.inspect.outputs.verdict == 'WARN'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     # 预算锁：跨工作流串行化所有 AI 调用，避免并发写账本互相覆盖
@@ -122,11 +86,8 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ inputs.force_triage }}" = "true" ]; then
-            python ops/triage.py --config config/ops.json --status state/latest.json --force | tee triage.out
-          else
-            python ops/triage.py --config config/ops.json --status state/latest.json | tee triage.out
-          fi
+          set -o pipefail
+          python ops/triage.py --config config/ops.json --status state/latest.json | tee triage.out
           {
             echo "## AI 诊断结果"
             echo ''
