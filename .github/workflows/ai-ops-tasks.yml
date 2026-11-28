@@ -33,6 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
           REQUEUE: ${{ inputs.requeue }}
         run: |
           if [ -n "$REQUEUE" ]; then

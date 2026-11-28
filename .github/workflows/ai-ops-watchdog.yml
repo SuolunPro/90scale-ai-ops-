@@ -18,6 +18,7 @@ jobs:
       - name: 复验公开自愈回执与正式站快照
         env:
           ENGINE4_READ_TOKEN: ${{ secrets.ENGINE4_READ_TOKEN }}
+          ENGINE4_REPAIR_TOKEN: ${{ secrets.ENGINE4_REPAIR_TOKEN }}
         run: |
           set -o pipefail
           python ops/watchdog.py | tee -a "$GITHUB_STEP_SUMMARY"

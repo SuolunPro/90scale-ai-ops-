@@ -134,7 +134,7 @@ def quote_state(pair, captured, now, kickoff, *, asian=False, open_for_refresh=T
     return "available"
 
 
-def fixture_sources(row, now, matching_failure=False, cutoff=None):
+def fixture_sources(row, now, matching_failure=False, cutoff=None, identity_verified=False):
     market = row.get("market") or {}
     betfair = row.get("bifa") or {}
     xg = row.get("fotmob_xg") or {}
@@ -169,7 +169,7 @@ def fixture_sources(row, now, matching_failure=False, cutoff=None):
                            "match_failed" if "匹配" in xg_reason or "映射" in xg_reason else "missing"),
         "FotMob xG": ("available" if xg.get("status") == "AVAILABLE"
                       and numbers([xg.get("home_lambda"), xg.get("away_lambda")], length=2) else "missing"),
-        "赛事身份核验": "match_failed" if matching_failure else "available" if row.get("source_id") else "unverified",
+        "赛事身份核验": "match_failed" if matching_failure else "available" if identity_verified else "unverified",
     }
 
 
@@ -254,7 +254,8 @@ def audit(cfg, now, root="."):
 
     day = now.astimezone(C.BJ).date()
     start = now.astimezone(C.BJ).replace(hour=0, minute=0, second=0, microsecond=0)
-    token = os.getenv("ENGINE4_READ_TOKEN")
+    tokens = tuple(dict.fromkeys(token for name in ("ENGINE4_READ_TOKEN", "ENGINE4_REPAIR_TOKEN")
+                                 if (token := os.getenv(name))))
     private = cfg["private_audit_repo"]
     site = cfg["site"]
     raw_at = C.iso(now)
@@ -271,7 +272,22 @@ def audit(cfg, now, root="."):
         staging = {name: pool.submit(published_result_evidence, name.split("/")[-1])
                    for name in paths[1:-1]}
         run_requests = {name: pool.submit(runs, PUBLIC, name, start) for name in (WRITER, AUDIT, SETTLEMENT)}
-        private_runs = pool.submit(runs, private, None, start, token) if token else None
+        def private_run_history():
+            for token in tokens:
+                rows = runs(private, None, start, token)
+                if rows is not None:
+                    return rows
+            return None
+
+        def fetch_receipt(run):
+            path = f"diagnostics/engine4-refresh/{run['id']}-{run.get('run_attempt', 1)}.json"
+            for token in tokens:
+                doc = C.as_json(raw(private, path, token=token))
+                if isinstance(doc, dict) and not doc.get("error") and str(doc.get("run_id")) == str(run["id"]):
+                    return doc
+            return None
+
+        private_runs = pool.submit(private_run_history)
         for name, req in requests.items():
             docs[name] = C.as_json(req.result()) or {}
         for name, req in run_requests.items():
@@ -289,11 +305,10 @@ def audit(cfg, now, root="."):
         audit_runs = [r for r in (runs_by[AUDIT] or []) if r.get("conclusion") == "success"]
         ordered = sorted(audit_runs, key=lambda r: r["created_at"], reverse=True)[:12]
         receipts = []
-        if token:
-            incoming = [pool.submit(raw, private, f"diagnostics/engine4-refresh/{r['id']}-{r.get('run_attempt', 1)}.json",
-                                    token=token) for r in ordered]
-            receipts = [d for f in incoming if (d := C.as_json(f.result())) and not d.get("error")]
-        residual = private_runs.result() if private_runs else None
+        if tokens:
+            incoming = [pool.submit(fetch_receipt, run) for run in ordered]
+            receipts = [doc for future in incoming if (doc := future.result())]
+        residual = private_runs.result()
         result_evidence = {name: future.result() for name, future in staging.items()}
         intelligence = C.as_json(intelligence_request.result()) or {}
 
@@ -362,12 +377,15 @@ def audit(cfg, now, root="."):
 
     rejections = {str(r.get("number")) for r in source.get("rejections", []) if r.get("reason") == "IDENTITY_CONFLICT"}
     coverage = {}
-    proven_cutoffs = {}
+    proven_cutoffs, proof_identities = {}, {}
     for proof in receipts:
         receipt_day = (proof.get("integrity") or {}).get("sale_day")
-        for item in (proof.get("verified_live") or {}).values():
+        for source_id, item in (proof.get("verified_live") or {}).items():
             if len(item) >= 5 and (cutoff := C.parse_ts(item[4])):
-                proven_cutoffs.setdefault((receipt_day, str(item[0])), cutoff)
+                key = (receipt_day, str(item[0]))
+                proven_cutoffs.setdefault(key, cutoff)
+                if not str(source_id).startswith("sale-board:"):
+                    proof_identities.setdefault(key, (str(source_id), *item[1:4]))
     source_tables = {"latest": latest, **{name: doc for name, doc in docs.items()
                     if name in {f"sales/{day}", f"sales/{day + timedelta(days=1)}"}
                     and doc.get("sale_day") != latest.get("sale_day")}}
@@ -375,10 +393,14 @@ def audit(cfg, now, root="."):
         for row in doc.get("matches", []):
             fixture = f"{doc['sale_day']} / {row.get('match_no')}"
             number = str(row.get("match_no"))
-            cutoff = proven_cutoffs.get((doc["sale_day"], number))
+            key = (doc["sale_day"], number)
+            cutoff = proven_cutoffs.get(key)
+            known_identity = proof_identities.get(key)
+            actual_identity = (str(row.get("source_id")), row.get("home"), row.get("away"), str(row.get("kickoff", ""))[:16])
             freshness_row = {**row, "sale_day": row.get("sale_day") or doc["sale_day"]}
             for field, state in fixture_sources(freshness_row, now,
-                                               name == "latest" and number in rejections, cutoff).items():
+                                               name == "latest" and number in rejections, cutoff,
+                                               identity_verified=known_identity == actual_identity).items():
                 coverage.setdefault(field, {}).setdefault(state, []).append(fixture)
     bf = coverage.get("必发指数", {})
     src_state = ("FAIL" if latest_n and not (bf.get("available") or bf.get("stale"))
